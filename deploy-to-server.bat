@@ -64,7 +64,7 @@ echo [4/6] Clonando/Actualizando repositorio...
 echo.
 echo NOTA: Se pediran las credenciales de GitHub en el servidor:
 echo   Usuario: github@deliciasdebelen.com
-echo   Password: Carmal2025
+echo   Password: C4rm4l2025
 echo.
 ssh %SERVER_USER%@%SERVER_IP% "cd ~/apps && if [ -d production-report ]; then cd production-report && git pull; else git clone %REPO_URL%; fi"
 if %errorlevel% neq 0 (

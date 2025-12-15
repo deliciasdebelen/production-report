@@ -5,7 +5,7 @@
 1. Abre tu navegador y ve a: https://github.com/new
 2. Inicia sesión con:
    - **Usuario**: github@deliciasdebelen.com
-   - **Contraseña**: Carmal2025
+   - **Contraseña**: C4rm4l2025
 
 3. Configura el repositorio:
    - **Repository name**: `production-report`
@@ -34,7 +34,7 @@ git push -u origin main
 
 Cuando Git pida credenciales:
 - **Username**: github@deliciasdebelen.com
-- **Password**: Carmal2025
+- **Password**: C4rm4l2025
 
 ## Paso 3: Verificar
 

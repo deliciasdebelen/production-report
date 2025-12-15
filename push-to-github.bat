@@ -46,7 +46,7 @@ echo [3/4] Haciendo push a GitHub...
 echo.
 echo NOTA: Se te pediran las credenciales de GitHub:
 echo   Usuario: github@deliciasdebelen.com
-echo   Password: Carmal2025
+echo   Password: C4rm4l2025
 echo.
 pause
 
