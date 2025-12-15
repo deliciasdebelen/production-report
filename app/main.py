@@ -152,6 +152,111 @@ async def preview_data(
     data = query.limit(100).all()
     return data
 
+@app.get("/maintenance/report/print", response_class=HTMLResponse)
+async def print_report(
+    request: Request,
+    type: str,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_active_user)
+):
+    # Authorization Logic
+    allowed = False
+    if user.role == 4: # Admin sees all
+        allowed = True
+    elif type == "planning" and user.role == 3: # Plan sees Plan
+        allowed = True
+    elif type == "production" and user.role == 2: # Prod sees Prod
+        allowed = True
+    
+    if not allowed:
+        return templates.TemplateResponse("403.html", {"request": request, "user": user})
+
+    rows = []
+    columns = []
+    title = ""
+    
+    # 1. USERS REPORT
+    if type == "users":
+        title = "Reporte de Usuarios del Sistema"
+        users_list = db.query(models.User).all()
+        columns = ["ID", "Usuario", "Rol", "Hash (Parcial)"]
+        
+        role_map = {1: "KPI (Lectura)", 2: "Producción", 3: "Planificación", 4: "Administrador"}
+        
+        for u in users_list:
+            r_name = role_map.get(u.role, "Desconocido")
+            rows.append([u.id, u.username, r_name, u.password_hash[:10] + "..."])
+
+    # 2. PLANNING REPORT
+    elif type == "planning":
+        title = "Reporte de Planificación de Producción"
+        columns = ["ID", "Fecha Planificada", "Fecha Asignación", "Artículo", "Batches", "Kg Plan", "Unidades"]
+        
+        query = db.query(models.ProductionPlanning)
+        if start_date: query = query.filter(models.ProductionPlanning.date >= start_date)
+        if end_date: query = query.filter(models.ProductionPlanning.date <= end_date)
+        
+        results = query.order_by(models.ProductionPlanning.date.desc()).all()
+        
+        for p in results:
+            rows.append([
+                p.id,
+                p.date,
+                p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "-",
+                f"{p.article} - {p.presentation}",
+                p.batches,
+                f"{p.kg:.2f}",
+                p.units
+            ])
+
+    # 3. PRODUCTION REPORT
+    elif type == "production":
+        title = "Reporte de Producción Ejecutada"
+        columns = ["ID", "Fecha Registro", "Artículo", "Presentación", "Batches", "Kg Prod", "Unidades", "Cajas", "Mermas (Und)"]
+        
+        query = db.query(models.ProductionReport)
+        
+        # Datetime filtering logic
+        if start_date:
+            try:
+                sd = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(models.ProductionReport.created_at >= sd)
+            except: pass
+        
+        if end_date:
+            try:
+                ed = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+                ed_end = datetime.datetime.combine(ed, datetime.time.max)
+                query = query.filter(models.ProductionReport.created_at <= ed_end)
+            except: pass
+            
+        results = query.order_by(models.ProductionReport.created_at.desc()).all()
+        
+        for r in results:
+            waste = (r.pt_burned or 0) + (r.pt_lab or 0)
+            rows.append([
+                r.id,
+                r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-",
+                r.article_type,
+                r.presentation,
+                r.batch_qty,
+                f"{r.kg_produced:.2f}",
+                r.pt_units,
+                r.boxes,
+                waste
+            ])
+
+    return templates.TemplateResponse("print_report.html", {
+        "request": request,
+        "title": title,
+        "columns": columns,
+        "rows": rows,
+        "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "date_range": f"{start_date or 'Inicio'} al {end_date or 'Fin'}" if (start_date or end_date) else "Periodo Completo"
+    })
+
 @app.post("/maintenance/data/delete")
 async def delete_data(
     table: str = Form(...), 

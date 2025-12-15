@@ -40,7 +40,11 @@
     </div>
 
     <div class="card">
-        <h3>Lista de Usuarios</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+            <h3 style="margin:0;">Lista de Usuarios</h3>
+            <button onclick="window.open('/maintenance/report/print?type=users', '_blank')" class="btn"
+                style="background:var(--primary);">🖨 Imprimir Lista</button>
+        </div>
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="border-bottom: 2px solid var(--border); text-align: left;">
@@ -127,57 +131,115 @@
                         <input type="date" id="planEnd">
                     </div>
                 </div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button type="button" class="btn" style="background: var(--primary);"
-                        onclick="previewData('planning')">Ver Datos</button>
-
-                    <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
-                        style="flex:1;">
-                        <input type="hidden" name="table" value="planning">
-                        <input type="hidden" name="action" value="all">
-                        <input type="hidden" name="start_date" id="formPlanStart">
-                        <input type="hidden" name="end_date" id="formPlanEnd">
-                        <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR</button>
-                    </form>
-                </div>
             </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button type="button" class="btn" style="background: var(--primary);"
+                    onclick="previewData('planning')">Ver Datos</button>
 
-            <!-- Production Data Control (Limited date filtering support in backend for now) -->
-            <div style="flex: 1; border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
-                <h4>Reportes de Producción</h4>
-                <p>Borrado total (Filtro por fecha no disponible aun).</p>
-                <div style="display: flex; gap: 0.5rem; margin-top: 5.5rem;">
-                    <button type="button" class="btn" style="background: var(--primary);"
-                        onclick="previewData('production')">Ver Datos</button>
+                <button type="button" class="btn" style="background: #6c757d;" onclick="printReport('planning')">🖨
+                    Imprimir</button>
 
-                    <form action="/maintenance/data/delete" method="post"
-                        onsubmit="return confirm('¿ESTÁ SEGURO? Se borrarán TODOS los reportes de producción.');"
-                        style="flex:1;">
-                        <input type="hidden" name="table" value="production">
-                        <input type="hidden" name="action" value="all">
-                        <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR
-                            TODO</button>
-                    </form>
-                </div>
+                <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
+                    style="flex:1;">
+                    <input type="hidden" name="table" value="planning">
+                    <input type="hidden" name="action" value="all">
+                    <input type="hidden" name="start_date" id="formPlanStart">
+                    <input type="hidden" name="end_date" id="formPlanEnd">
+                    <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR</button>
+                </form>
             </div>
         </div>
 
-        <!-- Preview Area -->
-        <div id="previewContainer" style="margin-top: 2rem; display: none;">
-            <h4>Previsualización de Datos</h4>
-            <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;" id="previewTable">
-                    <thead>
-                        <!-- Populated by JS -->
-                    </thead>
-                    <tbody></tbody>
-                </table>
+        <!-- Production Data Control -->
+        <div style="flex: 1; border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
+            <h4>Reportes de Producción</h4>
+            <div class="grid-2">
+                <div class="form-group">
+                    <label>Desde</label>
+                    <input type="date" id="prodStart">
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <input type="date" id="prodEnd">
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <button type="button" class="btn" style="background: var(--primary);"
+                    onclick="previewData('production')">Ver Datos</button>
+
+                <button type="button" class="btn" style="background: #6c757d;" onclick="printReport('production')">🖨
+                    Imprimir</button>
+
+                <form action="/maintenance/data/delete" method="post"
+                    onsubmit="return confirm('¿ESTÁ SEGURO? Se borrarán TODOS los reportes de producción (Filtros no aplican a borrado aun).');"
+                    style="flex:1;">
+                    <input type="hidden" name="table" value="production">
+                    <input type="hidden" name="action" value="all">
+                    <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR
+                        TODO</button>
+                </form>
             </div>
         </div>
     </div>
+
+    <!-- Preview Area -->
+    <div id="previewContainer" style="margin-top: 2rem; display: none;">
+        <h4>Previsualización de Datos</h4>
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;" id="previewTable">
+                <thead>
+                    <!-- Populated by JS -->
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 </div>
 
 <script>
+    // Init Dates
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+        const ps = document.getElementById('planStart');
+        const pe = document.getElementById('planEnd');
+        if (ps) ps.value = today;
+        if (pe) pe.value = today;
+
+        function valMaint() {
+            if (ps.value > pe.value) {
+                alert("Fecha inválida");
+                pe.value = ps.value;
+            }
+        }
+        if (ps) ps.addEventListener('change', valMaint);
+        if (pe) pe.addEventListener('change', valMaint);
+
+        // Init Production Dates too
+        const prs = document.getElementById('prodStart');
+        const pre = document.getElementById('prodEnd');
+        if (prs) prs.value = today;
+        if (pre) pre.value = today;
+    });
+
+    function printReport(table) {
+        let url = `/maintenance/report/print?type=${table}`;
+        let s = '', e = '';
+
+        if (table === 'planning') {
+            s = document.getElementById('planStart').value;
+            e = document.getElementById('planEnd').value;
+        } else if (table === 'production') {
+            s = document.getElementById('prodStart').value;
+            e = document.getElementById('prodEnd').value;
+        }
+
+        if (s) url += `&start_date=${s}`;
+        if (e) url += `&end_date=${e}`;
+
+        window.open(url, '_blank');
+    }
+
     function showTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
         document.getElementById(tabId).style.display = 'block';

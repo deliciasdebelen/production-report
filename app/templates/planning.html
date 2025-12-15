@@ -55,9 +55,17 @@
             </div>
         </div>
 
-        <button type="submit" class="btn">Guardar Planificación</button>
+        <div style="display: flex; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+            <button type="submit" class="btn"
+                style="background-color: #017e84; color: white; border: 1px solid #017e84; padding: 6px 12px; font-weight: 500; font-size: 0.9rem; min-width: 80px;">Guardar</button>
+            <button type="button" onclick="window.open('/maintenance/report/print?type=planning', '_blank')" class="btn"
+                style="background: white; color: #444; border: 1px solid #ccc; padding: 6px 12px; font-weight: 500; font-size: 0.9rem;">
+                <span style="margin-right:5px">🖨</span> Imprimir
+            </button>
+        </div>
     </form>
 </div>
+
 
 <script>
     // Load Articles from Profit Plus
@@ -230,5 +238,7 @@
             }
         }
     });
+
+
 </script>
 {% endblock %}

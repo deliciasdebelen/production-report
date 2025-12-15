@@ -217,7 +217,24 @@
             $(this).css({ 'border-bottom': '2px solid var(--primary)', 'color': 'var(--primary)' });
         });
 
-        // Cargar almacenes
+        // Date Validation
+        const today = new Date().toISOString().split('T')[0];
+        const dStart = document.getElementById('fecha_desde');
+        const dEnd = document.getElementById('fecha_hasta');
+
+        if (dStart && !dStart.value) dStart.value = today;
+        if (dEnd && !dEnd.value) dEnd.value = today;
+
+        function validateTrasRules() {
+            if (dStart.value && dEnd.value && dStart.value > dEnd.value) {
+                alert("Fecha inválida: La fecha final no puede ser menor a la inicial.");
+                dEnd.value = dStart.value;
+            }
+        }
+
+        if (dStart) dStart.addEventListener('change', validateTrasRules);
+        if (dEnd) dEnd.addEventListener('change', validateTrasRules);
+
         cargarAlmacenes();
     });
 

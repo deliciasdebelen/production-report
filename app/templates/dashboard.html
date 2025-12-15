@@ -240,6 +240,29 @@
         loadDashboard();
     }
 
+    // Date Validation Logic
+    const today = new Date().toISOString().split('T')[0];
+    // First day of current month
+    const dateObj = new Date();
+    const firstDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString().split('T')[0];
+
+    const dateStart = document.getElementById('startDate');
+    const dateEnd = document.getElementById('endDate');
+
+    // Set default if empty (Month to Date)
+    if (!dateStart.value) dateStart.value = firstDay;
+    if (!dateEnd.value) dateEnd.value = today;
+
+    function validateDateRange() {
+        if (dateStart.value && dateEnd.value && dateStart.value > dateEnd.value) {
+            alert("Fecha inválida: La fecha final no puede ser menor a la inicial.");
+            dateEnd.value = dateStart.value;
+        }
+    }
+
+    dateStart.addEventListener('change', validateDateRange);
+    dateEnd.addEventListener('change', validateDateRange);
+
     loadDashboard();
 </script>
 {% endblock %}

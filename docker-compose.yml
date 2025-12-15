@@ -14,9 +14,9 @@ services:
       - ./production.db:/app/production.db
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=sqlite:///./production.db
+      - DATABASE_URL=sqlite:////app/data/production.db
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/login').read()"]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/login').read()" ]
       interval: 30s
       timeout: 10s
       retries: 3

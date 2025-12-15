@@ -75,11 +75,11 @@
         <div class="grid-2">
             <div class="form-group">
                 <label>Unidades Laboratorio</label>
-                <input type="number" name="pt_lab" value="0">
+                <input type="number" name="pt_lab" placeholder="0">
             </div>
             <div class="form-group">
                 <label>Unidades Quemadas</label>
-                <input type="number" name="pt_burned" value="0">
+                <input type="number" name="pt_burned" placeholder="0">
             </div>
         </div>
 
@@ -89,15 +89,15 @@
         <div class="grid-3">
             <div class="form-group">
                 <label>Envases Descartados</label>
-                <input type="number" name="mp_containers" value="0">
+                <input type="number" name="mp_containers" placeholder="0">
             </div>
             <div class="form-group">
                 <label>Tapas Limpias Desc.</label>
-                <input type="number" name="mp_caps_clean" value="0">
+                <input type="number" name="mp_caps_clean" placeholder="0">
             </div>
             <div class="form-group">
                 <label>Tapas Sucias Desc.</label>
-                <input type="number" name="mp_caps_dirty" value="0">
+                <input type="number" name="mp_caps_dirty" placeholder="0">
             </div>
         </div>
 
@@ -139,9 +139,18 @@
             <textarea name="notes" rows="3"></textarea>
         </div>
 
-        <button type="submit" class="btn">Guardar Reporte</button>
+        <div style="display: flex; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
+            <button type="submit" class="btn"
+                style="background-color: #017e84; color: white; border: 1px solid #017e84; padding: 6px 12px; font-weight: 500; font-size: 0.9rem; min-width: 80px;">Guardar</button>
+            <button type="button" onclick="window.open('/maintenance/report/print?type=production', '_blank')"
+                class="btn"
+                style="background: white; color: #444; border: 1px solid #ccc; padding: 6px 12px; font-weight: 500; font-size: 0.9rem;">
+                <span style="margin-right:5px">🖨</span> Imprimir
+            </button>
+        </div>
     </form>
 </div>
+
 
 <script>
     // ... (Existing loadArticles logic) ...
@@ -320,6 +329,12 @@
 
             data.batch_qty = parseInt(data.batch_qty) || 0;
             data.pt_units = parseInt(data.pt_units) || 0;
+            data.pt_lab = parseInt(data.pt_lab) || 0;
+            data.pt_burned = parseInt(data.pt_burned) || 0;
+
+            data.mp_containers = parseInt(data.mp_containers) || 0;
+            data.mp_caps_clean = parseInt(data.mp_caps_clean) || 0;
+            data.mp_caps_dirty = parseInt(data.mp_caps_dirty) || 0;
         } catch (err) {
             alert("Error en formato de números");
             return;
@@ -339,5 +354,7 @@
             alert('Error al guardar reporte: ' + JSON.stringify(err.detail));
         }
     });
+
+
 </script>
 {% endblock %}

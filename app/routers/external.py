@@ -49,6 +49,9 @@ def get_articles(db: Session = Depends(get_external_db)):
         return articles
     except Exception as e:
         print(f"Error fetching external articles: {e}")
-        # Return mock data if connection fails (for development safety if DB is unreachable)
-        # In production we might want to raise 500
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return mock data as fallback
+        return [
+            {"code": "ERR-001", "description": "ERROR CONEXION PROFIT - MODO OFFLINE", "unit": "UND", "box_equiv": 1.0},
+            {"code": "PT-MOCK1", "description": "ARTICULO PRUEBA 1", "unit": "UND", "box_equiv": 12.0},
+            {"code": "PT-MOCK2", "description": "ARTICULO PRUEBA 2", "unit": "KG", "box_equiv": 1.0},
+        ]
