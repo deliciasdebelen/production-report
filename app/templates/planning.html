@@ -1,0 +1,234 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Planificación de Producción</h1>
+
+<div class="card">
+    <form id="planningForm">
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" name="date" required>
+            </div>
+            <div class="form-group">
+                <label>Artículo</label>
+                <!-- Progressive Search Assistant -->
+                <div style="position: relative;">
+                    <input type="text" id="articleSearch" placeholder="Escriba para buscar..." autocomplete="off">
+                    <input type="hidden" name="article" id="articleHidden" required>
+                    <div id="articleResults"
+                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); border-top: none; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Presentación</label>
+                <!-- Changed to Input for Auto-Extraction -->
+                <input type="text" name="presentation" id="presentationInput" required placeholder="Ej: 600G">
+            </div>
+            <div class="form-group">
+                <label>Nro de Batches</label>
+                <input type="number" name="batches" required>
+            </div>
+        </div>
+
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Kg Por Batch</label>
+                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="Kg Estándar">
+            </div>
+            <div class="form-group">
+                <label>Kilogramos (Total)</label>
+                <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required
+                    style="background-color: #f8f9fa;">
+            </div>
+            <div class="form-group">
+                <label>Unidades</label>
+                <input type="number" name="units" id="unitsInput" required>
+            </div>
+            <div class="form-group">
+                <label>Nro de Cajas</label>
+                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required>
+            </div>
+        </div>
+
+        <button type="submit" class="btn">Guardar Planificación</button>
+    </form>
+</div>
+
+<script>
+    // Load Articles from Profit Plus
+    let articlesData = [];
+    async function loadArticles() {
+        const searchInput = document.getElementById('articleSearch');
+        try {
+            searchInput.placeholder = "Cargando artículos...";
+            const res = await fetch('/api/external/articles');
+            if (!res.ok) throw new Error('Error fetching articles');
+            articlesData = await res.json();
+            searchInput.placeholder = "Buscar artículo...";
+        } catch (e) {
+            console.error(e);
+            searchInput.placeholder = "Error conexión";
+        }
+    }
+
+    // Progressive Search Logic
+    const searchInput = document.getElementById('articleSearch');
+    const resultsDiv = document.getElementById('articleResults');
+    const hiddenInput = document.getElementById('articleHidden');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        if (term.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        const filtered = articlesData.filter(a =>
+            a.description.toLowerCase().includes(term) || a.code.toLowerCase().includes(term)
+        );
+
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '0.5rem';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #eee';
+                div.textContent = `${item.code} - ${item.description}`;
+                div.onmouseover = () => div.style.background = '#f1f1f1';
+                div.onmouseout = () => div.style.background = 'white';
+
+                div.onclick = () => {
+                    selectArticle(item);
+                };
+                resultsDiv.appendChild(div);
+            });
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    let currentBoxEquiv = 0;
+
+    function selectArticle(item) {
+        searchInput.value = item.description;
+        hiddenInput.value = item.description;
+        resultsDiv.style.display = 'none';
+
+        // Store equivalence
+        currentBoxEquiv = item.box_equiv || 0;
+
+        // Smart Extraction for Presentation
+        const regex = /(\d+(?:\.|,)?\d*\s*(?:g|kg|ml|l|cc|gr|lb|oz|ton)\b)/i;
+        const match = item.description.match(regex);
+
+        const presentationInput = document.getElementById('presentationInput');
+        if (match) {
+            presentationInput.value = match[1].replace(/\s+/g, '').toUpperCase();
+        } else {
+            presentationInput.value = "";
+        }
+
+        calculateUnits();
+    }
+
+    // Kg Calculator
+    const batchInput = document.querySelector('input[name="batches"]');
+    const kgPerBatchInput = document.getElementById('kgPerBatch');
+    const totalKgInput = document.getElementById('totalKgInput');
+
+    function parseLocaleFloat(val) {
+        if (!val) return 0;
+        // Replace comma with dot if present
+        return parseFloat(val.toString().replace(',', '.')) || 0;
+    }
+
+    function calculateTotalKg() {
+        const batches = parseFloat(batchInput.value) || 0;
+        const kgBatch = parseLocaleFloat(kgPerBatchInput.value);
+        if (batches > 0 && kgBatch > 0) {
+            totalKgInput.value = (batches * kgBatch).toFixed(2).replace('.', ','); // Display with comma for consistency?
+            // Actually standard HTML value usage prefers dot, but user expects comma. 
+            // Since we use type="text", we can show comma.
+        }
+    }
+
+    batchInput.addEventListener('input', calculateTotalKg);
+    kgPerBatchInput.addEventListener('input', calculateTotalKg);
+
+    // Calculation Logic: Bidirectional Boxes <-> Units
+    const boxesInput = document.getElementById('boxesInput');
+    const unitsInput = document.getElementById('unitsInput');
+
+    boxesInput.addEventListener('input', calculateUnits);
+
+    function calculateUnits() {
+        // Boxes -> Units
+        const boxes = parseLocaleFloat(boxesInput.value);
+        if (currentBoxEquiv > 0 && boxes > 0) {
+            unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
+        }
+    }
+
+    // Units -> Boxes (Reverse Calc)
+    unitsInput.addEventListener('input', () => {
+        const units = parseFloat(unitsInput.value) || 0;
+        if (currentBoxEquiv > 0) {
+            // Show with comma if user prefers?
+            // Let's use standard dot for value, but maybe the user keeps typing comma manually.
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    loadArticles();
+
+    document.getElementById('planningForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Sanitization
+        try {
+            data.kg = parseLocaleFloat(data.kg);
+            data.boxes = parseLocaleFloat(data.boxes);
+            data.batches = parseInt(data.batches) || 0;
+            data.units = parseInt(data.units) || 0;
+        } catch (err) {
+            alert("Error en formato de números");
+            return;
+        }
+
+        const response = await fetch('/api/planning', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert('Planificación guardada exitosamente');
+            e.target.reset();
+        } else {
+            const err = await response.json();
+            if (response.status === 403) {
+                alert('Error: ' + err.detail);
+            } else {
+                console.error(err);
+                alert('Error al guardar: ' + JSON.stringify(err.detail));
+            }
+        }
+    });
+</script>
+{% endblock %}

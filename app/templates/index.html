@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 3rem;">
+    <h1 style="font-size: 2.5rem; color: var(--primary); margin-bottom: 0.5rem;">Reporte de Producción</h1>
+    <p style="color: var(--text-muted); font-size: 1.1rem;">Sistema de gestión y planificación de producción inteligente
+    </p>
+</div>
+
+<div class="grid-2">
+    <a href="/dashboard" style="text-decoration: none;">
+        <div class="card" style="height: 100%; transition: transform 0.2s; cursor: pointer;">
+            <h2 style="color: var(--primary); margin-bottom: 0.5rem;">📊 Dashboard</h2>
+            <p style="color: var(--text-muted);">Visualice KPIs en tiempo real, cumplimiento de metas y rendimiento de
+                producción.</p>
+        </div>
+    </a>
+
+    <a href="/report" style="text-decoration: none;">
+        <div class="card" style="height: 100%; transition: transform 0.2s; cursor: pointer;">
+            <h2 style="color: var(--success); margin-bottom: 0.5rem;">📝 Reportar Producción</h2>
+            <p style="color: var(--text-muted);">Registre nuevos batches, consumo de materia prima y producto terminado.
+            </p>
+        </div>
+    </a>
+
+    <a href="/planning" style="text-decoration: none;">
+        <div class="card" style="height: 100%; transition: transform 0.2s; cursor: pointer;">
+            <h2 style="color: var(--warning); margin-bottom: 0.5rem;">📅 Planificación</h2>
+            <p style="color: var(--text-muted);">Defina metas de producción, fechas y cantidades a fabricar.</p>
+        </div>
+    </a>
+
+    <a href="/assistant" style="text-decoration: none;">
+        <div class="card" style="height: 100%; transition: transform 0.2s; cursor: pointer;">
+            <h2 style="color: var(--accent); margin-bottom: 0.5rem;">🤖 Asistente AI</h2>
+            <p style="color: var(--text-muted);">Obtenga análisis inteligentes y recomendaciones sobre su proceso
+                productivo.</p>
+        </div>
+    </a>
+</div>
+
+<style>
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+    }
+</style>
+{% endblock %}

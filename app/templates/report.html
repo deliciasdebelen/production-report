@@ -1,0 +1,343 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Reporte de Producción</h1>
+
+<div class="card">
+    <form id="productionForm">
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Cantidad de Batch</label>
+                <input type="number" name="batch_qty" required>
+            </div>
+            <div class="form-group">
+                <label>Fecha</label>
+                <input type="date" name="custom_created_at" value="{{ request.state.today }}" {% if user.role !=4
+                    %}disabled{% endif %}>
+                {% if user.role != 4 %}
+                <small style="color: var(--text-muted)">Automático</small>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Tipo de Artículo</label>
+                <!-- Progressive Search Assistant -->
+                <div style="position: relative;">
+                    <input type="text" id="articleSearch" placeholder="Escriba para buscar..." autocomplete="off">
+                    <input type="hidden" name="article_type" id="articleTypeHidden" required>
+                    <div id="articleResults"
+                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); border-top: none; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Presentación</label>
+                <input type="text" name="presentation" id="presentationInput" required placeholder="Ej: 600G">
+            </div>
+        </div>
+
+        <div class="grid-2">
+            <!-- Dynamic Field from Profit Plus -->
+            <div class="form-group">
+                <label>Unidad Base (Profit Plus)</label>
+                <input type="text" id="baseUnit" disabled style="background-color: #e9ecef;">
+            </div>
+            <!-- Kg Calculation -->
+            <div class="form-group">
+                <label>Kg Por Batch (Estándar)</label>
+                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="Ingrese Kg por batch">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Kilogramos Realizados (Total)</label>
+            <input type="text" inputmode="decimal" name="kg_produced" id="totalKgInput" required
+                style="background-color: #f8f9fa;">
+            <small style="color: var(--primary);">Calculado: Nro Batches * Kg/Batch</small>
+        </div>
+
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Unidades Producidas</label>
+                <input type="number" name="pt_units" id="unitsInput" required>
+            </div>
+            <div class="form-group">
+                <label>Nro de Cajas</label>
+                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required>
+            </div>
+        </div>
+
+        <h3
+            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+            Producto Terminado (PT)</h3>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Unidades Laboratorio</label>
+                <input type="number" name="pt_lab" value="0">
+            </div>
+            <div class="form-group">
+                <label>Unidades Quemadas</label>
+                <input type="number" name="pt_burned" value="0">
+            </div>
+        </div>
+
+        <h3
+            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+            Materia Prima (MP)</h3>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Envases Descartados</label>
+                <input type="number" name="mp_containers" value="0">
+            </div>
+            <div class="form-group">
+                <label>Tapas Limpias Desc.</label>
+                <input type="number" name="mp_caps_clean" value="0">
+            </div>
+            <div class="form-group">
+                <label>Tapas Sucias Desc.</label>
+                <input type="number" name="mp_caps_dirty" value="0">
+            </div>
+        </div>
+
+        <h3
+            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
+            Consumo Rápido</h3>
+        <div class="grid-2">
+            <div class="form-group">
+                <label>Tipo de Unidad</label>
+                <select name="cons_type" id="consType">
+                    <option value="">Seleccione...</option>
+                    <option value="Unidad">Unidad</option>
+                    <option value="Galon">Galón</option>
+                    <option value="Litro">Litro</option>
+                    <option value="Kg">Kg</option>
+                    <option value="Otro">Otro</option>
+                </select>
+            </div>
+            <!-- Empty div for grid alignment if needed, or maybe just 3 cols below? -->
+        </div>
+        <div class="grid-3">
+            <div class="form-group">
+                <label>Cantidad (Unidades)</label>
+                <input type="text" inputmode="decimal" name="cons_count" id="consCount" placeholder="0">
+            </div>
+            <div class="form-group">
+                <label>Peso x Unidad (Kg)</label>
+                <input type="text" inputmode="decimal" name="cons_unit_weight" id="consUnitWeight" placeholder="0.00">
+            </div>
+            <div class="form-group">
+                <label>Total Peso (Kg)</label>
+                <input type="text" inputmode="decimal" name="cons_qty" id="consTotalWeight" readonly
+                    style="background-color: #f8f9fa;">
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Notas</label>
+            <textarea name="notes" rows="3"></textarea>
+        </div>
+
+        <button type="submit" class="btn">Guardar Reporte</button>
+    </form>
+</div>
+
+<script>
+    // ... (Existing loadArticles logic) ...
+    let articlesData = [];
+
+    async function loadArticles() {
+        const searchInput = document.getElementById('articleSearch');
+        try {
+            searchInput.placeholder = "Cargando datos...";
+            const res = await fetch('/api/external/articles');
+            if (!res.ok) throw new Error('Error');
+            articlesData = await res.json();
+            searchInput.placeholder = "Escriba para buscar artículo...";
+        } catch (e) {
+            console.error('API External Error:', e);
+            searchInput.placeholder = "Error cargando artículos";
+        }
+    }
+
+    // Progressive Search Logic
+    const searchInput = document.getElementById('articleSearch');
+    const resultsDiv = document.getElementById('articleResults');
+    const hiddenInput = document.getElementById('articleTypeHidden');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        if (term.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        const filtered = articlesData.filter(a =>
+            a.description.toLowerCase().includes(term) || a.code.toLowerCase().includes(term)
+        );
+
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '0.5rem';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #eee';
+                div.textContent = `${item.code} - ${item.description}`;
+                div.onmouseover = () => div.style.background = '#f1f1f1';
+                div.onmouseout = () => div.style.background = 'white';
+
+                div.onclick = () => {
+                    selectArticle(item);
+                };
+                resultsDiv.appendChild(div);
+            });
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    let currentBoxEquiv = 0;
+
+    function selectArticle(item) {
+        searchInput.value = item.description;
+        hiddenInput.value = item.description;
+        resultsDiv.style.display = 'none';
+
+        // Auto-fill logic
+        document.getElementById('baseUnit').value = item.unit;
+        if (item.unit) {
+            document.getElementById('consType').value = item.unit;
+        }
+
+        currentBoxEquiv = item.box_equiv || 0;
+
+        // Smart Extraction for Presentation (e.g., "BOLSA 600g")
+        const regex = /(\d+(?:\.|,)?\d*\s*(?:g|kg|ml|l|cc|gr|lb|oz|ton)\b)/i;
+        const match = item.description.match(regex);
+
+        const presentationInput = document.getElementById('presentationInput');
+        if (match) {
+            presentationInput.value = match[1].replace(/\s+/g, '').toUpperCase();
+        } else {
+            presentationInput.value = "";
+        }
+
+        calculateUnits();
+    }
+
+    // Kg Calculator
+    const batchInput = document.querySelector('input[name="batch_qty"]');
+    const kgPerBatchInput = document.getElementById('kgPerBatch');
+    const totalKgInput = document.getElementById('totalKgInput');
+
+    function parseLocaleFloat(val) {
+        if (!val) return 0;
+        return parseFloat(val.toString().replace(',', '.')) || 0;
+    }
+
+    function calculateTotalKg() {
+        const batches = parseFloat(batchInput.value) || 0;
+        const kgBatch = parseLocaleFloat(kgPerBatchInput.value);
+        if (batches > 0 && kgBatch > 0) {
+            totalKgInput.value = (batches * kgBatch).toFixed(2).replace('.', ',');
+        }
+    }
+
+    batchInput.addEventListener('input', calculateTotalKg);
+    kgPerBatchInput.addEventListener('input', calculateTotalKg);
+
+    // Calculation Logic: Bidirectional Boxes <-> Units
+    const boxesInput = document.getElementById('boxesInput');
+    const unitsInput = document.getElementById('unitsInput');
+
+    boxesInput.addEventListener('input', calculateUnits);
+
+    function calculateUnits() {
+        const boxes = parseLocaleFloat(boxesInput.value);
+        if (currentBoxEquiv > 0 && boxes > 0) {
+            unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
+        }
+    }
+
+    unitsInput.addEventListener('input', () => {
+        const units = parseFloat(unitsInput.value) || 0;
+        if (currentBoxEquiv > 0) {
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // Consumo Rapido Calculator
+    const consCountInput = document.getElementById('consCount');
+    const consUnitWeightInput = document.getElementById('consUnitWeight');
+    const consTotalWeightInput = document.getElementById('consTotalWeight');
+
+    function calculateConsWeight() {
+        const count = parseLocaleFloat(consCountInput.value);
+        const unitWeight = parseLocaleFloat(consUnitWeightInput.value);
+        if (count > 0 && unitWeight > 0) {
+            consTotalWeightInput.value = (count * unitWeight).toFixed(2).replace('.', ',');
+        }
+    }
+
+    consCountInput.addEventListener('input', calculateConsWeight);
+    consUnitWeightInput.addEventListener('input', calculateConsWeight);
+
+    // Auto-fill Weight for Galon
+    const consTypeSelect = document.getElementById('consType');
+    consTypeSelect.addEventListener('change', () => {
+        if (consTypeSelect.value === 'Galon') {
+            consUnitWeightInput.value = "3,785";
+            calculateConsWeight();
+        }
+    });
+
+    loadArticles();
+
+    document.getElementById('productionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Sanitization
+        try {
+            data.kg_produced = parseLocaleFloat(data.kg_produced);
+            data.boxes = parseLocaleFloat(data.boxes);
+
+            // Consumption
+            data.cons_count = parseLocaleFloat(data.cons_count);
+            data.cons_unit_weight = parseLocaleFloat(data.cons_unit_weight);
+            data.cons_qty = parseLocaleFloat(data.cons_qty); // This is the total weight
+
+            data.batch_qty = parseInt(data.batch_qty) || 0;
+            data.pt_units = parseInt(data.pt_units) || 0;
+        } catch (err) {
+            alert("Error en formato de números");
+            return;
+        }
+
+        const response = await fetch('/api/production', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            alert('Reporte guardado exitosamente');
+            e.target.reset();
+        } else {
+            const err = await response.json();
+            alert('Error al guardar reporte: ' + JSON.stringify(err.detail));
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,245 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Dashboard de Producción</h1>
+
+<!-- KPI Cards -->
+<div style="margin-bottom: 2rem;">
+    <!-- Date Filters -->
+    <div
+        style="display: flex; gap: 1rem; align-items: center; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
+        <div style="font-weight: bold; color: var(--text-muted);">Filtrar por Fecha:</div>
+        <div>
+            <input type="date" id="startDate" style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px;">
+        </div>
+        <div style="color: var(--text-muted);">hasta</div>
+        <div>
+            <input type="date" id="endDate" style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px;">
+        </div>
+        <button onclick="loadDashboard()" class="btn" style="padding: 0.25rem 1rem;">Filtrar</button>
+        <button onclick="clearFilter()" class="btn"
+            style="padding: 0.25rem 1rem; background: #e2e6ea; color: #333;">Borrar</button>
+    </div>
+</div>
+
+<div
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+
+    <!-- Compliance (Cumplimiento) -->
+    <div class="card" style="text-align: center; border-left: 5px solid var(--primary);">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
+            Cumplimiento Plan</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: var(--primary);">
+            <span id="compliancePct">0</span>%
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Unidades Reales vs Planificadas</p>
+    </div>
+
+    <!-- Yield (Rendimiento) -->
+    <div class="card" style="text-align: center; border-left: 5px solid #28a745;">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
+            Rendimiento Kg</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #28a745;">
+            <span id="yieldPct">0</span>%
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Kg Reales vs Planificados</p>
+    </div>
+
+    <!-- Waste (Mermas) -->
+    <div class="card" style="text-align: center; border-left: 5px solid #dc3545;">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">%
+            Mermas</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #dc3545;">
+            <span id="wastePct">0</span>%
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Unidades Perdidas / Proc.</p>
+    </div>
+
+    <!-- Efficiency (Avg Kg/Batch) -->
+    <div class="card" style="text-align: center; border-left: 5px solid #17a2b8;">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
+            Promedio Kg/Batch</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #17a2b8;">
+            <span id="avgKgBatch">0</span>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Kg producidos por lote</p>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="grid-2" style="margin-top: 2rem; margin-bottom: 2rem;">
+    <div class="card">
+        <h3>Producción vs Planificación (Histórico)</h3>
+        <canvas id="historyChart"></canvas>
+    </div>
+    <div class="card">
+        <h3>Top Productos (Kg)</h3>
+        <div style="max-width: 300px; margin: 0 auto;">
+            <canvas id="pieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Stats Grid -->
+<div class="grid-2">
+    <!-- ... (Existing stats grids kept below charts for layout balance) ... -->
+    <div class="card">
+        <h3>Producción Acumulada</h3>
+        <ul style="list-style: none; padding: 0; margin-top: 1rem;">
+            <li
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                <span>Total Batches</span>
+                <strong id="prodBatches">0</strong>
+            </li>
+            <li
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                <span>Total Kg</span>
+                <strong id="prodKg">0</strong>
+            </li>
+            <li style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                <span>Total Unidades</span>
+                <strong id="prodUnits">0</strong>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h3>Planificación Acumulada</h3>
+        <ul style="list-style: none; padding: 0; margin-top: 1rem;">
+            <li
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                <span>Total Batches</span>
+                <strong id="planBatches">0</strong>
+            </li>
+            <li
+                style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;">
+                <span>Total Kg</span>
+                <strong id="planKg">0</strong>
+            </li>
+            <li style="display: flex; justify-content: space-between; padding: 0.5rem 0;">
+                <span>Total Unidades</span>
+                <strong id="planUnits">0</strong>
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let historyChartInstance = null;
+    let pieChartInstance = null;
+
+    async function loadDashboard() {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        let url = '/api/dashboard';
+
+        const params = new URLSearchParams();
+        if (start) params.append('start_date', start);
+        if (end) params.append('end_date', end);
+
+        if (params.toString()) url += '?' + params.toString();
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Error fetching stats');
+            const data = await res.json();
+
+            // KPIs
+            document.getElementById('compliancePct').textContent = data.compliance_percentage.toFixed(1);
+            document.getElementById('yieldPct').textContent = data.yield_percentage.toFixed(1);
+            document.getElementById('wastePct').textContent = data.waste_percentage.toFixed(2);
+            document.getElementById('avgKgBatch').textContent = data.avg_kg_per_batch.toFixed(1);
+
+            // Production Stats
+            document.getElementById('prodBatches').textContent = data.total_production_batches;
+            document.getElementById('prodKg').textContent = data.total_production_kg.toFixed(2);
+            document.getElementById('prodUnits').textContent = data.total_production_units;
+
+            // Planning Stats
+            document.getElementById('planBatches').textContent = data.total_planned_batches;
+            document.getElementById('planKg').textContent = data.total_planned_kg.toFixed(2);
+            document.getElementById('planUnits').textContent = data.total_planned_units;
+
+            // --- Render Charts ---
+
+            // 1. Pie Chart
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            if (pieChartInstance) pieChartInstance.destroy();
+
+            const pieLabels = data.pie_data.map(d => d.label);
+            const pieValues = data.pie_data.map(d => d.value);
+
+            pieChartInstance = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: pieLabels,
+                    datasets: [{
+                        data: pieValues,
+                        backgroundColor: [
+                            '#4a90e2', '#50e3c2', '#b8e986', '#f5a623', '#d0021b', '#9b9b9b'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // 2. History Chart (Bar vs Line)
+            const historyCtx = document.getElementById('historyChart').getContext('2d');
+            if (historyChartInstance) historyChartInstance.destroy();
+
+            const histDates = data.history_data.map(d => d.date);
+            const histProduced = data.history_data.map(d => d.produced);
+            const histPlanned = data.history_data.map(d => d.planned);
+
+            historyChartInstance = new Chart(historyCtx, {
+                type: 'bar',
+                data: {
+                    labels: histDates,
+                    datasets: [
+                        {
+                            label: 'Producido (Kg)',
+                            data: histProduced,
+                            backgroundColor: '#4a90e2',
+                            order: 2
+                        },
+                        {
+                            label: 'Planificado (Kg)',
+                            data: histPlanned,
+                            type: 'line', // Line overlay to show target
+                            borderColor: '#d0021b',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            order: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function clearFilter() {
+        document.getElementById('startDate').value = '';
+        document.getElementById('endDate').value = '';
+        loadDashboard();
+    }
+
+    loadDashboard();
+</script>
+{% endblock %}

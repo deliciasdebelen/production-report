@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+.pytest_cache/
+tests/
+*.cover
+.hypothesis/
+
+# Database (will be mounted as volume)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables (will be passed separately)
+.env
+.env.local
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation
+*.md
+!README.md
+
+# Test outputs
+test_output.txt
+
+# Scripts
+scripts/
+migrate_db.py
+migrate_db_v2.py

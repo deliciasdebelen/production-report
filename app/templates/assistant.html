@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Asistente de Producción (AI)</h1>
+
+<div class="card">
+    <h2>Análisis de Rendimiento</h2>
+    <div id="analysisContent">
+        <p>Cargando análisis...</p>
+    </div>
+</div>
+
+<script>
+    async function loadAnalysis() {
+        const res = await fetch('/api/dashboard');
+        const data = await res.json();
+
+        let html = '';
+
+        // Simple heuristic analysis for now
+        if (data.compliance_percentage >= 95) {
+            html += '<p style="color: var(--success); font-weight: bold;">✅ Excelente cumplimiento de planificación.</p>';
+        } else if (data.compliance_percentage >= 80) {
+            html += '<p style="color: var(--warning); font-weight: bold;">⚠️ Cumplimiento aceptable, pero hay margen de mejora.</p>';
+        } else {
+            html += '<p style="color: var(--danger); font-weight: bold;">❌ Cumplimiento bajo. Revisar cuellos de botella.</p>';
+        }
+
+        if (data.yield_percentage < 90 && data.total_planned_kg > 0) {
+            html += '<p>El rendimiento (Kg Real / Kg Planificado) es bajo. Verifique quemas o desperdicios de materia prima.</p>';
+        }
+
+        html += '<h3>Resumen de Datos</h3>';
+        html += `<ul>
+            <li>Total Producido: <strong>${data.total_production_kg.toFixed(2)} Kg</strong></li>
+            <li>Total Cajas: <strong>${data.total_production_boxes.toFixed(2)}</strong></li>
+            <li>Total Unidades: ${data.total_production_units}</li>
+            <li>Objetivo Kg: ${data.total_planned_kg.toFixed(2)} Kg</li>
+        </ul>`;
+
+        html += '<h3>Análisis Diario Detallado</h3>';
+        html += '<p>Desglose por fecha de producción:</p>';
+        html += '<table style="width:100%; border-collapse: collapse; margin-top: 1rem;">';
+        html += '<thead style="background:var(--surface-active);">';
+        html += '<tr><th style="padding:0.5rem; text-align:left;">Fecha</th><th style="padding:0.5rem; text-align:right;">Kg Prod.</th><th style="padding:0.5rem; text-align:right;">Kg Plan</th><th style="padding:0.5rem; text-align:right;">Cajas</th><th style="padding:0.5rem; text-align:right;">Unidades</th></tr>';
+        html += '</thead><tbody>';
+
+        if (data.history_data && data.history_data.length > 0) {
+            data.history_data.forEach(item => {
+                let color = item.produced >= item.planned ? 'var(--success)' : 'var(--danger)';
+                if (item.planned === 0) color = 'var(--text)'; // No plan
+
+                html += `<tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding:0.5rem; text-align:left;">${item.date}</td>
+                    <td style="padding:0.5rem; text-align:right; color:${color}; font-weight:bold;">${item.produced.toFixed(2)}</td>
+                    <td style="padding:0.5rem; text-align:right;">${item.planned.toFixed(2)}</td>
+                    <td style="padding:0.5rem; text-align:right;">${item.boxes ? item.boxes.toFixed(2) : '0.00'}</td>
+                    <td style="padding:0.5rem; text-align:right;">${item.units ? item.units : '0'}</td>
+                </tr>`;
+            });
+        } else {
+            html += '<tr><td colspan="5" style="padding:1rem;">No hay historial disponible.</td></tr>';
+        }
+
+        html += '</tbody></table>';
+
+        document.getElementById('analysisContent').innerHTML = html;
+    }
+
+    loadAnalysis();
+</script>
+{% endblock %}

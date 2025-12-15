@@ -1,0 +1,249 @@
+:root {
+    /* Odoo-inspired Palette */
+    --primary: #714B67;
+    /* Odoo Enterprise Purple */
+    --primary-dark: #583a50;
+    --secondary: #017E84;
+    /* Odoo Teal */
+    --accent: #F0EEEE;
+    --success: #00A09D;
+    --warning: #F0AD4E;
+    --danger: #D9534F;
+
+    --background: #f1f1f1;
+    /* Light gray background */
+    --surface: #ffffff;
+
+    --text-main: #212529;
+    --text-muted: #666666;
+    --border: #dee2e6;
+
+    --radius: 0.25rem;
+    /* Odoo uses sharper corners */
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.075);
+
+    --header-height: 48px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', 'Inter', sans-serif;
+    background-color: var(--background);
+    color: var(--text-main);
+    line-height: 1.5;
+    font-size: 0.9rem;
+    /* Odoo uses slightly compact text */
+}
+
+/* Sidebar Odoo Style */
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+.sidebar {
+    width: 220px;
+    background: #2b303b;
+    /* Dark sidebar */
+    color: #dedede;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-title {
+    height: var(--header-height);
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    background: rgba(0, 0, 0, 0.2);
+    color: white;
+}
+
+.nav-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    color: #ADB5BD;
+    text-decoration: none;
+    border-left: 3px solid transparent;
+    transition: all 0.2s;
+    font-size: 0.95rem;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background-color: #3b4252;
+    color: white;
+}
+
+.nav-link.active {
+    border-left-color: var(--secondary);
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header/Breadcrumb Area */
+.top-bar {
+    height: var(--header-height);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 2rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.page-content {
+    padding: 2rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Cards */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow);
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--primary);
+    font-size: 0.85rem;
+}
+
+input,
+select,
+textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.9rem;
+    transition: border-color 0.15s;
+    background: #fff;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+input:disabled {
+    background-color: #e9ecef;
+}
+
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background-color: var(--primary);
+    color: white;
+    border: 1px solid var(--primary);
+    border-radius: var(--radius);
+    font-weight: 500;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn:hover {
+    background-color: var(--primary-dark);
+}
+
+/* Utils */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+
+    .grid-2,
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Stats */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.stat-card {
+    background: var(--surface);
+    padding: 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    border-top: 3px solid var(--primary);
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.stat-label {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+h1 {
+    font-size: 1.5rem;
+    color: var(--text-main);
+    font-weight: 400;
+    margin: 0;
+}
+
+.footer {
+    text-align: center;
+    padding: 1rem;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: auto;
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - Reporte de Producción</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="sidebar-title">
+                Delicias de Belén
+            </div>
+            <nav>
+                {% if user %}
+                <div style="padding: 0 1rem 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
+                    Hola, {{ user.username }}
+                    (Rol: {% if user.role == 4 %}Admin{% elif user.role == 3 %}Plan{% elif user.role == 2 %}Prod{% else
+                    %}KPI{% endif %})
+                </div>
+                {% endif %}
+
+                <!-- Role 1+: Dashboard (All logged in users can see Dashboard) -->
+                {% if user %}
+                <a href="/dashboard" class="nav-link">KPI Dashboard</a>
+                {% endif %}
+
+                <!-- Role 2, 4: Report -->
+                {% if user and (user.role == 2 or user.role == 4) %}
+                <a href="/report" class="nav-link">Producción</a>
+                {% endif %}
+
+                <!-- Role 3, 4: Planning -->
+                {% if user and (user.role == 3 or user.role == 4) %}
+                <a href="/planning" class="nav-link">Planificación</a>
+                {% endif %}
+
+                {% if user %}
+                <a href="/assistant" class="nav-link">Asistente</a>
+                {% endif %}
+
+                <!-- Role 4: Maintenance -->
+                {% if user and user.role == 4 %}
+                <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <span
+                        style="display:block; padding: 0.5rem 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase;">Administración</span>
+                    <a href="/maintenance" class="nav-link">Mantenimiento</a>
+                </div>
+                {% endif %}
+
+                <!-- Role 2, 4: Traslados (New Module) -->
+                {% if user and (user.role == 2 or user.role == 4) %}
+                <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
+                    <span
+                        style="display:block; padding: 0.5rem 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase;">Logística</span>
+                    <a href="/traslados" class="nav-link">Traslados</a>
+                    <a href="/traslados/tiempo-real" class="nav-link">Tiempo Real</a>
+                </div>
+                {% endif %}
+
+                <!-- Logout -->
+                {% if user %}
+                <a href="/logout" class="nav-link" style="margin-top: auto; color: #ffadad;">Cerrar Sesión</a>
+                {% endif %}
+            </nav>
+        </aside>
+        <div class="main-content">
+            <header class="top-bar">
+                <h1>{{ title }}</h1>
+                <div style="margin-left: auto; display: flex; align-items: center; gap: 1rem;">
+                    <img src="/static/logo.jpg" alt="Delicias de Belén"
+                        style="height: 40px; width: auto; object-fit: contain;">
+                </div>
+            </header>
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+            <footer class="footer">
+                &copy; Copyright Delicias de Belén 2025
+            </footer>
+        </div>
+    </div>
+    <script>
+
+        // Simple active link highlighter
+        document.querySelectorAll('.nav-link').forEach(link => {
+            if (link.getAttribute('href') === window.location.pathname) {
+                link.classList.add('active');
+            }
+        });
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+
+</html>
