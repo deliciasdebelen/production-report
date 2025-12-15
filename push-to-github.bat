@@ -1,12 +1,14 @@
 @echo off
-REM Script de Despliegue Completo para Production Report
+REM Script mejorado para push a GitHub con autenticación
 REM =====================================================
 
 echo.
 echo ========================================
-echo   DESPLIEGUE DE PRODUCTION REPORT
+echo   PUSH A GITHUB - Production Report
 echo ========================================
 echo.
+
+cd /d "%~dp0"
 
 REM Verificar que estamos en el directorio correcto
 if not exist "app\main.py" (
@@ -15,68 +17,83 @@ if not exist "app\main.py" (
     exit /b 1
 )
 
-echo [1/4] Configurando Git...
-echo.
-
-REM Verificar si ya existe el remote
+echo [1/5] Verificando configuracion de Git...
 git remote get-url origin >nul 2>&1
 if %errorlevel% equ 0 (
-    echo Remote 'origin' ya existe. Saltando configuracion...
+    echo Remote 'origin' ya configurado
+    git remote -v
 ) else (
-    echo Agregando remote de GitHub...
+    echo Configurando remote de GitHub...
     git remote add origin https://github.com/deliciasdebelen/production-report.git
-    if %errorlevel% neq 0 (
-        echo ERROR: No se pudo agregar el remote
-        pause
-        exit /b 1
-    )
 )
 
 echo.
-echo [2/4] Renombrando rama a main...
+echo [2/5] Renombrando rama a main...
 git branch -M main
-if %errorlevel% neq 0 (
-    echo ERROR: No se pudo renombrar la rama
-    pause
-    exit /b 1
-)
 
 echo.
-echo [3/4] Haciendo push a GitHub...
-echo.
-echo NOTA: Se te pediran las credenciales de GitHub:
-echo   Usuario: github@deliciasdebelen.com
-echo   Password: C4rm4l2025
-echo.
-pause
+echo [3/5] Verificando estado de Git...
+git status
 
+echo.
+echo [4/5] Preparando push a GitHub...
+echo.
+echo ========================================
+echo IMPORTANTE: Autenticacion de GitHub
+echo ========================================
+echo.
+echo GitHub ya no acepta contraseñas para autenticacion HTTPS.
+echo Tienes 2 opciones:
+echo.
+echo OPCION 1 (Recomendada): Usar Personal Access Token
+echo   1. Ve a: https://github.com/settings/tokens
+echo   2. Click en "Generate new token" (classic)
+echo   3. Selecciona scope: "repo" (acceso completo a repositorios)
+echo   4. Copia el token generado
+echo   5. Usa el token como contraseña cuando Git lo pida
+echo.
+echo OPCION 2: Usar GitHub CLI
+echo   1. Instala GitHub CLI: winget install GitHub.cli
+echo   2. Ejecuta: gh auth login
+echo   3. Sigue las instrucciones
+echo.
+echo ========================================
+echo.
+echo Presiona cualquier tecla para continuar con el push...
+echo (Se te pediran credenciales)
+pause >nul
+
+echo.
+echo [5/5] Haciendo push a GitHub...
 git push -u origin main
-if %errorlevel% neq 0 (
+
+if %errorlevel% equ 0 (
     echo.
-    echo ERROR: No se pudo hacer push a GitHub
+    echo ========================================
+    echo   PUSH COMPLETADO EXITOSAMENTE!
+    echo ========================================
     echo.
-    echo Posibles causas:
-    echo   1. El repositorio no existe en GitHub (crealo en https://github.com/new)
-    echo   2. Credenciales incorrectas
-    echo   3. No tienes permisos para este repositorio
+    echo El codigo esta en:
+    echo https://github.com/deliciasdebelen/production-report
     echo.
-    pause
-    exit /b 1
+) else (
+    echo.
+    echo ========================================
+    echo   ERROR EN EL PUSH
+    echo ========================================
+    echo.
+    echo Si el error es de autenticacion (403):
+    echo   - Necesitas un Personal Access Token
+    echo   - Ve a: https://github.com/settings/tokens
+    echo   - Genera un token con permisos "repo"
+    echo   - Usa el token como contraseña
+    echo.
+    echo Si el error es que el repositorio no existe:
+    echo   - Crea el repositorio en: https://github.com/new
+    echo   - Nombre: production-report
+    echo   - NO inicialices con README
+    echo.
 )
 
-echo.
-echo [4/4] Verificando...
-git remote -v
-echo.
-
-echo ========================================
-echo   PUSH COMPLETADO EXITOSAMENTE!
-echo ========================================
-echo.
-echo El codigo esta ahora en:
-echo https://github.com/deliciasdebelen/production-report
-echo.
-echo Siguiente paso: Desplegar en el servidor
-echo Consulta DEPLOY.md para instrucciones detalladas
 echo.
 pause
