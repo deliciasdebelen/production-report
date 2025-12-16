@@ -50,10 +50,12 @@ cd ~/apps
 if [ -d "production-report" ]; then
     echo "Repositorio ya existe, actualizando..."
     cd production-report
-    git pull
+    git fetch origin
+    git checkout production
+    git pull origin production
 else
     echo "Clonando repositorio..."
-    git clone https://github.com/deliciasdebelen/production-report.git
+    git clone -b production https://github.com/deliciasdebelen/production-report.git
     cd production-report
 fi
 
