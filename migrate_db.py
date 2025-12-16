@@ -1,35 +1,23 @@
 import sqlite3
-import os
 
-db_path = 'production.db'
-
-if not os.path.exists(db_path):
-    print("Database not found.")
-    exit(0)
-
-try:
-    con = sqlite3.connect(db_path)
-    cur = con.cursor()
+def add_columns():
+    conn = sqlite3.connect('production.db')
+    cursor = conn.cursor()
     
-    # Add cons_count
     try:
-        cur.execute("SELECT cons_count FROM production_reports LIMIT 1")
-        print("cons_count exists.")
+        cursor.execute("ALTER TABLE production_reports ADD COLUMN mp_waste_kg FLOAT DEFAULT 0.0")
+        print("Added mp_waste_kg column.")
     except sqlite3.OperationalError:
-        print("Adding cons_count...")
-        cur.execute("ALTER TABLE production_reports ADD COLUMN cons_count FLOAT DEFAULT 0")
+        print("mp_waste_kg column already exists.")
 
-    # Add cons_unit_weight
     try:
-        cur.execute("SELECT cons_unit_weight FROM production_reports LIMIT 1")
-        print("cons_unit_weight exists.")
+        cursor.execute("ALTER TABLE production_reports ADD COLUMN mp_waste_image STRING DEFAULT NULL")
+        print("Added mp_waste_image column.")
     except sqlite3.OperationalError:
-        print("Adding cons_unit_weight...")
-        cur.execute("ALTER TABLE production_reports ADD COLUMN cons_unit_weight FLOAT DEFAULT 0")
+        print("mp_waste_image column already exists.")
+        
+    conn.commit()
+    conn.close()
 
-    con.commit()
-    con.close()
-    print("Migration successful.")
-
-except Exception as e:
-    print(f"Migration failed: {e}")
+if __name__ == "__main__":
+    add_columns()

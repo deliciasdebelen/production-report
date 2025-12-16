@@ -26,9 +26,15 @@ class ProductionReport(Base):
     pt_burned = Column(Integer, default=0)
 
     # MP (Materia Prima)
-    mp_containers = Column(Integer, default=0)
     mp_caps_clean = Column(Integer, default=0)
     mp_caps_dirty = Column(Integer, default=0)
+    mp_waste_kg = Column(Float, default=0.0)
+    mp_waste_image = Column(String, nullable=True)
+
+    # New Logistics Fields
+    order_number = Column(String, unique=True, index=True, nullable=True) # 10-digit sequential
+    status = Column(String, default="Pending") # Pending, Confirmed
+    planning_order_ids = Column(Text, nullable=True) # "1, 2, 3"
 
     # Consumo Rapido
     cons_type = Column(String, nullable=True)
@@ -44,6 +50,7 @@ class ProductionPlanning(Base):
     __tablename__ = "production_planning"
 
     id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String, unique=True, index=True, nullable=True) # 10-digit sequential
     date = Column(String, nullable=False) # Storing as YYYY-MM-DD
     article = Column(String, nullable=False)
     presentation = Column(String, nullable=False)
@@ -62,3 +69,34 @@ class User(Base):
     password_hash = Column(String)
     role = Column(Integer, default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin
     is_active = Column(Integer, default=1)
+
+class LogisticsReceptionProduction(Base):
+    __tablename__ = "logistics_reception_production"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    production_report_id = Column(String, nullable=True) 
+    product_name = Column(String, nullable=False)
+    quantity = Column(Float, default=0.0)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class LogisticsReceptionMerchandise(Base):
+    __tablename__ = "logistics_reception_merchandise"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    supplier = Column(String, nullable=False)
+    document_ref = Column(String, nullable=True) # Boleta/Factura
+    items_json = Column(Text, nullable=False) # JSON format: [{"item": "X", "qty": 10}, ...]
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class LogisticsDispatch(Base):
+    __tablename__ = "logistics_dispatch"
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    client_destination = Column(String, nullable=False)
+    document_ref = Column(String, nullable=True)
+    items_json = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

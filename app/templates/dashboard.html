@@ -36,33 +36,43 @@
     </div>
 
     <!-- Yield (Rendimiento) -->
-    <div class="card" style="text-align: center; border-left: 5px solid #28a745;">
+    <div class="card" style="text-align: center; border-left: 5px solid var(--success);">
         <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
             Rendimiento Kg</h4>
-        <div style="font-size: 2.5rem; font-weight: 700; color: #28a745;">
+        <div style="font-size: 2.5rem; font-weight: 700; color: var(--success);">
             <span id="yieldPct">0</span>%
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted);">Kg Reales vs Planificados</p>
     </div>
 
     <!-- Waste (Mermas) -->
-    <div class="card" style="text-align: center; border-left: 5px solid #dc3545;">
+    <div class="card" style="text-align: center; border-left: 5px solid var(--danger);">
         <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">%
             Mermas</h4>
-        <div style="font-size: 2.5rem; font-weight: 700; color: #dc3545;">
+        <div style="font-size: 2.5rem; font-weight: 700; color: var(--danger);">
             <span id="wastePct">0</span>%
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted);">Unidades Perdidas / Proc.</p>
     </div>
 
     <!-- Efficiency (Avg Kg/Batch) -->
-    <div class="card" style="text-align: center; border-left: 5px solid #17a2b8;">
+    <div class="card" style="text-align: center; border-left: 5px solid var(--info);">
         <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
             Promedio Kg/Batch</h4>
-        <div style="font-size: 2.5rem; font-weight: 700; color: #17a2b8;">
+        <div style="font-size: 2.5rem; font-weight: 700; color: var(--info);">
             <span id="avgKgBatch">0</span>
         </div>
         <p style="font-size: 0.8rem; color: var(--text-muted);">Kg producidos por lote</p>
+    </div>
+
+    <!-- MP Waste Kg -->
+    <div class="card" style="text-align: center; border-left: 5px solid #6c757d;">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
+            Mermas Materia Prima</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #6c757d;">
+            <span id="wasteKg">0</span> <small style="font-size: 1rem;">Kg</small>
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Total Kg Descartados</p>
     </div>
 </div>
 
@@ -149,6 +159,7 @@
             document.getElementById('compliancePct').textContent = data.compliance_percentage.toFixed(1);
             document.getElementById('yieldPct').textContent = data.yield_percentage.toFixed(1);
             document.getElementById('wastePct').textContent = data.waste_percentage.toFixed(2);
+            document.getElementById('wasteKg').textContent = data.total_waste_kg.toFixed(2);
             document.getElementById('avgKgBatch').textContent = data.avg_kg_per_batch.toFixed(1);
 
             // Production Stats

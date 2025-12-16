@@ -1,0 +1,328 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex-between">
+    <h1>Recepción de Producción</h1>
+    <a href="/logistics" class="btn" style="background: var(--text-muted);">Volver</a>
+</div>
+
+<!-- Search Section -->
+<!-- Search Section -->
+<div class="grid-2" style="margin-top: 1.5rem; gap: 1.5rem; align-items: stretch;">
+    <!-- Search Section -->
+    <div class="card"
+        style="padding: 1.5rem; margin-top: 0; display: flex; flex-direction: column; justify-content: center;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">🔍 Buscar Orden Pendiente</h3>
+        <div style="display: flex; gap: 0.5rem; position: relative;">
+            <input type="text" id="searchOrderId" placeholder="Escriba ID para buscar (Ej. 00001)..."
+                style="flex: 1; min-width: 0; padding-right: 2rem;">
+            <!-- Optional loader icon could go here -->
+        </div>
+        <small style="color: var(--text-muted); margin-top: 0.5rem;">La búsqueda es automática al escribir.</small>
+    </div>
+
+    <!-- Date Filter Section -->
+    <div class="card" style="padding: 1.5rem; margin-top: 0;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">📅 Filtrar por Fecha</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Desde</label>
+                <input type="date" id="dateStart" style="padding: 0.4rem;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Hasta</label>
+                <input type="date" id="dateEnd" style="padding: 0.4rem;">
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn" onclick="searchByDate()"
+                    style="background: var(--text-main); color: #fff; padding: 0.5rem 1rem;">FILTRAR</button>
+                <button class="btn" onclick="clearFilters()"
+                    style="background: #e2e8f0; color: var(--text-main); padding: 0.5rem 1rem;">BORRAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="searchResults" style="margin-top: 1rem; margin-bottom: 2rem;">
+    <!-- Results injected here -->
+</div>
+
+<div class="grid-2" style="margin-top: 2rem; align-items: start;">
+    <!-- Form -->
+    <div class="card" id="receptionCard" style="opacity: 0.5; pointer-events: none;">
+        <h3>Registrar Entrada</h3>
+        <form id="rxForm">
+            <!-- Hidden ID -->
+            <input type="hidden" name="production_id" id="prodId">
+            <input type="hidden" name="expected_units" id="expectedUnits">
+            <input type="hidden" name="order_number" id="orderNumber">
+
+            <div class="form-group grid-2" style="gap: 1rem;">
+                <div>
+                    <label>Orden Producción</label>
+                    <input type="text" id="dispOrderNumber" readonly style="background: #f0f0f0;">
+                </div>
+                <div>
+                    <label>Producto</label>
+                    <input type="text" id="dispProduct" readonly style="background: #f0f0f0;">
+                </div>
+            </div>
+
+            <div class="form-group grid-2" style="gap:1rem;">
+                <div>
+                    <label>Esperado (Unidades)</label>
+                    <input type="number" id="dispExpected" readonly style="background: #f0f0f0;">
+                </div>
+                <div>
+                    <label>Recibido Real (Unidades) <span style="color:red">*</span></label>
+                    <input type="number" step="1" name="received_qty" id="receivedQty" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Notas de Recepción</label>
+                <textarea id="notes" rows="2" placeholder="Opcional"></textarea>
+            </div>
+            <button type="button" class="btn" onclick="validateAndSubmit()" style="width: 100%;">Validar y
+                Confirmar</button>
+        </form>
+    </div>
+
+    <!-- Recent Logs -->
+    <div class="card">
+        <h3>Últimos Movimientos</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cant.</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ log.product_name }}</td>
+                        <td>{{ log.quantity }}</td>
+                        <td>{{ log.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Modal -->
+<div id="alertModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 500px; background: white; border: 1px solid var(--danger);">
+        <h2 style="color: var(--danger); margin-top: 0;">⚠️ Discrepancia Detectada</h2>
+        <p>La cantidad recibida no coincide con la reportada. Se debe notificar.</p>
+
+        <div class="form-group">
+            <label>Para (Correo)</label>
+            <input type="email" id="emailTo" value="gerencia@empresa.com, calidad@empresa.com">
+        </div>
+        <div class="form-group">
+            <label>Asunto</label>
+            <input type="text" id="emailSubject" value="Alerta de Merma - Recepción">
+        </div>
+        <div class="form-group">
+            <label>Mensaje</label>
+            <textarea id="emailBody" rows="4"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+            <button class="btn" style="background: #ccc; color: black;" onclick="closeModal()">Cancelar</button>
+            <button class="btn" style="background: var(--danger);" onclick="confirmWithAlert()">Confirmar y Enviar
+                Alerta</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Unified fetcher
+    async function fetchOrders(params) {
+        const query = new URLSearchParams(params).toString();
+        // Show loading state if needed
+        const container = document.getElementById('searchResults');
+        if (container.innerHTML === '') container.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">Buscando...</div>';
+
+        const res = await fetch(`/logistics/api/production/pending?${query}`);
+        const data = await res.json();
+        renderResults(data);
+    }
+
+    // Debounce Utility
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // Progressive Search Listener
+    const searchInput = document.getElementById('searchOrderId');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+            const term = e.target.value.trim();
+            if (term.length > 0) {
+                fetchOrders({ order_id: term });
+            } else {
+                document.getElementById('searchResults').innerHTML = ''; // Clear results if empty
+            }
+        }, 500)); // 500ms delay
+    }
+
+    function searchByOrder() {
+        // Manual trigger (optional now)
+        const id = document.getElementById('searchOrderId').value;
+        if (!id) return alert("Ingrese un ID");
+        fetchOrders({ order_id: id });
+    }
+
+    function searchByDate() {
+        const start = document.getElementById('dateStart').value;
+        const end = document.getElementById('dateEnd').value;
+        if (!start || !end) return alert("Seleccione ambas fechas");
+        fetchOrders({ date_start: start, date_end: end });
+    }
+
+    function clearFilters() {
+        document.getElementById('searchOrderId').value = '';
+        document.getElementById('dateStart').value = '';
+        document.getElementById('dateEnd').value = '';
+        document.getElementById('searchResults').innerHTML = '';
+    }
+
+    function renderResults(data) {
+        const container = document.getElementById('searchResults');
+        container.innerHTML = '';
+
+        if (data.length === 0) {
+            container.innerHTML = '<div class="card" style="padding: 1rem; text-align: center; color: var(--text-muted);">No se encontraron órdenes pendientes con estos criterios.</div>';
+            return;
+        }
+
+        const listCard = document.createElement('div');
+        listCard.className = 'card';
+        listCard.style.padding = '1rem';
+        listCard.innerHTML = '<h4>Resultados:</h4>';
+
+        const list = document.createElement('div');
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.gap = '0.5rem';
+
+        data.forEach(order => {
+            const div = document.createElement('div');
+            div.style.padding = '0.75rem';
+            div.style.border = '1px solid var(--border)';
+            div.style.borderRadius = 'var(--radius-sm)';
+            div.style.cursor = 'pointer';
+            div.style.transition = 'all 0.2s';
+            div.style.background = '#fff';
+
+            // Hover effect via inline JS for simplicity or class
+            div.onmouseover = () => div.style.background = 'var(--primary-light)';
+            div.onmouseout = () => div.style.background = '#fff';
+
+            div.innerHTML = `
+                <div style="display: flex; justify-content: space-between;">
+                    <strong>🆔 ${order.order_number || 'S/N'}</strong>
+                    <span style="font-size: 0.85rem; color: var(--text-muted);">${new Date(order.created_at).toLocaleDateString()}</span>
+                </div>
+                <div style="font-size: 0.9rem;">
+                    📦 ${order.article_type} - <strong>${order.pt_units} Und</strong>
+                </div>
+            `;
+            div.onclick = () => selectOrder(order);
+            list.appendChild(div);
+        });
+
+        listCard.appendChild(list);
+        container.appendChild(listCard);
+    }
+
+    function selectOrder(order) {
+        // Unlock form
+        const card = document.getElementById('receptionCard');
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+
+        document.getElementById('prodId').value = order.id;
+        document.getElementById('expectedUnits').value = order.pt_units;
+        document.getElementById('orderNumber').value = order.order_number;
+
+        document.getElementById('dispOrderNumber').value = order.order_number;
+        document.getElementById('dispProduct').value = order.article_type;
+        document.getElementById('dispExpected').value = order.pt_units;
+        document.getElementById('receivedQty').value = ''; // Clear previous
+
+        window.scrollTo(0, card.offsetTop);
+    }
+
+    function validateAndSubmit() {
+        const expected = parseFloat(document.getElementById('expectedUnits').value);
+        const received = parseFloat(document.getElementById('receivedQty').value);
+        const orderNum = document.getElementById('orderNumber').value;
+
+        if (isNaN(received)) {
+            alert("Ingrese la cantidad recibida");
+            return;
+        }
+
+        const diff = expected - received;
+
+        if (diff !== 0) {
+            // Show Alert Modal
+            const body = document.getElementById('emailBody');
+            body.value = `Se detectó una diferencia en la Orden ${orderNum}.\n\nEsperado: ${expected}\nRecibido: ${received}\nDiferencia: ${diff}\n\nPor favor verificar.`;
+
+            document.getElementById('alertModal').style.display = 'flex';
+        } else {
+            // Submit directly
+            submitForm();
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('alertModal').style.display = 'none';
+    }
+
+    async function submitForm(email = null) {
+        const formData = new FormData();
+        formData.append('production_id', document.getElementById('prodId').value);
+        formData.append('received_qty', document.getElementById('receivedQty').value);
+        if (email) formData.append('alert_email', email);
+
+        try {
+            const res = await fetch('/logistics/reception/confirm', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("Recepción Confirmada Exitosamente");
+                window.location.reload();
+            } else {
+                alert("Error: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    }
+
+    function confirmWithAlert() {
+        const emailTo = document.getElementById('emailTo').value;
+        submitForm(emailTo);
+    }
+</script>
+{% endblock %}

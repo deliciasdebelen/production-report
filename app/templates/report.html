@@ -3,112 +3,254 @@
 {% block content %}
 <h1 style="margin-bottom: 1.5rem;">Reporte de Producción</h1>
 
-<div class="card">
+<style>
+    /* Premium Compact Form Styles */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        /* 12-column grid system */
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .col-span-2 {
+        grid-column: span 2;
+    }
+
+    .col-span-3 {
+        grid-column: span 3;
+    }
+
+    .col-span-4 {
+        grid-column: span 4;
+    }
+
+    .col-span-6 {
+        grid-column: span 6;
+    }
+
+    .col-span-8 {
+        grid-column: span 8;
+    }
+
+    .col-span-12 {
+        grid-column: span 12;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+        letter-spacing: 0.02em;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        /* Reduced padding */
+        font-size: 0.9rem;
+        /* Slightly smaller text */
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        /* Softer corners */
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+        outline: none;
+    }
+
+    .section-title {
+        font-size: 0.95rem;
+        color: var(--primary);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 2rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* Input addons or visual cues */
+    .input-wrapper {
+        position: relative;
+    }
+
+    /* Custom File Upload Styling */
+    .file-input-hidden {
+        display: none;
+    }
+
+    .file-label {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        background: white;
+        border: 2px dashed #cbd5e1;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .file-label:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: #f0f9ff;
+    }
+
+    .file-label .icon {
+        font-size: 1.2rem;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .col-span-2,
+        .col-span-3,
+        .col-span-4,
+        .col-span-6 {
+            grid-column: span 1;
+        }
+    }
+</style>
+
+<div class="card" style="max-width: 1000px; margin: 0 auto;">
     <form id="productionForm">
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Cantidad de Batch</label>
-                <input type="number" name="batch_qty" required>
+
+        <!-- Header Section: Basic Info -->
+        <div class="form-grid">
+            <div class="form-group col-span-3"> <!-- Batch is small -->
+                <label>Nro. Batch</label>
+                <input type="number" name="batch_qty" required placeholder="0">
             </div>
-            <div class="form-group">
+            <div class="form-group col-span-3"> <!-- Date is fixed -->
                 <label>Fecha</label>
                 <input type="date" name="custom_created_at" value="{{ request.state.today }}" {% if user.role !=4
                     %}disabled{% endif %}>
-                {% if user.role != 4 %}
-                <small style="color: var(--text-muted)">Automático</small>
-                {% endif %}
             </div>
-        </div>
-
-        <div class="grid-2">
-            <div class="form-group">
+            <!-- Article Search needs space -->
+            <div class="form-group col-span-6">
                 <label>Tipo de Artículo</label>
-                <!-- Progressive Search Assistant -->
                 <div style="position: relative;">
-                    <input type="text" id="articleSearch" placeholder="Escriba para buscar..." autocomplete="off">
+                    <input type="text" id="articleSearch" placeholder="🔍 Buscar artículo..." autocomplete="off">
                     <input type="hidden" name="article_type" id="articleTypeHidden" required>
                     <div id="articleResults"
-                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); border-top: none; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-top: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 0 0 8px 8px;">
                     </div>
                 </div>
             </div>
-            <div class="form-group">
+        </div>
+
+        <!-- Section: Description & Units -->
+        <div class="form-grid">
+            <div class="form-group col-span-4">
                 <label>Presentación</label>
                 <input type="text" name="presentation" id="presentationInput" required placeholder="Ej: 600G">
             </div>
-        </div>
-
-        <div class="grid-2">
-            <!-- Dynamic Field from Profit Plus -->
-            <div class="form-group">
-                <label>Unidad Base (Profit Plus)</label>
-                <input type="text" id="baseUnit" disabled style="background-color: #e9ecef;">
+            <div class="form-group col-span-4">
+                <label>Unidad Base (System)</label>
+                <input type="text" id="baseUnit" disabled style="background-color: #e2e8f0; color: #64748b;">
             </div>
-            <!-- Kg Calculation -->
-            <div class="form-group">
-                <label>Kg Por Batch (Estándar)</label>
-                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="Ingrese Kg por batch">
+            <div class="form-group col-span-4">
+                <label>Kg Estándar / Batch</label>
+                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00">
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Kilogramos Realizados (Total)</label>
-            <input type="text" inputmode="decimal" name="kg_produced" id="totalKgInput" required
-                style="background-color: #f8f9fa;">
-            <small style="color: var(--primary);">Calculado: Nro Batches * Kg/Batch</small>
-        </div>
-
-        <div class="grid-2">
-            <div class="form-group">
+        <!-- Section: Primary Output -->
+        <div class="form-grid"
+            style="background: #f1f5f9; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div class="form-group col-span-4">
+                <label>Total Kg Producidos</label>
+                <input type="text" inputmode="decimal" name="kg_produced" id="totalKgInput" required
+                    style="background-color: white; font-weight: 700; color: var(--primary);">
+                <small style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; display: block;">Calculado:
+                    Batches * Kg/Batch</small>
+            </div>
+            <div class="form-group col-span-4">
                 <label>Unidades Producidas</label>
-                <input type="number" name="pt_units" id="unitsInput" required>
+                <input type="number" name="pt_units" id="unitsInput" required style="background: white;">
             </div>
-            <div class="form-group">
-                <label>Nro de Cajas</label>
-                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required>
+            <div class="form-group col-span-4">
+                <label>Cajas Totales</label>
+                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required style="background: white;">
             </div>
         </div>
 
-        <h3
-            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-            Producto Terminado (PT)</h3>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Unidades Laboratorio</label>
+        <h3 class="section-title">📦 Producto Terminado (Calidad)</h3>
+        <div class="form-grid">
+            <div class="form-group col-span-3">
+                <label>Und. Laboratorio</label>
                 <input type="number" name="pt_lab" placeholder="0">
             </div>
-            <div class="form-group">
-                <label>Unidades Quemadas</label>
+            <div class="form-group col-span-3">
+                <label>Und. Quemadas</label>
                 <input type="number" name="pt_burned" placeholder="0">
+            </div>
+            <div class="form-group col-span-6">
+                <!-- Spacer or additional fields if needed -->
             </div>
         </div>
 
-        <h3
-            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-            Materia Prima (MP)</h3>
-        <div class="grid-3">
-            <div class="form-group">
-                <label>Envases Descartados</label>
+        <h3 class="section-title">♻️ Materia Prima & Mermas</h3>
+        <div class="form-grid">
+            <div class="form-group col-span-3">
+                <label>Envases Descart.</label>
                 <input type="number" name="mp_containers" placeholder="0">
             </div>
-            <div class="form-group">
+            <div class="form-group col-span-3">
                 <label>Tapas Limpias Desc.</label>
                 <input type="number" name="mp_caps_clean" placeholder="0">
             </div>
-            <div class="form-group">
+            <div class="form-group col-span-3">
                 <label>Tapas Sucias Desc.</label>
                 <input type="number" name="mp_caps_dirty" placeholder="0">
             </div>
+            <div class="form-group col-span-3">
+            </div>
+
+            <!-- Waste Row -->
+            <div class="form-group col-span-4" style="margin-top: 0.5rem;">
+                <label style="color: var(--danger);">Merma Total (Kg)</label>
+                <input type="text" inputmode="decimal" name="mp_waste_kg" placeholder="0.00"
+                    style="border-color: #fca5a5; background: #fef2f2;">
+            </div>
+            <div class="form-group col-span-8" style="margin-top: 0.5rem;">
+                <label>Evidencia Visual (Foto)</label>
+                <div class="custom-file-upload">
+                    <input type="file" name="mp_waste_image" id="wasteImageInput" accept="image/*"
+                        class="file-input-hidden">
+                    <label for="wasteImageInput" class="file-label">
+                        <span class="icon">📷</span>
+                        <span id="fileName">Toca para subir foto...</span>
+                    </label>
+                </div>
+            </div>
         </div>
 
-        <h3
-            style="margin: 1.5rem 0 1rem; color: var(--primary); border-bottom: 2px solid var(--border); padding-bottom: 0.5rem;">
-            Consumo Rápido</h3>
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Tipo de Unidad</label>
+        <h3 class="section-title">⚡ Consumo Rápido</h3>
+        <div class="form-grid">
+            <div class="form-group col-span-3">
+                <label>Tipo Unidad</label>
                 <select name="cons_type" id="consType">
-                    <option value="">Seleccione...</option>
+                    <option value="">-- Seleccionar --</option>
                     <option value="Unidad">Unidad</option>
                     <option value="Galon">Galón</option>
                     <option value="Litro">Litro</option>
@@ -116,36 +258,36 @@
                     <option value="Otro">Otro</option>
                 </select>
             </div>
-            <!-- Empty div for grid alignment if needed, or maybe just 3 cols below? -->
-        </div>
-        <div class="grid-3">
-            <div class="form-group">
-                <label>Cantidad (Unidades)</label>
+            <div class="form-group col-span-3">
+                <label>Cant. Consumida</label>
                 <input type="text" inputmode="decimal" name="cons_count" id="consCount" placeholder="0">
             </div>
-            <div class="form-group">
+            <div class="form-group col-span-3">
                 <label>Peso x Unidad (Kg)</label>
                 <input type="text" inputmode="decimal" name="cons_unit_weight" id="consUnitWeight" placeholder="0.00">
             </div>
-            <div class="form-group">
-                <label>Total Peso (Kg)</label>
+            <div class="form-group col-span-3">
+                <label>Total CR (Kg)</label>
                 <input type="text" inputmode="decimal" name="cons_qty" id="consTotalWeight" readonly
-                    style="background-color: #f8f9fa;">
+                    style="background-color: #e2e8f0; font-weight: 600;">
             </div>
         </div>
 
-        <div class="form-group">
-            <label>Notas</label>
-            <textarea name="notes" rows="3"></textarea>
+        <div class="form-group" style="margin-top: 2rem;">
+            <label>Notas Adicionales</label>
+            <textarea name="notes" rows="2" placeholder="Observaciones importantes del turno..."></textarea>
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-            <button type="submit" class="btn"
-                style="background-color: #017e84; color: white; border: 1px solid #017e84; padding: 6px 12px; font-weight: 500; font-size: 0.9rem; min-width: 80px;">Guardar</button>
+        <div
+            style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
             <button type="button" onclick="window.open('/maintenance/report/print?type=production', '_blank')"
                 class="btn"
-                style="background: white; color: #444; border: 1px solid #ccc; padding: 6px 12px; font-weight: 500; font-size: 0.9rem;">
-                <span style="margin-right:5px">🖨</span> Imprimir
+                style="background: white; color: var(--text-main); border: 1px solid #cbd5e1; padding: 0.6rem 1.5rem; border-radius: 8px;">
+                🖨 Imprimir
+            </button>
+            <button type="submit" class="btn"
+                style="background-color: var(--primary); color: white; border: none; padding: 0.6rem 2rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 6px -1px var(--primary-light);">
+                Guardar Reporte
             </button>
         </div>
     </form>
@@ -312,46 +454,62 @@
 
     loadArticles();
 
+    // Custom File Input Logic
+    const fileInput = document.getElementById('wasteImageInput');
+    const fileNameSpan = document.getElementById('fileName');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                fileNameSpan.textContent = e.target.files[0].name;
+                fileNameSpan.style.color = '#334155'; // Slate 700
+                fileNameSpan.style.fontWeight = '500';
+            } else {
+                fileNameSpan.textContent = "Toca para subir foto...";
+                fileNameSpan.style.color = 'var(--text-muted)';
+                fileNameSpan.style.fontWeight = 'normal';
+            }
+        });
+    }
+
     document.getElementById('productionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
+        const form = e.target;
+        const formData = new FormData(form);
 
-        // Sanitization
-        try {
-            data.kg_produced = parseLocaleFloat(data.kg_produced);
-            data.boxes = parseLocaleFloat(data.boxes);
+        // Client-side validation/formatting if needed
+        // Note: FormData values are strings/blobs. The backend FastApi Form features will cast them.
+        // However, we might want to ensure dots instead of commas for floats before sending?
+        // Or simply trust the backend to handle standard float string if locale matches?
+        // Let's replace comma with dot in formData for float fields to be safe
 
-            // Consumption
-            data.cons_count = parseLocaleFloat(data.cons_count);
-            data.cons_unit_weight = parseLocaleFloat(data.cons_unit_weight);
-            data.cons_qty = parseLocaleFloat(data.cons_qty); // This is the total weight
+        const floatFields = ['kg_produced', 'boxes', 'cons_count', 'cons_unit_weight', 'cons_qty', 'mp_waste_kg'];
 
-            data.batch_qty = parseInt(data.batch_qty) || 0;
-            data.pt_units = parseInt(data.pt_units) || 0;
-            data.pt_lab = parseInt(data.pt_lab) || 0;
-            data.pt_burned = parseInt(data.pt_burned) || 0;
-
-            data.mp_containers = parseInt(data.mp_containers) || 0;
-            data.mp_caps_clean = parseInt(data.mp_caps_clean) || 0;
-            data.mp_caps_dirty = parseInt(data.mp_caps_dirty) || 0;
-        } catch (err) {
-            alert("Error en formato de números");
-            return;
+        for (const field of floatFields) {
+            const val = formData.get(field);
+            if (val && typeof val === 'string') {
+                formData.set(field, val.replace(',', '.'));
+            }
         }
 
-        const response = await fetch('/api/production', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
-        });
+        try {
+            const response = await fetch('/api/production', {
+                method: 'POST',
+                body: formData // No Content-Type header (browser sets it with boundary)
+            });
 
-        if (response.ok) {
-            alert('Reporte guardado exitosamente');
-            e.target.reset();
-        } else {
-            const err = await response.json();
-            alert('Error al guardar reporte: ' + JSON.stringify(err.detail));
+            if (response.ok) {
+                alert('Reporte guardado exitosamente');
+                form.reset();
+                document.getElementById('totalKgInput').value = '';
+                document.getElementById('consTotalWeight').value = '';
+            } else {
+                const err = await response.json();
+                alert('Error al guardar reporte: ' + JSON.stringify(err.detail));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Error de conexión');
         }
     });
 

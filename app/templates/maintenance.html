@@ -4,28 +4,82 @@
 <h1 style="margin-bottom: 1.5rem;">Mantenimiento</h1>
 
 <!-- Tabs -->
-<div style="margin-bottom: 2rem;">
-    <button onclick="showTab('users')" class="btn"
-        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); margin-right: 0.5rem;">Usuarios</button>
-    <button onclick="showTab('data')" class="btn"
-        style="background: var(--surface); color: var(--text); border: 1px solid var(--border);">Base de Datos</button>
+<style>
+    /* Compact Form Styles (Reused) */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .col-span-3 {
+        grid-column: span 3;
+    }
+
+    .col-span-4 {
+        grid-column: span 4;
+    }
+
+    .col-span-6 {
+        grid-column: span 6;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+    }
+</style>
+
+<div style="margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
+    <button onclick="showTab('users', this)" class="tab-btn active">Usuarios</button>
+    <button onclick="showTab('data', this)" class="tab-btn">Base de Datos</button>
 </div>
 
 <!-- Users Tab -->
 <div id="users" class="tab-content">
-    <div class="card" style="margin-bottom: 2rem;">
-        <h3>Crear Nuevo Usuario</h3>
+    <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Crear Nuevo Usuario</h3>
         <form action="/maintenance/users" method="post">
-            <div class="grid-3">
-                <div class="form-group">
+            <div class="form-grid">
+                <div class="form-group col-span-4">
                     <label>Usuario</label>
-                    <input type="text" name="username" required>
+                    <input type="text" name="username" required placeholder="Ej: ovargas">
                 </div>
-                <div class="form-group">
+                <div class="form-group col-span-4">
                     <label>Contraseña</label>
-                    <input type="text" name="password" required>
+                    <input type="text" name="password" required placeholder="********">
                 </div>
-                <div class="form-group">
+                <div class="form-group col-span-4">
                     <label>Rol</label>
                     <select name="role" required>
                         <option value="1">1 - KPI (Solo ver)</option>
@@ -35,7 +89,11 @@
                     </select>
                 </div>
             </div>
-            <button type="submit" class="btn">Crear Usuario</button>
+            <div style="text-align: right;">
+                <button type="submit" class="btn"
+                    style="background-color: var(--primary); color: white; padding: 0.5rem 1.5rem;">Crear
+                    Usuario</button>
+            </div>
         </form>
     </div>
 
@@ -112,72 +170,112 @@
         }
     </script>
 
-    <div class="card" style="margin-bottom: 1rem;">
-        <h3 style="color: #dc3545;">Zona de Peligro: Limpieza de Datos</h3>
-        <p style="color: var(--text-muted); margin-bottom: 1rem;">Use los filtros de fecha para previsualizar y borrar
-            datos específicos.</p>
-
-        <div style="display: flex; gap: 2rem;">
-            <!-- Planning Data Control -->
-            <div style="flex: 1; border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
-                <h4>Planificaciones</h4>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label>Desde</label>
-                        <input type="date" id="planStart">
-                    </div>
-                    <div class="form-group">
-                        <label>Hasta</label>
-                        <input type="date" id="planEnd">
-                    </div>
+    <div style="margin-bottom: 2rem;">
+        <div class="card" style="border-left: 4px solid #dc3545; background-color: #fff5f5; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="font-size: 1.5rem; color: #dc3545;">⚠️</div>
+                <div>
+                    <h3 style="color: #dc3545; margin-top: 0;">Zona de Mantenimiento de Datos</h3>
+                    <p style="color: #6c757d; margin: 0;">Use los filtros de fecha para previsualizar y eliminar
+                        registros. Las acciones de eliminación son irreversibles.</p>
                 </div>
-            </div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button type="button" class="btn" style="background: var(--primary);"
-                    onclick="previewData('planning')">Ver Datos</button>
-
-                <button type="button" class="btn" style="background: #6c757d;" onclick="printReport('planning')">🖨
-                    Imprimir</button>
-
-                <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
-                    style="flex:1;">
-                    <input type="hidden" name="table" value="planning">
-                    <input type="hidden" name="action" value="all">
-                    <input type="hidden" name="start_date" id="formPlanStart">
-                    <input type="hidden" name="end_date" id="formPlanEnd">
-                    <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR</button>
-                </form>
             </div>
         </div>
 
-        <!-- Production Data Control -->
-        <div style="flex: 1; border: 1px solid var(--border); padding: 1rem; border-radius: 8px;">
-            <h4>Reportes de Producción</h4>
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Desde</label>
-                    <input type="date" id="prodStart">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            <!-- Planning Data Control -->
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">Planificaciones</h4>
+                    <span
+                        style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Gestión
+                        Mensual</span>
                 </div>
-                <div class="form-group">
-                    <label>Hasta</label>
-                    <input type="date" id="prodEnd">
+
+                <div class="grid-2" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Inicio</label>
+                        <input type="date" id="planStart" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Fin</label>
+                        <input type="date" id="planEnd" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="previewData('planning')">
+                        <span>👁️</span> Ver Datos
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="printReport('planning')">
+                        <span>🖨️</span> Imprimir
+                    </button>
+                    <div style="flex-grow: 1;"></div>
+                    <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
+                        style="margin: 0;">
+                        <input type="hidden" name="table" value="planning">
+                        <input type="hidden" name="action" value="all">
+                        <input type="hidden" name="start_date" id="formPlanStart">
+                        <input type="hidden" name="end_date" id="formPlanEnd">
+                        <button type="submit" class="btn"
+                            style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
+                            ELIMINAR SELECCIÓN
+                        </button>
+                    </form>
                 </div>
             </div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button type="button" class="btn" style="background: var(--primary);"
-                    onclick="previewData('production')">Ver Datos</button>
 
-                <button type="button" class="btn" style="background: #6c757d;" onclick="printReport('production')">🖨
-                    Imprimir</button>
+            <!-- Production Data Control -->
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">Reportes de Producción</h4>
+                    <span
+                        style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Histórico
+                        Diario</span>
+                </div>
 
-                <form action="/maintenance/data/delete" method="post"
-                    onsubmit="return confirm('¿ESTÁ SEGURO? Se borrarán TODOS los reportes de producción (Filtros no aplican a borrado aun).');"
-                    style="flex:1;">
-                    <input type="hidden" name="table" value="production">
-                    <input type="hidden" name="action" value="all">
-                    <button type="submit" class="btn" style="background: #dc3545; width: 100%;">ELIMINAR
-                        TODO</button>
-                </form>
+                <div class="grid-2" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Inicio</label>
+                        <input type="date" id="prodStart" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Fin</label>
+                        <input type="date" id="prodEnd" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="previewData('production')">
+                        <span>👁️</span> Ver Datos
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="printReport('production')">
+                        <span>🖨️</span> Imprimir
+                    </button>
+                    <div style="flex-grow: 1;"></div>
+                    <form action="/maintenance/data/delete" method="post"
+                        onsubmit="return confirm('¿ESTÁ SEGURO? Se borrarán TODOS los reportes de producción (Filtros no aplican a borrado aun).');"
+                        style="margin: 0;">
+                        <input type="hidden" name="table" value="production">
+                        <input type="hidden" name="action" value="all">
+                        <button type="submit" class="btn"
+                            style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
+                            ELIMINAR TODO
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
@@ -240,9 +338,13 @@
         window.open(url, '_blank');
     }
 
-    function showTab(tabId) {
+    function showTab(tabId, btn) {
         document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
         document.getElementById(tabId).style.display = 'block';
+
+        // Update active state
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
     }
 
     function confirmDelete(type) {

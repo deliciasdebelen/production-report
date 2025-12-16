@@ -14,6 +14,8 @@ class ProductionReportBase(BaseModel):
     mp_containers: int = 0
     mp_caps_clean: int = 0
     mp_caps_dirty: int = 0
+    mp_waste_kg: float = 0.0
+    mp_waste_image: Optional[str] = None
     cons_type: Optional[str] = None
     cons_count: float = 0.0
     cons_unit_weight: float = 0.0
@@ -54,6 +56,7 @@ class DashboardStats(BaseModel):
     total_production_kg: float
     total_production_units: int
     total_production_boxes: float = 0.0
+    total_waste_kg: float = 0.0
     total_planned_batches: int
     total_planned_kg: float
     total_planned_units: int

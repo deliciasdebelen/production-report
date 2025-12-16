@@ -3,64 +3,134 @@
 {% block content %}
 <h1 style="margin-bottom: 1.5rem;">Planificación de Producción</h1>
 
-<div class="card">
+<style>
+    /* Premium Compact Form Styles */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .col-span-3 {
+        grid-column: span 3;
+    }
+
+    .col-span-4 {
+        grid-column: span 4;
+    }
+
+    .col-span-6 {
+        grid-column: span 6;
+    }
+
+    .col-span-12 {
+        grid-column: span 12;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+        letter-spacing: 0.02em;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+        transition: all 0.2s ease;
+    }
+
+    .form-group input:focus {
+        background: white;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+        outline: none;
+    }
+
+    @media (max-width: 768px) {
+        .form-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .col-span-3,
+        .col-span-4,
+        .col-span-6 {
+            grid-column: span 1;
+        }
+    }
+</style>
+
+<div class="card" style="max-width: 1000px; margin: 0 auto;">
     <form id="planningForm">
-        <div class="grid-2">
-            <div class="form-group">
-                <label>Fecha</label>
+        <!-- Header -->
+        <div class="form-grid">
+            <div class="form-group col-span-4">
+                <label>Fecha Planificada</label>
                 <input type="date" name="date" required>
             </div>
-            <div class="form-group">
+            <div class="form-group col-span-4">
+                <label>Nro de Batches</label>
+                <input type="number" name="batches" required placeholder="0">
+            </div>
+            <div class="form-group col-span-4">
+                <label>Kg Por Batch (Estándar)</label>
+                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00">
+            </div>
+        </div>
+
+        <!-- Article -->
+        <div class="form-grid">
+            <div class="form-group col-span-6">
                 <label>Artículo</label>
-                <!-- Progressive Search Assistant -->
                 <div style="position: relative;">
-                    <input type="text" id="articleSearch" placeholder="Escriba para buscar..." autocomplete="off">
+                    <input type="text" id="articleSearch" placeholder="🔍 Buscar artículo..." autocomplete="off">
                     <input type="hidden" name="article" id="articleHidden" required>
                     <div id="articleResults"
-                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid var(--border); border-top: none; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; border-top: none; z-index: 1000; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); border-radius: 0 0 8px 8px;">
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="grid-2">
-            <div class="form-group">
+            <div class="form-group col-span-6">
                 <label>Presentación</label>
-                <!-- Changed to Input for Auto-Extraction -->
                 <input type="text" name="presentation" id="presentationInput" required placeholder="Ej: 600G">
             </div>
-            <div class="form-group">
-                <label>Nro de Batches</label>
-                <input type="number" name="batches" required>
-            </div>
         </div>
 
-        <div class="grid-3">
-            <div class="form-group">
-                <label>Kg Por Batch</label>
-                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="Kg Estándar">
-            </div>
-            <div class="form-group">
-                <label>Kilogramos (Total)</label>
+        <!-- Output Stats -->
+        <div class="form-grid"
+            style="background: #f1f5f9; padding: 1.5rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div class="form-group col-span-4">
+                <label>Total Kg Planificados</label>
                 <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required
-                    style="background-color: #f8f9fa;">
+                    style="background-color: white; font-weight: 700; color: var(--primary);">
             </div>
-            <div class="form-group">
-                <label>Unidades</label>
-                <input type="number" name="units" id="unitsInput" required>
+            <div class="form-group col-span-4">
+                <label>Unidades Esperadas</label>
+                <input type="number" name="units" id="unitsInput" required style="background: white;">
             </div>
-            <div class="form-group">
-                <label>Nro de Cajas</label>
-                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required>
+            <div class="form-group col-span-4">
+                <label>Cajas Totales</label>
+                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required style="background: white;">
             </div>
         </div>
 
-        <div style="display: flex; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px;">
-            <button type="submit" class="btn"
-                style="background-color: #017e84; color: white; border: 1px solid #017e84; padding: 6px 12px; font-weight: 500; font-size: 0.9rem; min-width: 80px;">Guardar</button>
+        <div
+            style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0;">
             <button type="button" onclick="window.open('/maintenance/report/print?type=planning', '_blank')" class="btn"
-                style="background: white; color: #444; border: 1px solid #ccc; padding: 6px 12px; font-weight: 500; font-size: 0.9rem;">
-                <span style="margin-right:5px">🖨</span> Imprimir
+                style="background: white; color: var(--text-main); border: 1px solid #cbd5e1; padding: 0.6rem 1.5rem; border-radius: 8px;">
+                🖨 Imprimir
+            </button>
+            <button type="submit" class="btn"
+                style="background-color: var(--primary); color: white; border: none; padding: 0.6rem 2rem; font-weight: 600; border-radius: 8px; box-shadow: 0 4px 6px -1px var(--primary-light);">
+                Guardar Planificación
             </button>
         </div>
     </form>

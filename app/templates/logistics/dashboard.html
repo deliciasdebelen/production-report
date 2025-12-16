@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Logística y Almacén</h1>
+
+<div class="grid-3" style="margin-top: 2rem;">
+    <!-- Recepción Producción -->
+    <a href="/logistics/reception/production" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--primary);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏭</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Recepción de Producción</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Verificar y dar entrada a productos terminados desde
+                planta.</p>
+        </div>
+    </a>
+
+    <!-- Recepción Mercancía -->
+    <a href="/logistics/reception/merchandise" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--secondary);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Recepción de Mercancía</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Entrada de materias primas y suministros de
+                proveedores.</p>
+        </div>
+    </a>
+
+    <!-- Despacho -->
+    <a href="/logistics/dispatch" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--warning);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚚</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Despacho de Mercancía</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Salida de productos a clientes y distribuidores.</p>
+        </div>
+    </a>
+</div>
+{% endblock %}

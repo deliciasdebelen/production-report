@@ -15,68 +15,82 @@
             <div class="sidebar-title">
                 Delicias de Belén
             </div>
-            <nav>
+            <nav style="flex:1; padding-top: 1rem;">
                 {% if user %}
-                <div style="padding: 0 1rem 1rem; font-size: 0.85rem; color: rgba(255,255,255,0.6);">
-                    Hola, {{ user.username }}
-                    (Rol: {% if user.role == 4 %}Admin{% elif user.role == 3 %}Plan{% elif user.role == 2 %}Prod{% else
-                    %}KPI{% endif %})
+                <div
+                    style="padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 1rem;">
+                    <div style="font-weight: 600; font-size: 0.95rem; color: #fff;">{{ user.username }}</div>
+                    <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">
+                        Rol: {% if user.role == 4 %}Administrador{% elif user.role == 3 %}Planificación{% elif user.role
+                        == 2 %}Producción{% else %}Visualización{% endif %}
+                    </div>
                 </div>
                 {% endif %}
 
-                <!-- Role 1+: Dashboard (All logged in users can see Dashboard) -->
-                <!-- Role 1, 4: Dashboard -->
+                <div class="nav-section-title">Principal</div>
+
                 {% if user and (user.role == 1 or user.role == 4) %}
-                <a href="/dashboard" class="nav-link">KPI Dashboard</a>
+                <a href="/dashboard" class="nav-link">
+                    📊 &nbsp; Dashboard
+                </a>
                 {% endif %}
 
-                <!-- Role 2, 4: Report -->
                 {% if user and (user.role == 2 or user.role == 4) %}
-                <a href="/report" class="nav-link">Producción</a>
+                <a href="/report" class="nav-link">
+                    📝 &nbsp; Producción
+                </a>
                 {% endif %}
 
-                <!-- Role 3, 4: Planning -->
                 {% if user and (user.role == 3 or user.role == 4) %}
-                <a href="/planning" class="nav-link">Planificación</a>
+                <a href="/planning" class="nav-link">
+                    📅 &nbsp; Planificación
+                </a>
                 {% endif %}
 
                 {% if user %}
-                <a href="/assistant" class="nav-link">Asistente</a>
+                <a href="/assistant" class="nav-link">
+                    🤖 &nbsp; Asistente IA
+                </a>
                 {% endif %}
 
-                <!-- Role 4: Maintenance -->
-                {% if user and user.role == 4 %}
-                <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    <span
-                        style="display:block; padding: 0.5rem 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase;">Administración</span>
-                    <a href="/maintenance" class="nav-link">Mantenimiento</a>
-                </div>
-                {% endif %}
-
-                <!-- Role 2, 4: Traslados (New Module) -->
-                <!-- Role 1, 3, 4: Logística (Traslados) -->
+                <!-- Logistics Section -->
                 {% if user and (user.role == 1 or user.role == 3 or user.role == 4) %}
-                <div style="margin-top: 1rem; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem;">
-                    <span
-                        style="display:block; padding: 0.5rem 1rem; font-size: 0.75rem; color: rgba(255,255,255,0.4); text-transform: uppercase;">Logística</span>
+                <div class="nav-section-title">Logística</div>
 
-                    <!-- Role 3, 4: Opciones de Traslados -->
-                    {% if user.role == 3 or user.role == 4 %}
-                    <a href="/traslados" class="nav-link">Traslados</a>
-                    {% endif %}
+                <a href="/logistics" class="nav-link">
+                    📦 &nbsp; Almacén General
+                </a>
 
-                    <!-- Role 1, 4: Tiempo Real -->
-                    {% if user.role == 1 or user.role == 4 %}
-                    <a href="/traslados/tiempo-real" class="nav-link">Tiempo Real</a>
-                    {% endif %}
-                </div>
+                {% if user.role == 3 or user.role == 4 %}
+                <a href="/traslados" class="nav-link">
+                    🚚 &nbsp; Traslados
+                </a>
                 {% endif %}
 
-                <!-- Logout -->
-                {% if user %}
-                <a href="/logout" class="nav-link" style="margin-top: auto; color: #ffadad;">Cerrar Sesión</a>
+                {% if user.role == 1 or user.role == 4 %}
+                <a href="/traslados/tiempo-real" class="nav-link">
+                    ⏱ &nbsp; Tiempo Real
+                </a>
                 {% endif %}
+                {% endif %}
+
+                <!-- Admin Section -->
+                {% if user and user.role == 4 %}
+                <div class="nav-section-title">Sistema</div>
+                <a href="/maintenance" class="nav-link">
+                    ⚙️ &nbsp; Configuración
+                </a>
+                {% endif %}
+
             </nav>
+
+            {% if user %}
+            <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                <a href="/logout" class="nav-link" style="color: #ef4444; padding: 0.5rem 0;">
+                    🚪 &nbsp; Cerrar Sesión
+                </a>
+            </div>
+            {% endif %}
         </aside>
         <div class="main-content">
             <header class="top-bar">

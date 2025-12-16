@@ -1,72 +1,430 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<h1 style="margin-bottom: 1.5rem;">Asistente de Producción (AI)</h1>
+<style>
+    /* Chat Specific Styles */
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        /* Adjust based on header/padding */
+        max-width: 900px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.4);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+        overflow: hidden;
+    }
 
-<div class="card">
-    <h2>Análisis de Rendimiento</h2>
-    <div id="analysisContent">
-        <p>Cargando análisis...</p>
+    .chat-header {
+        padding: 1rem 1.5rem;
+        background: rgba(255, 255, 255, 0.6);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .ai-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        scroll-behavior: smooth;
+    }
+
+    /* Message Bubbles */
+    .message {
+        display: flex;
+        gap: 1rem;
+        max-width: 85%;
+        opacity: 0;
+        animation: fadeIn 0.3s forwards;
+    }
+
+    .message.user {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+
+    .message-content {
+        padding: 1rem 1.5rem;
+        border-radius: 18px;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        position: relative;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .message.ai .message-content {
+        background: white;
+        color: var(--text-main);
+        border-bottom-left-radius: 4px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .message.user .message-content {
+        background: var(--primary);
+        color: white;
+        border-bottom-right-radius: 4px;
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+        display: flex;
+        gap: 4px;
+        padding: 1rem;
+        background: white;
+        border-radius: 18px;
+        width: fit-content;
+        margin-left: 3.5rem;
+        /* Align with text */
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1rem;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background: #cbd5e1;
+        border-radius: 50%;
+        animation: bounce 1.4s infinite ease-in-out both;
+    }
+
+    .dot:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+
+    .dot:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+
+    @keyframes bounce {
+
+        0%,
+        80%,
+        100% {
+            transform: scale(0);
+        }
+
+        40% {
+            transform: scale(1);
+        }
+    }
+
+    @keyframes fadeIn {
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Input Area */
+    .chat-input-area {
+        padding: 1rem 1.5rem;
+        background: white;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+    }
+
+    .chip {
+        padding: 0.5rem 1rem;
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .chip:hover {
+        background: var(--primary-light);
+        color: var(--primary);
+        border-color: var(--primary-light);
+    }
+
+    .input-wrapper {
+        display: flex;
+        gap: 1rem;
+        background: #f8fafc;
+        padding: 0.5rem;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .input-wrapper input {
+        border: none;
+        background: transparent;
+        flex: 1;
+        padding: 0.5rem;
+        outline: none;
+        font-size: 0.95rem;
+    }
+
+    .send-btn {
+        background: var(--primary);
+        color: white;
+        border: none;
+        width: 40px;
+        height: 40px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+
+    .send-btn:hover {
+        background: var(--primary-dark);
+        transform: scale(1.05);
+    }
+
+    /* Markdown styling inside bubbles */
+    .message-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+    }
+
+    .message-content th {
+        text-align: left;
+        color: var(--text-muted);
+        border-bottom: 1px solid #e2e8f0;
+        padding: 0.25rem 0;
+    }
+
+    .message-content td {
+        padding: 0.25rem 0;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .message-content strong {
+        color: var(--primary-dark);
+        font-weight: 600;
+    }
+</style>
+
+<div class="chat-container">
+    <div class="chat-header">
+        <div class="ai-avatar">AI</div>
+        <div>
+            <h2 style="font-size: 1.1rem; margin: 0;">Asistente de Producción</h2>
+            <div style="font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 4px;">
+                <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
+                En línea
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+        <!-- Introduction -->
+        <div class="message ai">
+            <div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">AI</div>
+            <div class="message-content">
+                ¡Hola! Soy tu asistente inteligente. 👋<br>
+                Puedo ayudarte a analizar el rendimiento de tu planta, detectar mermas y resumir la producción
+                diaria.<br><br>
+                ¿Qué te gustaría revisar hoy?
+            </div>
+        </div>
+    </div>
+
+    <div class="chat-input-area">
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: var(--text-muted);">Configuración de Análisis</h4>
+
+        <!-- Single Date Filter -->
+        <div
+            style="display: flex; gap: 1rem; margin-bottom: 1rem; align-items: center; background: #f8fafc; padding: 0.75rem; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.85rem; font-weight: 500;">Desde:</label>
+                <input type="date" id="dateStart"
+                    style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.25rem;">
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label style="font-size: 0.85rem; font-weight: 500;">Hasta:</label>
+                <input type="date" id="dateEnd"
+                    style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 0.25rem;">
+            </div>
+            <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: auto;">(Aplica a todas las
+                opciones)</span>
+        </div>
+
+        <div class="quick-actions" style="justify-content: center; gap: 1rem; padding-bottom: 0;">
+            <button class="chip" onclick="executeAction('Rendimiento')"
+                style="border-color: var(--primary); color: var(--primary); font-weight: 500;">
+                📊 Analizar Rendimiento
+            </button>
+            <button class="chip" onclick="executeAction('Resumen')"
+                style="border-color: var(--primary); color: var(--primary); font-weight: 500;">
+                📅 Resumen General
+            </button>
+            <button class="chip" onclick="executeAction('Problemas')"
+                style="border-color: var(--danger); color: var(--danger); font-weight: 500;">
+                🚨 Detectar Problemas
+            </button>
+        </div>
     </div>
 </div>
 
 <script>
-    async function loadAnalysis() {
-        const res = await fetch('/api/dashboard');
-        const data = await res.json();
+    const chatMessages = document.getElementById('chatMessages');
 
-        let html = '';
+    function executeAction(type) {
+        const start = document.getElementById('dateStart').value;
+        const end = document.getElementById('dateEnd').value;
 
-        // Simple heuristic analysis for now
-        if (data.compliance_percentage >= 95) {
-            html += '<p style="color: var(--success); font-weight: bold;">✅ Excelente cumplimiento de planificación.</p>';
-        } else if (data.compliance_percentage >= 80) {
-            html += '<p style="color: var(--warning); font-weight: bold;">⚠️ Cumplimiento aceptable, pero hay margen de mejora.</p>';
-        } else {
-            html += '<p style="color: var(--danger); font-weight: bold;">❌ Cumplimiento bajo. Revisar cuellos de botella.</p>';
-        }
+        let label = "";
+        let filterText = "";
 
-        if (data.yield_percentage < 90 && data.total_planned_kg > 0) {
-            html += '<p>El rendimiento (Kg Real / Kg Planificado) es bajo. Verifique quemas o desperdicios de materia prima.</p>';
-        }
+        if (start && end) filterText = ` (del ${start} al ${end})`;
+        else if (start) filterText = ` (desde ${start})`;
 
-        html += '<h3>Resumen de Datos</h3>';
-        html += `<ul>
-            <li>Total Producido: <strong>${data.total_production_kg.toFixed(2)} Kg</strong></li>
-            <li>Total Cajas: <strong>${data.total_production_boxes.toFixed(2)}</strong></li>
-            <li>Total Unidades: ${data.total_production_units}</li>
-            <li>Objetivo Kg: ${data.total_planned_kg.toFixed(2)} Kg</li>
-        </ul>`;
+        if (type === 'Rendimiento') label = "📊 Analizar Rendimiento" + filterText;
+        if (type === 'Resumen') label = "📅 Resumen General" + filterText;
+        if (type === 'Problemas') label = "🚨 Detectar Problemas" + filterText;
 
-        html += '<h3>Análisis Diario Detallado</h3>';
-        html += '<p>Desglose por fecha de producción:</p>';
-        html += '<table style="width:100%; border-collapse: collapse; margin-top: 1rem;">';
-        html += '<thead style="background:var(--surface-active);">';
-        html += '<tr><th style="padding:0.5rem; text-align:left;">Fecha</th><th style="padding:0.5rem; text-align:right;">Kg Prod.</th><th style="padding:0.5rem; text-align:right;">Kg Plan</th><th style="padding:0.5rem; text-align:right;">Cajas</th><th style="padding:0.5rem; text-align:right;">Unidades</th></tr>';
-        html += '</thead><tbody>';
-
-        if (data.history_data && data.history_data.length > 0) {
-            data.history_data.forEach(item => {
-                let color = item.produced >= item.planned ? 'var(--success)' : 'var(--danger)';
-                if (item.planned === 0) color = 'var(--text)'; // No plan
-
-                html += `<tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding:0.5rem; text-align:left;">${item.date}</td>
-                    <td style="padding:0.5rem; text-align:right; color:${color}; font-weight:bold;">${item.produced.toFixed(2)}</td>
-                    <td style="padding:0.5rem; text-align:right;">${item.planned.toFixed(2)}</td>
-                    <td style="padding:0.5rem; text-align:right;">${item.boxes ? item.boxes.toFixed(2) : '0.00'}</td>
-                    <td style="padding:0.5rem; text-align:right;">${item.units ? item.units : '0'}</td>
-                </tr>`;
-            });
-        } else {
-            html += '<tr><td colspan="5" style="padding:1rem;">No hay historial disponible.</td></tr>';
-        }
-
-        html += '</tbody></table>';
-
-        document.getElementById('analysisContent').innerHTML = html;
+        askAI(label, type, start, end);
     }
 
-    loadAnalysis();
+    function askAI(displayText, type, start, end) {
+        addMessage(displayText, 'user');
+        showTypingInfo();
+
+        setTimeout(async () => {
+            removeTypingInfo();
+
+            // Fetch with filters
+            const data = await fetchDashboardData(start, end);
+
+            if (type === 'Rendimiento') respondCompliance(data);
+            else if (type === 'Resumen') respondSummary(data);
+            else if (type === 'Problemas') respondProblems(data);
+
+        }, 1000);
+    }
+
+    // UI Helpers
+    function addMessage(html, type) {
+        const div = document.createElement('div');
+        div.className = `message ${type}`;
+
+        let avatar = '';
+        if (type === 'ai') {
+            avatar = `<div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">AI</div>`;
+        }
+
+        div.innerHTML = `
+            ${avatar}
+            <div class="message-content">${html}</div>
+        `;
+
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showTypingInfo() {
+        const div = document.createElement('div');
+        div.id = 'typing';
+        div.className = 'typing-indicator';
+        div.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+        chatMessages.appendChild(div);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTypingInfo() {
+        const el = document.getElementById('typing');
+        if (el) el.remove();
+    }
+
+    // Data Fetching logic with Dates
+    async function fetchDashboardData(start, end) {
+        try {
+            let url = '/api/dashboard';
+            const params = new URLSearchParams();
+            if (start) params.append('start_date', start);
+            if (end) params.append('end_date', end);
+
+            if (params.toString()) url += '?' + params.toString();
+
+            const res = await fetch(url);
+            return await res.json();
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Intent Responses
+    function respondCompliance(data) {
+        if (!data) return addMessage("Lo siento, no pude acceder a los datos.", 'ai');
+
+        let msg = `El cumplimiento de planificación es del <strong>${data.compliance_percentage.toFixed(1)}%</strong>. `;
+
+        if (data.compliance_percentage >= 95) {
+            msg += "<br><br>✅ <strong>Estado Excelente:</strong> La producción está alineada con lo planificado.";
+        } else if (data.compliance_percentage >= 80) {
+            msg += "<br><br>⚠️ <strong>Atención:</strong> Hay un ligero desvío, pero estamos en rangos aceptables.";
+        } else {
+            msg += "<br><br>❌ <strong>Crítico:</strong> Estamos significativamente por debajo del plan.";
+        }
+
+        addMessage(msg, 'ai');
+    }
+
+    function respondSummary(data) {
+        if (!data) return addMessage("Error al cargar datos.", 'ai');
+
+        let table = `
+            <table>
+                <tr><th>Métrica</th><th>Valor</th></tr>
+                <tr><td>Producción Total</td><td>${data.total_production_kg.toFixed(2)} Kg</td></tr>
+                <tr><td>Cajas</td><td>${data.total_production_boxes.toFixed(0)}</td></tr>
+                <tr><td>Unidades</td><td>${data.total_production_units}</td></tr>
+            </table>
+        `;
+
+        addMessage(`Aquí tienes el resumen actualizado de la producción: <br>${table}`, 'ai');
+    }
+
+    function respondProblems(data) {
+        if (!data) return;
+
+        let issues = [];
+        if (data.compliance_percentage < 85) issues.push("Bajo cumplimiento de planificacion");
+        if (data.yield_percentage < 90) issues.push("Rendimiento (Kg/Kg) por debajo del estándar");
+
+        if (issues.length === 0) {
+            addMessage("🎉 No detecto problemas críticos en este momento. La operación fluye con normalidad.", 'ai');
+        } else {
+            addMessage(`He detectado las siguientes anomalías que requieren atención:<br><ul><li>${issues.join('</li><li>')}</li></ul>`, 'ai');
+        }
+    }
 </script>
 {% endblock %}

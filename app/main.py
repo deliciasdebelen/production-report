@@ -1,7 +1,9 @@
-from fastapi import FastAPI, Request, Depends, HTTPException, Form, Response, Cookie
+from fastapi import FastAPI, Request, Depends, HTTPException, Form, Response, Cookie, File, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
+import shutil
+import os
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from . import models, schemas, auth_utils
 from .database import SessionLocal, engine
@@ -15,12 +17,14 @@ app = FastAPI(title="Reporte de Produccion")
 
 app.include_router(external.router)
 app.include_router(traslados.router)
+from .routers import logistics
+app.include_router(logistics.router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Dependencies moved to dependencies.py
-from .dependencies import get_db, get_current_user, get_current_active_user
+from .dependencies import get_db, get_current_user, get_current_active_user, templates
 
 @app.on_event("startup")
 def startup_db_client():
@@ -302,18 +306,90 @@ async def delete_data(
     return RedirectResponse(f"/maintenance?message=Se eliminaron {deleted_count} registros", status_code=303)
 
 # --- API Endpoints (Protected? Maybe allow allow all auth users for now) ---
+from .utils import generate_next_order_number
+
+# ... (imports)
+
 @app.post("/api/production", response_model=schemas.ProductionReport)
-def create_production_report(report: schemas.ProductionReportCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
-    report_data = report.dict()
-    custom_date = report_data.pop('custom_created_at', None)
+async def create_production_report(
+    batch_qty: int = Form(...),
+    article_type: str = Form(...),
+    kg_produced: float = Form(...),
+    presentation: str = Form(...),
+    boxes: float = Form(0.0),
+    pt_units: int = Form(0),
+    pt_lab: int = Form(0),
+    pt_burned: int = Form(0),
+    mp_containers: int = Form(0),
+    mp_caps_clean: int = Form(0),
+    mp_caps_dirty: int = Form(0),
+    mp_waste_kg: float = Form(0.0),
+    mp_waste_image: Optional[UploadFile] = File(None),
+    cons_type: Optional[str] = Form(None),
+    cons_count: float = Form(0.0),
+    cons_unit_weight: float = Form(0.0),
+    cons_qty: float = Form(0.0),
+    notes: Optional[str] = Form(None),
+    custom_created_at: Optional[str] = Form(None), # Date string
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    # Handle File Upload
+    image_path = None
+    if mp_waste_image and mp_waste_image.filename:
+        upload_dir = "app/static/uploads/waste"
+        os.makedirs(upload_dir, exist_ok=True)
+        # Generate safe filename
+        ext = os.path.splitext(mp_waste_image.filename)[1]
+        timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+        safe_name = f"waste_{timestamp}{ext}"
+        file_location = f"{upload_dir}/{safe_name}"
+        
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(mp_waste_image.file, buffer)
+        
+        # Save relative path for URL access
+        image_path = f"/static/uploads/waste/{safe_name}"
 
-    if custom_date and current_user.role == 4:
-        # Override created_at with the custom date (at 00:00:00 time, or current time?)
-        # User implies they want to record it FOR that day. Midnight is safest for "Date" filtering.
-        # But if we want sorting preserve time? Let's use midnight.
-        report_data['created_at'] = datetime.datetime.combine(custom_date, datetime.time.min)
+    # Handle Date Override
+    created_at_val = None
+    if custom_created_at and current_user.role == 4:
+        try:
+             d = datetime.datetime.strptime(custom_created_at, "%Y-%m-%d")
+             created_at_val = datetime.datetime.combine(d.datetime.min.time()) # Error in previous logic? no wait combine needs date and time
+             # Fixed logic:
+             created_at_val = datetime.datetime.combine(d.date(), datetime.time.min)
+        except:
+             pass
 
-    db_report = models.ProductionReport(**report_data)
+    # Generate Order Number
+    order_number = generate_next_order_number(db, models.ProductionReport)
+
+    db_report = models.ProductionReport(
+        batch_qty=batch_qty,
+        article_type=article_type,
+        kg_produced=kg_produced,
+        presentation=presentation,
+        boxes=boxes,
+        pt_units=pt_units,
+        pt_lab=pt_lab,
+        pt_burned=pt_burned,
+        mp_containers=mp_containers,
+        mp_caps_clean=mp_caps_clean,
+        mp_caps_dirty=mp_caps_dirty,
+        mp_waste_kg=mp_waste_kg,
+        mp_waste_image=image_path,
+        cons_type=cons_type,
+        cons_count=cons_count,
+        cons_unit_weight=cons_unit_weight,
+        cons_qty=cons_qty,
+        notes=notes,
+        order_number=order_number
+    )
+    
+    if created_at_val:
+        db_report.created_at = created_at_val
+
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
@@ -321,17 +397,19 @@ def create_production_report(report: schemas.ProductionReportCreate, db: Session
 
 @app.get("/api/production", response_model=list[schemas.ProductionReport])
 def read_production_reports(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    reports = db.query(models.ProductionReport).offset(skip).limit(limit).all()
+    reports = db.query(models.ProductionReport).order_by(models.ProductionReport.created_at.desc()).offset(skip).limit(limit).all()
     return reports
 
 @app.post("/api/planning", response_model=schemas.ProductionPlanning)
 def create_planning(plan: schemas.ProductionPlanningCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
-    # Restrict past dates for non-admins
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     if plan.date < today_str and current_user.role != 4:
         raise HTTPException(status_code=403, detail="Solo administradores pueden planificar fechas pasadas")
 
-    db_plan = models.ProductionPlanning(**plan.dict())
+    plan_data = plan.dict()
+    plan_data['order_number'] = generate_next_order_number(db, models.ProductionPlanning)
+
+    db_plan = models.ProductionPlanning(**plan_data)
     db.add(db_plan)
     db.commit()
     db.refresh(db_plan)
@@ -373,7 +451,8 @@ def get_dashboard_stats(start_date: Optional[str] = None, end_date: Optional[str
     # Total Kg = Kg Produced (Batches) + Consumo Rapido (Quick Consumption)
     total_prod_kg = sum((r.kg_produced + r.cons_qty) for r in reports)
     total_prod_units = sum(r.pt_units for r in reports)
-    total_prod_boxes = sum(r.boxes for r in reports) # Added Boxes
+    total_prod_boxes = sum(r.boxes for r in reports) 
+    total_waste_kg = sum(r.mp_waste_kg for r in reports)
 
     total_plan_batches = sum(p.batches for p in plans)
     total_plan_kg = sum(p.kg for p in plans)
@@ -450,6 +529,7 @@ def get_dashboard_stats(start_date: Optional[str] = None, end_date: Optional[str
         "total_production_kg": total_prod_kg,
         "total_production_units": total_prod_units,
         "total_production_boxes": total_prod_boxes,
+        "total_waste_kg": total_waste_kg,
         "total_planned_batches": total_plan_batches,
         "total_planned_kg": total_plan_kg,
         "total_planned_units": total_plan_units,
