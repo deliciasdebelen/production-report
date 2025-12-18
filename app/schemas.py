@@ -40,6 +40,10 @@ class ProductionPlanningBase(BaseModel):
     kg: float = 0.0
     units: int = 0
     boxes: float = 0.0
+    units: int = 0
+    boxes: float = 0.0
+    waste_percentage: float = 0.0
+    status: Optional[str] = "Pending"
 
 class ProductionPlanningCreate(ProductionPlanningBase):
     pass
@@ -68,4 +72,26 @@ class DashboardStats(BaseModel):
     # Chart Data
     pie_data: list[dict] = [] # [{'label': 'Mayonesa', 'value': 1500.00}]
     history_data: list[dict] = [] # [{'date': '2025-12-01', 'produced': 100, 'planned': 120}]
+
+# Inventory Schemas
+class InventoryCaptureBase(BaseModel):
+    capture_type: str
+    article_code: str
+    article_description: str
+    batch: str
+    quantity: float
+    capture_date: str
+    capture_time: str
+    out_of_range: bool = False
+
+class InventoryCaptureCreate(InventoryCaptureBase):
+    pass
+
+class InventoryCapture(InventoryCaptureBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
 

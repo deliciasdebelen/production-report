@@ -1,0 +1,305 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Control de Inventario</h1>
+
+<style>
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .col-span-4 {
+        grid-column: span 4;
+    }
+
+    .col-span-6 {
+        grid-column: span 6;
+    }
+
+    .col-span-12 {
+        grid-column: span 12;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus {
+        background: white;
+        border-color: var(--primary);
+        outline: none;
+    }
+</style>
+
+<div class="card" style="max-width: 900px; margin: 0 auto;">
+    <form id="inventoryForm">
+        <!-- Capture Info -->
+        <h3
+            style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">
+            Datos de Captura</h3>
+        <div class="form-grid">
+            <div class="form-group col-span-4">
+                <label>Tipo de Captura</label>
+                <select name="capture_type" id="captureType" required>
+                    <option value="">-- Seleccionar --</option>
+                    <option value="Inicio">Inicio de Operación</option>
+                    <option value="Cierre">Cierre de Operación</option>
+                </select>
+            </div>
+            <div class="form-group col-span-4">
+                <label>Fecha</label>
+                <input type="date" name="capture_date" id="captureDate" required>
+            </div>
+            <div class="form-group col-span-4">
+                <label>Hora</label>
+                <input type="time" name="capture_time" id="captureTime" required>
+            </div>
+        </div>
+
+        <!-- Material Info -->
+        <h3
+            style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">
+            Material & Lote</h3>
+        <div class="form-grid">
+            <div class="form-group col-span-6">
+                <label>Artículo</label>
+                <div style="position: relative;">
+                    <input type="text" id="articleSearch" placeholder="🔍 Buscar artículo..." autocomplete="off">
+                    <input type="hidden" name="article_code" id="articleCodeHidden" required>
+                    <input type="hidden" name="article_description" id="articleDescHidden" required>
+                    <div id="articleResults"
+                        style="display: none; position: absolute; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #e2e8f0; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group col-span-6">
+                <label>Lote (Profit)</label>
+                <select name="batch" id="batchSelect" required disabled>
+                    <option value="">Seleccione artículo primero...</option>
+                </select>
+                <small id="batchLoading" style="display:none; color: var(--primary);">Cargando lotes...</small>
+            </div>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group col-span-4">
+                <label>Cantidad Disponible</label>
+                <input type="number" step="0.01" name="quantity" required placeholder="0.00">
+            </div>
+        </div>
+
+        <div style="text-align: right; margin-top: 2rem;">
+            <button type="submit" class="btn"
+                style="background-color: var(--primary); color: white; padding: 0.75rem 2rem;">
+                Guardar Captura
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Reports Section -->
+<div class="card" style="max-width: 900px; margin: 2rem auto 0;">
+    <h3
+        style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem; border-bottom: 1px solid #eee; padding-bottom: 0.5rem;">
+        Reportes e Historial</h3>
+    <div class="form-grid">
+        <div class="form-group col-span-4">
+            <label>Fecha Inicio</label>
+            <input type="date" id="reportStart">
+        </div>
+        <div class="form-group col-span-4">
+            <label>Fecha Fin</label>
+            <input type="date" id="reportEnd">
+        </div>
+        <div class="form-group col-span-4" style="display: flex; align-items: flex-end;">
+            <button type="button" class="btn" onclick="printInventoryReport()"
+                style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem; width: 100%; justify-content: center; padding: 0.65rem;">
+                <span>🖨️</span> Imprimir Reporte
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Utils
+    const $ = id => document.getElementById(id);
+
+    // Init Date/Time
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    $('captureDate').value = todayStr;
+    $('captureTime').value = now.toTimeString().substring(0, 5);
+
+    // Init Report Dates
+    $('reportStart').value = todayStr;
+    $('reportEnd').value = todayStr;
+
+    function printInventoryReport() {
+        const s = $('reportStart').value;
+        const e = $('reportEnd').value;
+        let url = `/maintenance/report/print?type=inventory`;
+        if (s) url += `&start_date=${s}`;
+        if (e) url += `&end_date=${e}`;
+        window.open(url, '_blank');
+    }
+
+    // Article Search Logic
+    let articlesData = [];
+    async function loadArticles() {
+        const searchInput = $('articleSearch');
+        try {
+            const res = await fetch('/api/external/articles');
+            if (res.ok) articlesData = await res.json();
+        } catch (e) { console.error(e); }
+    }
+    loadArticles();
+
+    const searchInput = $('articleSearch');
+    const resultsDiv = $('articleResults');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        if (term.length < 1) { resultsDiv.style.display = 'none'; return; }
+
+        const filtered = articlesData.filter(a =>
+            a.description.toLowerCase().includes(term) || a.code.toLowerCase().includes(term)
+        );
+
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '0.5rem';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #eee';
+                div.textContent = `${item.code} - ${item.description}`;
+                div.onclick = () => selectArticle(item);
+                div.onmouseover = () => div.style.background = '#f8f9fa';
+                div.onmouseout = () => div.style.background = 'white';
+                resultsDiv.appendChild(div);
+            });
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // Close search on click outside
+    document.addEventListener('click', e => {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.style.display = 'none';
+    });
+
+    async function selectArticle(item) {
+        searchInput.value = item.description;
+        $('articleCodeHidden').value = item.code;
+        $('articleDescHidden').value = item.description;
+        resultsDiv.style.display = 'none';
+
+        // Load Batches
+        loadBatches(item.code);
+    }
+
+    async function loadBatches(code) {
+        const select = $('batchSelect');
+        const loading = $('batchLoading');
+
+        select.innerHTML = '<option value="">Cargando...</option>';
+        select.disabled = true;
+        loading.style.display = 'block';
+
+        try {
+            const res = await fetch(`/api/external/batches/${code}`);
+            const batches = await res.json();
+
+            if (batches.length === 0) {
+                select.innerHTML = '<option value="">Sin lotes encontrados</option>';
+            } else {
+                select.innerHTML = '<option value="">-- Seleccionar Lote --</option>';
+                batches.forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.batch;
+                    opt.textContent = `${b.batch} - Stock: ${b.stock}`;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            select.innerHTML = '<option value="">Error carga</option>';
+        } finally {
+            loading.style.display = 'none';
+        }
+    }
+
+    // Submit Logic & Time Validation
+    $('inventoryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const type = $('captureType').value;
+        const timeStr = $('captureTime').value; // HH:MM
+        const [hours, mins] = timeStr.split(':').map(Number);
+
+        let outOfRange = false;
+
+        // Validation Rules
+        if (type === 'Inicio') {
+            // 04:00 - 12:00
+            if (hours < 4 || hours >= 12) {
+                if (!confirm("El horario de INICIO debe ser entre 04:00 AM y 12:00 PM. \n¿Está fuera de rango. Desea guardar de todos modos?")) {
+                    return; // Cancel
+                }
+                outOfRange = true;
+            }
+        } else if (type === 'Cierre') {
+            // 16:00 (4PM) - 22:00 (10PM)
+            if (hours < 16 || hours >= 22) {
+                if (!confirm("El horario de CIERRE debe ser entre 04:00 PM y 10:00 PM. \n¿Está fuera de rango. Desea guardar de todos modos?")) {
+                    return; // Cancel
+                }
+                outOfRange = true;
+            }
+        }
+
+        // Prepare Data
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        data.out_of_range = outOfRange;
+
+        try {
+            const res = await fetch('/inventory/api/capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (res.ok) {
+                alert('Inventario guardado exitosamente.');
+                window.location.reload();
+            } else {
+                alert('Error al guardar.');
+            }
+        } catch (err) {
+            console.error(err);
+            alert('Error de conexión.');
+        }
+    });
+</script>
+
+{% endblock %}

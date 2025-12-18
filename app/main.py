@@ -6,7 +6,11 @@ import os
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 from . import models, schemas, auth_utils
-from .database import SessionLocal, engine
+from app.database import engine, Base, get_db, SessionLocal
+from app.external_db import get_external_db, external_engine
+from sqlalchemy import text
+
+
 from .routers import external, traslados
 from typing import Optional
 import datetime
@@ -17,8 +21,32 @@ app = FastAPI(title="Reporte de Produccion")
 
 app.include_router(external.router)
 app.include_router(traslados.router)
-from .routers import logistics
+from .routers import logistics, inventory
 app.include_router(logistics.router)
+app.include_router(inventory.router)
+from .routers import visor
+app.include_router(visor.router)
+
+from app.utils_id import get_next_order_number
+
+@app.get("/api/next-id/{model_name}")
+def get_next_id(model_name: str, db: Session = Depends(get_db)):
+    model = None
+    if model_name == "planning": model = models.ProductionPlanning
+    elif model_name == "production": model = models.ProductionReport
+    
+    if model:
+        return {"next_id": get_next_order_number(db, model)}
+    return {"next_id": 1}
+
+@app.get("/api/debug/db-connection")
+def debug_db_connection():
+    try:
+        with external_engine.connect() as conn:
+            result = conn.execute(text("SELECT @@VERSION")).fetchone()
+            return {"status": "ok", "version": result[0]}
+    except Exception as e:
+        return {"status": "error", "details": str(e)}
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -82,7 +110,11 @@ async def view_planning(request: Request, user: models.User = Depends(get_curren
 async def view_dashboard(request: Request, user: models.User = Depends(get_current_active_user)):
     return templates.TemplateResponse("dashboard.html", {"request": request, "title": "Dashboard", "user": user})
 
-@app.get("/assistant", response_class=HTMLResponse)
+@app.get("/visor", response_class=HTMLResponse)
+async def view_visor(request: Request, user: models.User = Depends(get_current_active_user)):
+    return templates.TemplateResponse("visor.html", {"request": request, "title": "Visor de Producción", "user": user})
+
+@app.get("/user/management", response_class=HTMLResponse)
 async def view_assistant(request: Request, user: models.User = Depends(get_current_active_user)):
      return templates.TemplateResponse("assistant.html", {"request": request, "title": "Asistente", "user": user})
 
@@ -252,6 +284,33 @@ async def print_report(
                 waste
             ])
 
+    # 4. INVENTORY REPORT
+    elif type == "inventory":
+        title = "Reporte de Capturas de Inventario"
+        columns = ["ID", "Tipo", "Fecha", "Hora", "Artículo", "Lote", "Cantidad", "Usuario", "Fuera Rango"]
+        
+        query = db.query(models.InventoryCapture)
+        
+        if start_date:
+            query = query.filter(models.InventoryCapture.capture_date >= start_date)
+        if end_date:
+            query = query.filter(models.InventoryCapture.capture_date <= end_date)
+            
+        results = query.order_by(models.InventoryCapture.capture_date.desc(), models.InventoryCapture.capture_time.desc()).all()
+        
+        for i in results:
+            rows.append([
+                i.id,
+                i.capture_type,
+                i.capture_date,
+                i.capture_time,
+                f"{i.article_code} - {i.article_description}",
+                i.batch,
+                f"{i.quantity:.2f}",
+                i.user.username if i.user else "-",
+                "SI" if i.out_of_range else "NO"
+            ])
+
     return templates.TemplateResponse("print_report.html", {
         "request": request,
         "title": title,
@@ -393,7 +452,26 @@ async def create_production_report(
     db.add(db_report)
     db.commit()
     db.refresh(db_report)
+    
+    # Update linked planning orders if any
+    # Logic: Search for planning orders with same date/article?
+    # Or strict linking via UI import (which we need to implement in Frontend first)
+    # For now, let's assume if there are Pending plans for this article on this date, we mark them processed?
+    # Better approach: explicit linking. But user asked for "import by date".
+    # We will implement explicit linking in a future iteration if needed, for now logic is "Import by Date" in frontend
+    # creates a new report based on plan.
+    # To close the loop: We need a way to mark plans as processed. 
+    # Let's add an optional field to create_production_report: "from_planning_id"
+    
     return db_report
+
+@app.post("/api/production/link-planning")
+def link_planning_to_production(planning_id: int = Form(...), production_id: str = Form(...), db: Session = Depends(get_db)):
+    plan = db.query(models.ProductionPlanning).filter(models.ProductionPlanning.id == planning_id).first()
+    if plan:
+        plan.status = "Processed"
+        db.commit()
+    return {"status": "ok"}
 
 @app.get("/api/production", response_model=list[schemas.ProductionReport])
 def read_production_reports(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -417,8 +495,27 @@ def create_planning(plan: schemas.ProductionPlanningCreate, db: Session = Depend
 
 @app.get("/api/planning", response_model=list[schemas.ProductionPlanning])
 def read_planning(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    plans = db.query(models.ProductionPlanning).offset(skip).limit(limit).all()
+    plans = db.query(models.ProductionPlanning).order_by(models.ProductionPlanning.id.desc()).offset(skip).limit(limit).all()
     return plans
+
+@app.get("/api/planning/by-date/{date_str}")
+def get_planning_by_date(date_str: str, db: Session = Depends(get_db)):
+    plans = db.query(models.ProductionPlanning).filter(
+        models.ProductionPlanning.date == date_str,
+        models.ProductionPlanning.status == 'Pending'
+    ).all()
+    return plans
+
+@app.delete("/api/planning/{id}")
+def delete_planning_endpoint(id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    if current_user.role not in [3, 4]: raise HTTPException(403)
+    
+    plan = db.query(models.ProductionPlanning).filter(models.ProductionPlanning.id == id).first()
+    if not plan: raise HTTPException(404, "Plan not found")
+    
+    db.delete(plan)
+    db.commit()
+    return {"status": "deleted"}
 
 @app.get("/api/dashboard", response_model=schemas.DashboardStats)
 def get_dashboard_stats(start_date: Optional[str] = None, end_date: Optional[str] = None, db: Session = Depends(get_db)):

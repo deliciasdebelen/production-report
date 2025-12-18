@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, ForeignKey, func, Boolean
+from sqlalchemy.orm import relationship
 from .database import Base
 import uuid
 import datetime
@@ -58,6 +58,26 @@ class ProductionPlanning(Base):
     kg = Column(Float, default=0.0)
     units = Column(Integer, default=0)
     boxes = Column(Float, default=0.0)
+    waste_percentage = Column(Float, default=0.0)
+    status = Column(String, default="Pending") # Pending, Processed
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class InventoryCapture(Base):
+    __tablename__ = "inventory_captures"
+
+    id = Column(Integer, primary_key=True, index=True)
+    capture_type = Column(String, nullable=False) # 'Inicio' or 'Cierre'
+    article_code = Column(String, nullable=False)
+    article_description = Column(String, nullable=False)
+    batch = Column(String, nullable=False)
+    quantity = Column(Float, nullable=False)
+    capture_date = Column(String, nullable=False) # YYYY-MM-DD
+    capture_time = Column(String, nullable=False) # HH:MM
+    out_of_range = Column(Boolean, default=False)
+    
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

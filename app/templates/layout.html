@@ -42,8 +42,17 @@
                 {% endif %}
 
                 {% if user and (user.role == 3 or user.role == 4) %}
-                <a href="/planning" class="nav-link">
-                    📅 &nbsp; Planificación
+                <a href="/planning" class="nav-link {% if request.url.path == '/planning' %}active{% endif %}">
+                    <span>📅</span> Planificación
+                </a>
+                <a href="/inventory" class="nav-link {% if request.url.path == '/inventory' %}active{% endif %}">
+                    <span>📦</span> Inventario
+                </a>
+                {% endif %}
+
+                {% if user %}
+                <a href="/visor" class="nav-link">
+                    🖥️ &nbsp; Visor
                 </a>
                 {% endif %}
 

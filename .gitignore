@@ -49,3 +49,7 @@ build/
 
 # Test outputs
 test_output.txt
+
+# Uploads
+app/static/uploads/*
+!app/static/uploads/.gitkeep

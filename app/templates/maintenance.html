@@ -216,6 +216,11 @@
                         onclick="printReport('planning')">
                         <span>🖨️</span> Imprimir
                     </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('planning')">
+                        <span>🔄</span> Restablecer
+                    </button>
                     <div style="flex-grow: 1;"></div>
                     <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
                         style="margin: 0;">
@@ -263,6 +268,11 @@
                         style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
                         onclick="printReport('production')">
                         <span>🖨️</span> Imprimir
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('production')">
+                        <span>🔄</span> Restablecer
                     </button>
                     <div style="flex-grow: 1;"></div>
                     <form action="/maintenance/data/delete" method="post"
@@ -319,6 +329,19 @@
         if (prs) prs.value = today;
         if (pre) pre.value = today;
     });
+
+
+
+    function resetFilters(table) {
+        const today = new Date().toISOString().split('T')[0];
+        if (table === 'planning') {
+            document.getElementById('planStart').value = today;
+            document.getElementById('planEnd').value = today;
+        } else if (table === 'production') {
+            document.getElementById('prodStart').value = today;
+            document.getElementById('prodEnd').value = today;
+        }
+    }
 
     function printReport(table) {
         let url = `/maintenance/report/print?type=${table}`;

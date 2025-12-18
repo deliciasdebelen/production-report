@@ -12,9 +12,14 @@ services:
       - ./data:/app/data
       # Mount production.db in the app root
       - ./production.db:/app/production.db
+      # Mount application code for hot-reloading & production fixes
+      - ./app:/app/app
+      # Fix SSL Legacy issues
+      - ./custom_openssl.cnf:/etc/ssl/openssl.cnf
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=sqlite:////app/data/production.db
+      - DATABASE_URL=sqlite:////app/production.db
+      - OPENSSL_CONF=/etc/ssl/openssl.cnf
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/login').read()" ]
       interval: 30s
