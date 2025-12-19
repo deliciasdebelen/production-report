@@ -11,118 +11,158 @@
 
 <body>
     <div class="layout">
-        <aside class="sidebar">
-            <div class="sidebar-title">
-                Delicias de Belén
+        <!-- Odoo-style Top Navigation -->
+        <header class="top-bar">
+            <!-- Sidebar Toggle (Grid Icon) -->
+            <!-- Using SVG for Grid Icon looking like Odoo's App Switcher -->
+            <button id="sidebar-toggle" class="odoo-btn-toggle" onclick="toggleSidebar()" title="Menú Principal">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                        d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z" />
+                </svg>
+            </button>
+
+            <!-- Brand / Title -->
+            <div class="top-bar-title">
+                <span style="opacity:0.7; font-weight:400;">Delicias de Belén /</span> {{ title }}
             </div>
-            <nav style="flex:1; padding-top: 1rem;">
+
+            <!-- Top Right Customization -->
+            <div style="margin-left: auto; display: flex; align-items: center; gap: 1.5rem;">
                 {% if user %}
-                <div
-                    style="padding: 0 1.5rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 1rem;">
-                    <div style="font-weight: 600; font-size: 0.95rem; color: #fff;">{{ user.username }}</div>
-                    <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 0.25rem;">
-                        Rol: {% if user.role == 4 %}Administrador{% elif user.role == 3 %}Planificación{% elif user.role
-                        == 2 %}Producción{% else %}Visualización{% endif %}
-                    </div>
+                <div class="user-menu-item">
+                    <span>{{ user.username }}</span>
+                    <!-- Optional: Role badge or text? -->
+                    <span
+                        style="font-size: 0.75rem; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">
+                        {% if user.role == 4 %}Admin{% elif user.role == 3 %}Plan{% elif user.role == 2 %}Prod{% else
+                        %}Vis{% endif %}
+                    </span>
                 </div>
+                <a href="/logout" class="user-menu-btn" title="Cerrar Sesión">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                        <polyline points="16 17 21 12 16 7"></polyline>
+                        <line x1="21" y1="12" x2="9" y2="12"></line>
+                    </svg>
+                </a>
+                {% else %}
+                <!-- Minimal logic for non-logged in if any -->
                 {% endif %}
-
-                <div class="nav-section-title">Principal</div>
-
-                {% if user and (user.role == 1 or user.role == 4) %}
-                <a href="/dashboard" class="nav-link">
-                    📊 &nbsp; Dashboard
-                </a>
-                {% endif %}
-
-                {% if user and (user.role == 2 or user.role == 4) %}
-                <a href="/report" class="nav-link">
-                    📝 &nbsp; Producción
-                </a>
-                {% endif %}
-
-                {% if user and (user.role == 3 or user.role == 4) %}
-                <a href="/planning" class="nav-link {% if request.url.path == '/planning' %}active{% endif %}">
-                    <span>📅</span> Planificación
-                </a>
-                <a href="/inventory" class="nav-link {% if request.url.path == '/inventory' %}active{% endif %}">
-                    <span>📦</span> Inventario
-                </a>
-                {% endif %}
-
-                {% if user %}
-                <a href="/visor" class="nav-link">
-                    🖥️ &nbsp; Visor
-                </a>
-                {% endif %}
-
-                {% if user %}
-                <a href="/assistant" class="nav-link">
-                    🤖 &nbsp; Asistente IA
-                </a>
-                {% endif %}
-
-                <!-- Logistics Section -->
-                {% if user and (user.role == 1 or user.role == 3 or user.role == 4) %}
-                <div class="nav-section-title">Logística</div>
-
-                <a href="/logistics" class="nav-link">
-                    📦 &nbsp; Almacén General
-                </a>
-
-                {% if user.role == 3 or user.role == 4 %}
-                <a href="/traslados" class="nav-link">
-                    🚚 &nbsp; Traslados
-                </a>
-                {% endif %}
-
-                {% if user.role == 1 or user.role == 4 %}
-                <a href="/traslados/tiempo-real" class="nav-link">
-                    ⏱ &nbsp; Tiempo Real
-                </a>
-                {% endif %}
-                {% endif %}
-
-                <!-- Admin Section -->
-                {% if user and user.role == 4 %}
-                <div class="nav-section-title">Sistema</div>
-                <a href="/maintenance" class="nav-link">
-                    ⚙️ &nbsp; Configuración
-                </a>
-                {% endif %}
-
-            </nav>
-
-            {% if user %}
-            <div style="padding: 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                <a href="/logout" class="nav-link" style="color: #ef4444; padding: 0.5rem 0;">
-                    🚪 &nbsp; Cerrar Sesión
-                </a>
             </div>
-            {% endif %}
-        </aside>
-        <div class="main-content">
-            <header class="top-bar">
-                <h1>{{ title }}</h1>
-                <div style="margin-left: auto; display: flex; align-items: center; gap: 1rem;">
-                    <img src="/static/logo.jpg" alt="Delicias de Belén"
-                        style="height: 40px; width: auto; object-fit: contain;">
+        </header>
+
+        <div class="layout-wrapper">
+            <aside class="sidebar" id="sidebar">
+                <!-- No Title Block here anymore -->
+
+                <nav style="flex:1; padding-top: 1rem;">
+                    <!-- Keep user profile section? No, moved to header -->
+
+                    <div class="nav-section-title">Principal</div>
+
+                    {% if user and (user.role == 1 or user.role == 4) %}
+                    <a href="/dashboard" class="nav-link" title="Dashboard">
+                        <span class="nav-icon">📊</span> <span class="nav-text">Dashboard</span>
+                    </a>
+                    {% endif %}
+
+                    {% if user and (user.role == 3 or user.role == 4) %}
+                    <a href="/planning" class="nav-link {% if request.url.path == '/planning' %}active{% endif %}"
+                        title="Planificación">
+                        <span class="nav-icon">📅</span> <span class="nav-text">Planificación</span>
+                    </a>
+                    {% endif %}
+
+                    {% if user and (user.role == 2 or user.role == 4) %}
+                    <a href="/report" class="nav-link" title="Producción">
+                        <span class="nav-icon">📝</span> <span class="nav-text">Producción</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Inventory link removed as requested, now part of Logistics -->
+
+                    {% if user %}
+                    <a href="/visor" class="nav-link" title="Visor">
+                        <span class="nav-icon">🖥️</span> <span class="nav-text">Visor</span>
+                    </a>
+                    {% endif %}
+
+                    {% if user %}
+                    <a href="/assistant" class="nav-link" title="Asistente IA">
+                        <span class="nav-icon">🤖</span> <span class="nav-text">Asistente IA</span>
+                    </a>
+                    {% endif %}
+
+                    <!-- Logistics Section -->
+                    {% if user and (user.role == 1 or user.role == 3 or user.role == 4) %}
+                    <div class="nav-section-title">Logística</div>
+
+                    <a href="/logistics" class="nav-link" title="Almacén General">
+                        <span class="nav-icon">📦</span> <span class="nav-text">Almacén General</span>
+                    </a>
+
+                    {% if user.role == 3 or user.role == 4 %}
+                    <a href="/traslados" class="nav-link" title="Traslados">
+                        <span class="nav-icon">🚚</span> <span class="nav-text">Traslados</span>
+                    </a>
+                    {% endif %}
+
+                    {% if user.role == 1 or user.role == 4 %}
+                    <a href="/traslados/tiempo-real" class="nav-link" title="Tiempo Real">
+                        <span class="nav-icon">⏱</span> <span class="nav-text">Tiempo Real</span>
+                    </a>
+                    {% endif %}
+                    {% endif %}
+
+                    <!-- Admin Section -->
+                    {% if user and user.role == 4 %}
+                    <div class="nav-section-title">Sistema</div>
+                    <a href="/maintenance" class="nav-link" title="Configuración">
+                        <span class="nav-icon">⚙️</span> <span class="nav-text">Configuración</span>
+                    </a>
+                    {% endif %}
+
+                </nav>
+            </aside>
+
+            <div class="main-content">
+                <!-- Header moved out -->
+
+                <div class="page-content">
+                    {% block content %}{% endblock %}
                 </div>
-            </header>
-            <div class="page-content">
-                {% block content %}{% endblock %}
+
+                <footer class="footer">
+                    &copy; Copyright Delicias de Belén 2025
+                </footer>
             </div>
-            <footer class="footer">
-                &copy; Copyright Delicias de Belén 2025
-            </footer>
         </div>
     </div>
     <script>
-
         // Simple active link highlighter
         document.querySelectorAll('.nav-link').forEach(link => {
             if (link.getAttribute('href') === window.location.pathname) {
                 link.classList.add('active');
+            }
+        });
+
+        // Sidebar Toggle
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('collapsed');
+
+            // Save preference
+            localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+        }
+
+        // Restore sidebar state
+        document.addEventListener('DOMContentLoaded', () => {
+            const state = localStorage.getItem('sidebarState');
+            // Default: 'collapsed' if null (Prodio style) or explicitly 'collapsed'
+            if (state === 'collapsed' || state === null) {
+                document.getElementById('sidebar').classList.add('collapsed');
             }
         });
     </script>

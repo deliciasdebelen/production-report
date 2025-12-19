@@ -9,21 +9,21 @@
 <!-- Search Section -->
 <!-- Search Section -->
 <div class="grid-2" style="margin-top: 1.5rem; gap: 1.5rem; align-items: stretch;">
-    <!-- Search Section -->
+    <!-- Import Section -->
     <div class="card"
-        style="padding: 1.5rem; margin-top: 0; display: flex; flex-direction: column; justify-content: center;">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">🔍 Buscar Orden Pendiente</h3>
-        <div style="display: flex; gap: 0.5rem; position: relative;">
-            <input type="text" id="searchOrderId" placeholder="Escriba ID para buscar (Ej. 00001)..."
-                style="flex: 1; min-width: 0; padding-right: 2rem;">
-            <!-- Optional loader icon could go here -->
-        </div>
-        <small style="color: var(--text-muted); margin-top: 0.5rem;">La búsqueda es automática al escribir.</small>
+        style="padding: 1.5rem; margin-top: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">⬇️ Importar Orden de Producción</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Seleccione una orden pendiente para
+            registrar su recepción.</p>
+        <button class="btn" onclick="openImportModal()"
+            style="background: var(--primary); color: white; padding: 0.75rem 1.5rem; width: 100%;">
+            Seleccionar Orden Pendiente
+        </button>
     </div>
 
-    <!-- Date Filter Section -->
+    <!-- Date Filter Section (Keep as is) -->
     <div class="card" style="padding: 1.5rem; margin-top: 0;">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">📅 Filtrar por Fecha</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">📅 Filtrar Historial</h3>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1;">
                 <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Desde</label>
@@ -43,9 +43,90 @@
     </div>
 </div>
 
-<div id="searchResults" style="margin-top: 1rem; margin-bottom: 2rem;">
-    <!-- Results injected here -->
+<div id="searchResults" style="margin-top: 1rem; margin-bottom: 2rem;"></div>
+
+<!-- Import Modal -->
+<div id="importModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index:2000; overflow: auto;">
+    <div
+        style="background:#fff; margin: 4vh auto; border:none; width:90%; max-width:850px; border-radius:12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden; animation: slideDown 0.3s ease-out;">
+
+        <!-- Header -->
+        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f3f4f6; background-color: #fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0; color:#111827; font-size:1.25rem; font-weight:700;">Seleccionar Orden Pendiente
+                    </h3>
+                    <p style="margin:4px 0 0 0; color:#6b7280; font-size:0.875rem;">Mostrando órdenes pendientes de
+                        recepción</p>
+                </div>
+                <span onclick="closeImportModal()"
+                    style="color:#9ca3af; font-size:24px; cursor:pointer; transition:color 0.2s;"
+                    onmouseover="this.style.color='#111827'">&times;</span>
+            </div>
+        </div>
+        <!-- Search Input Integrated in Header: REMOVED as requested -->
+        <!-- Search Input Integrated in Header: REMOVED as requested -->
+
+        <!-- Table Container -->
+        <div style="max-height: 60vh; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="position: sticky; top: 0; background-color: #f9fafb; z-index: 10;">
+                    <tr>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+                            Correlativo</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+                            Producto</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                            Producido</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                            Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="modalListBody">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+            <div id="modalLoading" style="text-align: center; padding: 3rem; display: none;">
+                <div
+                    style="display: inline-block; width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;">
+                </div>
+                <p style="margin-top: 10px; color: #6b7280; font-size: 0.875rem;">Cargando órdenes...</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 1rem 2rem; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: right;">
+            <button onclick="closeImportModal()"
+                style="padding: 8px 16px; border: 1px solid #d1d5db; background-color: white; color: #374151; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                Cerrar
+            </button>
+        </div>
+    </div>
 </div>
+<style>
+    @keyframes slideDown {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
 
 <div class="grid-2" style="margin-top: 2rem; align-items: start;">
     <!-- Form -->
@@ -145,109 +226,80 @@
 </div>
 
 <script>
-    // Unified fetcher
-    async function fetchOrders(params) {
-        const query = new URLSearchParams(params).toString();
-        // Show loading state if needed
-        const container = document.getElementById('searchResults');
-        if (container.innerHTML === '') container.innerHTML = '<div style="text-align:center; padding:1rem; color:var(--text-muted);">Buscando...</div>';
+    // Modal & Fetch Logic
+    let pendingOrders = [];
 
-        const res = await fetch(`/logistics/api/production/pending?${query}`);
-        const data = await res.json();
-        renderResults(data);
+    function openImportModal() {
+        document.getElementById('importModal').style.display = 'flex';
+        fetchPendingOrders();
     }
 
-    // Debounce Utility
-    function debounce(func, wait) {
-        let timeout;
-        return function (...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), wait);
-        };
+    function closeImportModal() {
+        document.getElementById('importModal').style.display = 'none';
     }
 
-    // Progressive Search Listener
-    const searchInput = document.getElementById('searchOrderId');
-    if (searchInput) {
-        searchInput.addEventListener('input', debounce((e) => {
-            const term = e.target.value.trim();
-            if (term.length > 0) {
-                fetchOrders({ order_id: term });
-            } else {
-                document.getElementById('searchResults').innerHTML = ''; // Clear results if empty
-            }
-        }, 500)); // 500ms delay
+    async function fetchPendingOrders() {
+        const tbody = document.getElementById('modalListBody');
+        const loading = document.getElementById('modalLoading');
+        tbody.innerHTML = '';
+        loading.style.display = 'block';
+
+        try {
+            const res = await fetch(`/logistics/api/production/pending`);
+            const data = await res.json();
+            pendingOrders = data;
+            renderModalList(data);
+        } catch (e) {
+            console.error(e);
+            loading.style.display = 'none';
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:red; padding: 1rem;'>Error cargando órdenes...</td></tr>";
+        }
     }
 
-    function searchByOrder() {
-        // Manual trigger (optional now)
-        const id = document.getElementById('searchOrderId').value;
-        if (!id) return alert("Ingrese un ID");
-        fetchOrders({ order_id: id });
-    }
+    function renderModalList(items) {
+        const tbody = document.getElementById('modalListBody');
+        const loading = document.getElementById('modalLoading');
+        tbody.innerHTML = '';
+        loading.style.display = 'none';
 
-    function searchByDate() {
-        const start = document.getElementById('dateStart').value;
-        const end = document.getElementById('dateEnd').value;
-        if (!start || !end) return alert("Seleccione ambas fechas");
-        fetchOrders({ date_start: start, date_end: end });
-    }
-
-    function clearFilters() {
-        document.getElementById('searchOrderId').value = '';
-        document.getElementById('dateStart').value = '';
-        document.getElementById('dateEnd').value = '';
-        document.getElementById('searchResults').innerHTML = '';
-    }
-
-    function renderResults(data) {
-        const container = document.getElementById('searchResults');
-        container.innerHTML = '';
-
-        if (data.length === 0) {
-            container.innerHTML = '<div class="card" style="padding: 1rem; text-align: center; color: var(--text-muted);">No se encontraron órdenes pendientes con estos criterios.</div>';
+        if (items.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 2rem; color: #6b7280;'>No hay órdenes pendientes.</td></tr>";
             return;
         }
 
-        const listCard = document.createElement('div');
-        listCard.className = 'card';
-        listCard.style.padding = '1rem';
-        listCard.innerHTML = '<h4>Resultados:</h4>';
+        items.forEach(order => {
+            const row = document.createElement("tr");
+            row.style.borderBottom = "1px solid #f3f4f6";
+            row.style.cursor = "pointer";
+            row.onmouseover = function () { this.style.backgroundColor = "#eff6ff"; };
+            row.onmouseout = function () { this.style.backgroundColor = "transparent"; };
+            row.onclick = () => selectOrder(order);
 
-        const list = document.createElement('div');
-        list.style.display = 'flex';
-        list.style.flexDirection = 'column';
-        list.style.gap = '0.5rem';
+            const orderNum = order.order_number ? String(order.order_number).padStart(8, '0') : order.id;
 
-        data.forEach(order => {
-            const div = document.createElement('div');
-            div.style.padding = '0.75rem';
-            div.style.border = '1px solid var(--border)';
-            div.style.borderRadius = 'var(--radius-sm)';
-            div.style.cursor = 'pointer';
-            div.style.transition = 'all 0.2s';
-            div.style.background = '#fff';
-
-            // Hover effect via inline JS for simplicity or class
-            div.onmouseover = () => div.style.background = 'var(--primary-light)';
-            div.onmouseout = () => div.style.background = '#fff';
-
-            div.innerHTML = `
-                <div style="display: flex; justify-content: space-between;">
-                    <strong>🆔 ${order.order_number || 'S/N'}</strong>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">${new Date(order.created_at).toLocaleDateString()}</span>
-                </div>
-                <div style="font-size: 0.9rem;">
-                    📦 ${order.article_type} - <strong>${order.pt_units} Und</strong>
-                </div>
+            row.innerHTML = `
+                <td style="padding: 16px 24px; font-family: monospace; font-weight: 700; color: #2563eb;">#${orderNum}</td>
+                <td style="padding: 16px 24px; color: #111827;">${order.article_type}</td>
+                <td style="padding: 16px 24px; text-align: right; font-weight: 600;">${order.pt_units} Und</td>
+                <td style="padding: 16px 24px; text-align: center;">
+                    <button style="background-color: #4f46e5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">SELECT</button>
+                </td>
             `;
-            div.onclick = () => selectOrder(order);
-            list.appendChild(div);
+            tbody.appendChild(row);
         });
-
-        listCard.appendChild(list);
-        container.appendChild(listCard);
     }
+
+    // Modal Search Filter removed
+    /*
+    document.getElementById('modalSearchInput').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = pendingOrders.filter(o =>
+            (o.order_number && String(o.order_number).includes(term)) ||
+            (o.article_type && o.article_type.toLowerCase().includes(term))
+        );
+        renderModalList(filtered);
+    });
+    */
 
     function selectOrder(order) {
         // Unlock form
@@ -259,11 +311,12 @@
         document.getElementById('expectedUnits').value = order.pt_units;
         document.getElementById('orderNumber').value = order.order_number;
 
-        document.getElementById('dispOrderNumber').value = order.order_number;
+        document.getElementById('dispOrderNumber').value = order.order_number || order.id;
         document.getElementById('dispProduct').value = order.article_type;
         document.getElementById('dispExpected').value = order.pt_units;
         document.getElementById('receivedQty').value = ''; // Clear previous
 
+        closeImportModal();
         window.scrollTo(0, card.offsetTop);
     }
 

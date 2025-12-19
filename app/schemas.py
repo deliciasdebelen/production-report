@@ -43,7 +43,9 @@ class ProductionPlanningBase(BaseModel):
     units: int = 0
     boxes: float = 0.0
     waste_percentage: float = 0.0
+    waste_kg: float = 0.0
     status: Optional[str] = "Pending"
+    notes: Optional[str] = None
 
 class ProductionPlanningCreate(ProductionPlanningBase):
     pass
@@ -68,6 +70,7 @@ class DashboardStats(BaseModel):
     compliance_percentage: float
     waste_percentage: float = 0.0
     avg_kg_per_batch: float = 0.0
+    quick_consumption_percentage: float = 0.0
     
     # Chart Data
     pie_data: list[dict] = [] # [{'label': 'Mayonesa', 'value': 1500.00}]

@@ -26,6 +26,7 @@ class ProductionReport(Base):
     pt_burned = Column(Integer, default=0)
 
     # MP (Materia Prima)
+    mp_containers = Column(Integer, default=0)
     mp_caps_clean = Column(Integer, default=0)
     mp_caps_dirty = Column(Integer, default=0)
     mp_waste_kg = Column(Float, default=0.0)
@@ -43,8 +44,8 @@ class ProductionReport(Base):
     cons_qty = Column(Float, default=0.0)
 
     notes = Column(Text, nullable=True)
+    color = Column(String, default="#3b82f6")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    inserted_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class ProductionPlanning(Base):
     __tablename__ = "production_planning"
@@ -57,9 +58,13 @@ class ProductionPlanning(Base):
     batches = Column(Integer, default=0)
     kg = Column(Float, default=0.0)
     units = Column(Integer, default=0)
+    units_pending = Column(Integer, nullable=True) # Tracks countdown
     boxes = Column(Float, default=0.0)
     waste_percentage = Column(Float, default=0.0)
+    waste_kg = Column(Float, default=0.0)
     status = Column(String, default="Pending") # Pending, Processed
+    notes = Column(Text, nullable=True)
+    color = Column(String, default="#3b82f6")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -98,6 +103,7 @@ class LogisticsReceptionProduction(Base):
     production_report_id = Column(String, nullable=True) 
     product_name = Column(String, nullable=False)
     quantity = Column(Float, default=0.0)
+    status = Column(String, default="Recepcionado")
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

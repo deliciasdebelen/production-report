@@ -98,9 +98,22 @@
 
     .status-item.active {
         background: #f0f0f0;
-        color: #000;
         font-weight: 600;
-        border-bottom: 2px solid var(--odoo-primary);
+    }
+
+    .status-red {
+        color: #d9534f;
+        border-bottom: 3px solid #d9534f !important;
+    }
+
+    .status-yellow {
+        color: #f0ad4e;
+        border-bottom: 3px solid #f0ad4e !important;
+    }
+
+    .status-green {
+        color: #5cb85c;
+        border-bottom: 3px solid #5cb85c !important;
     }
 
     /* Arrow effect simulation (simplified) */
@@ -235,27 +248,61 @@
 <form id="planningForm">
     <!-- Status Bar -->
     <div class="odoo-statusbar">
-        <div style="display: flex; gap: 0.5rem;">
-            <button type="submit" class="btn-odoo-primary">Confirmar</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="submit" id="btnConfirm" class="btn-odoo-primary">Confirmar</button>
+            <button type="button" id="btnEdit" class="btn-odoo-secondary" style="display: none;"
+                onclick="enableEdit()">Editar</button>
             <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
+            <!-- Navigation Moved Here -->
+            <div style="margin-left: 20px; display: flex; gap: 5px;">
+                <button type="button" onclick="navigateRecord('prev')" class="btn-odoo-secondary"
+                    style="padding: 0.2rem 0.6rem;">&lt;</button>
+                <button type="button" onclick="navigateRecord('next')" class="btn-odoo-secondary"
+                    style="padding: 0.2rem 0.6rem;">&gt;</button>
+            </div>
         </div>
         <div class="odoo-statusbar-status">
-            <div class="status-item active">Borrador</div>
-            <div class="status-item">Confirmado</div>
-            <div class="status-item">Disponible</div>
-            <div class="status-item">Terminado</div>
+            <!-- Borrador: Click to Edit. Red = New, Yellow = Edit -->
+            <div id="statusDraft" class="status-item active status-red" onclick="enableEdit()" style="cursor: pointer;">
+                Borrador</div>
+            <div id="statusConfirmed" class="status-item">Confirmado</div>
         </div>
     </div>
 
     <!-- Sheet -->
     <div class="odoo-sheet">
-        <div class="odoo-title-area">
-            <h1>Nuevo</h1>
+        <!-- Title / Header -->
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 1.5rem;">
+            <!-- Left: Title -->
+            <h1 class="odoo-title" style="margin: 0;">Orden de Planificación</h1>
+
+            <!-- Center: Correlative ID -->
+            <div class="odoo-field" style="width: auto; display: flex; flex-direction: column; align-items: center;">
+                <label
+                    style="font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Documento
+                    #</label>
+                <input type="text" id="documentNumber" readonly
+                    style="font-weight: bold; font-size: 1.8rem; border: none; text-align: center; background: transparent; color: var(--odoo-primary); width: 220px;">
+            </div>
+
+            <!-- Right: Search Bar -->
+            <div style="justify-self: end; position: relative;">
+                <input type="text" id="searchCorrelative" placeholder="Buscar correlativo..."
+                    style="padding: 0.5rem 2rem 0.5rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 180px;"
+                    autocomplete="off">
+                <button type="button" onclick="searchPlan()"
+                    style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">
+                    🔍
+                </button>
+                <div id="searchSuggestions" class="results-dropdown"
+                    style="display:none; top: 100%; left: 0; width: 100%;"></div>
+            </div>
         </div>
 
         <div class="odoo-group">
             <!-- Left Column -->
             <div class="odoo-col">
+                <input type="hidden" name="plan_id" id="planId">
                 <div class="odoo-field">
                     <label>Producto</label>
                     <div class="search-container">
@@ -297,8 +344,6 @@
         <div class="odoo-notebook">
             <div class="odoo-tabs">
                 <div class="odoo-tab active">Detalles de Producción</div>
-                <div class="odoo-tab">Componentes</div>
-                <div class="odoo-tab">Varios</div>
             </div>
 
             <!-- Tab Content -->
@@ -319,6 +364,14 @@
                                     style="border:none; width: 100%;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Texto</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Merma Estimada (%)</td>
+                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                <input type="text" inputmode="decimal" name="waste_percentage" id="wastePercentageInput"
+                                    placeholder="0.00" style="border:none; width: 100%;">
+                            </td>
+                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">%</td>
                         </tr>
                         <tr>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Kg por Batch</td>
@@ -355,8 +408,11 @@
                         </tr>
                     </tbody>
                 </table>
-                <div style="margin-top: 1rem; color: #888; font-style: italic; font-size: 0.9rem;">
-                    * Agregar una línea... (Simulado)
+                <div style="margin-top: 2rem;">
+                    <label
+                        style="font-weight: 600; color: #666; display: block; margin-bottom: 0.5rem;">Observaciones</label>
+                    <textarea name="notes" placeholder="Notas internas..."
+                        style="width: 100%; border: 1px solid #ddd; padding: 0.5rem; min-height: 80px; font-family: inherit; font-size: 0.95rem;"></textarea>
                 </div>
             </div>
         </div>
@@ -371,6 +427,182 @@
 </form>
 
 <script>
+    // --- Search & Edit Logic ---
+    async function searchPlan() {
+        const query = document.getElementById('searchCorrelative').value;
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/planning/search?query=${query}`);
+            if (!res.ok) throw new Error("No encontrado");
+            const plan = await res.json();
+            loadPlanIntoForm(plan);
+        } catch (e) {
+            alert("Documento no encontrado");
+        }
+    }
+
+    function loadPlanIntoForm(plan) {
+        // Set ID
+        document.getElementById('planId').value = plan.id;
+        document.getElementById('documentNumber').value = plan.order_number.toString().padStart(8, '0');
+
+        // Populate Fields
+        document.getElementById('articleSearch').value = plan.article; // Simplified, ideally Description
+        document.getElementById('articleHidden').value = plan.article;
+        document.querySelector('input[name="batches"]').value = plan.batches;
+        document.querySelector('input[name="date"]').value = plan.date;
+        document.getElementById('presentationInput').value = plan.presentation;
+        document.getElementById('wastePercentageInput').value = plan.waste_percentage;
+        document.getElementById('kgPerBatch').value = (plan.kg / plan.batches).toFixed(2); // Infer Kg/Batch
+        document.getElementById('totalKgInput').value = plan.kg;
+        document.getElementById('unitsInput').value = plan.units;
+        document.getElementById('boxesInput').value = plan.boxes;
+        document.querySelector('textarea[name="notes"]').value = plan.notes || "";
+
+        // UI State
+        setReadOnly(true);
+        document.getElementById('btnConfirm').style.display = 'none';
+
+        // Status Logic: Loaded = Green (Confirmed)
+        updateStatusUI('confirmed');
+    }
+
+    function updateStatusUI(state) {
+        const draft = document.getElementById('statusDraft');
+        const confirmed = document.getElementById('statusConfirmed');
+
+        // Reset classes
+        draft.classList.remove('active', 'status-red', 'status-yellow');
+        confirmed.classList.remove('active', 'status-green');
+
+        if (state === 'new') {
+            draft.classList.add('active', 'status-red');
+            document.getElementById('btnConfirm').style.display = 'inline-block';
+            document.getElementById('btnConfirm').textContent = "Confirmar";
+        } else if (state === 'edit') {
+            draft.classList.add('active', 'status-yellow');
+            document.getElementById('btnConfirm').style.display = 'inline-block';
+            document.getElementById('btnConfirm').textContent = "Guardar Cambios";
+        } else if (state === 'confirmed') {
+            confirmed.classList.add('active', 'status-green');
+        }
+    }
+
+    function setReadOnly(state) {
+        const inputs = document.querySelectorAll('#planningForm input:not(#searchCorrelative), #planningForm textarea');
+        inputs.forEach(input => {
+            if (input.id !== 'documentNumber') {
+                input.disabled = state;
+            }
+        });
+    }
+
+    function enableEdit() {
+        const planId = document.getElementById('planId').value;
+        setReadOnly(false);
+        updateStatusUI(planId ? 'edit' : 'new');
+        // 'btnConfirm' changes handled in updateStatusUI
+    }
+
+
+
+    // Navigation
+    async function navigateRecord(direction) {
+        const planId = document.getElementById('planId').value;
+        let url;
+
+        if (!planId) {
+            // If new (no ID), only Prev works to go to Latest
+            if (direction === 'prev') {
+                url = '/api/planning/latest';
+            } else {
+                return; // Can't go next from New
+            }
+        } else {
+            url = `/api/planning/${planId}/navigate?direction=${direction}`;
+        }
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("No hay más registros");
+            const plan = await res.json();
+            loadPlanIntoForm(plan);
+        } catch (e) {
+            console.log("Navigation limit reached");
+            // Optional: Shake animation or visual feedback
+        }
+    }
+
+    // Autocomplete Logic
+    const searchInputCorr = document.getElementById('searchCorrelative');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    searchInputCorr.addEventListener('input', async (e) => {
+        const val = e.target.value;
+        if (val.length < 1) {
+            searchSuggestions.style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/planning/autosuggest?query=${val}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.length > 0) {
+                    searchSuggestions.innerHTML = '';
+                    data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.style.padding = '8px';
+                        div.style.cursor = 'pointer';
+                        div.style.borderBottom = '1px solid #eee';
+                        div.textContent = `Documento #${item.order_number}`;
+                        div.onmouseover = () => div.style.background = '#f9f9f9';
+                        div.onmouseout = () => div.style.background = 'white';
+                        div.onclick = () => {
+                            // Directly populate and search
+                            document.getElementById('searchCorrelative').value = item.order_number;
+                            searchSuggestions.style.display = 'none';
+                            searchPlan();
+                        };
+                        searchSuggestions.appendChild(div);
+                    });
+                    searchSuggestions.style.display = 'block';
+                } else {
+                    searchSuggestions.style.display = 'none';
+                }
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    // Close suggestions on click outside
+    document.addEventListener('click', (e) => {
+        if (!searchInputCorr.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+
+    // Enter key for search
+    document.getElementById('searchCorrelative').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') searchPlan();
+    });
+
+    // Fetch Next Correlative ID
+    async function loadNextId() {
+        try {
+            const res = await fetch('/api/next-id/planning');
+            const data = await res.json();
+            const nextId = data.next_id || 1;
+            // Pad to 8 digits (e.g., 00000005)
+            const formattedId = nextId.toString().padStart(8, '0');
+            document.getElementById('documentNumber').value = formattedId;
+        } catch (e) {
+            console.error("Failed to load next ID", e);
+            document.getElementById('documentNumber').value = "00000000";
+        }
+    }
+    loadNextId();
+
     // Load Articles from Profit Plus
     let articlesData = [];
     async function loadArticles() {
@@ -453,6 +685,7 @@
     const batchInput = document.querySelector('input[name="batches"]');
     const kgPerBatchInput = document.getElementById('kgPerBatch');
     const totalKgInput = document.getElementById('totalKgInput');
+    const wastePercentageInput = document.getElementById('wastePercentageInput');
 
     function parseLocaleFloat(val) {
         if (!val) return 0;
@@ -463,35 +696,99 @@
     function calculateTotalKg() {
         const batches = parseFloat(batchInput.value) || 0;
         const kgBatch = parseLocaleFloat(kgPerBatchInput.value);
+        const wastePct = parseLocaleFloat(wastePercentageInput.value) || 0;
+
         if (batches > 0 && kgBatch > 0) {
-            totalKgInput.value = (batches * kgBatch).toFixed(2).replace('.', ',');
+            // Formula: (Batches * KgBatch) * (1 - Waste%)
+            let grossTotal = batches * kgBatch;
+            let netTotal = grossTotal * (1 - (wastePct / 100));
+
+            totalKgInput.value = netTotal.toFixed(2).replace('.', ',');
         }
+        calculateUnitsFromTotalKg();
     }
 
     batchInput.addEventListener('input', calculateTotalKg);
     kgPerBatchInput.addEventListener('input', calculateTotalKg);
+    wastePercentageInput.addEventListener('input', calculateTotalKg);
+
+    // Presentation Parser
+    function getPresentationWeightKg() {
+        const val = document.getElementById('presentationInput').value.trim().toLowerCase();
+        // Regex for number + unit
+        const match = val.match(/([\d,\.]+)\s*(g|kg|ml|l|cc|gr|lb|oz|ton)\b/);
+
+        if (!match) return 0;
+
+        let num = parseFloat(match[1].replace(',', '.'));
+        let unit = match[2];
+
+        if (isNaN(num)) return 0;
+
+        switch (unit) {
+            case 'g':
+            case 'gr':
+            case 'ml':
+            case 'cc': return num / 1000;
+            case 'kg':
+            case 'l': return num;
+            case 'ton': return num * 1000;
+            case 'lb': return num * 0.453592;
+            case 'oz': return num * 0.0283495;
+            default: return 0;
+        }
+    }
+
+    function calculateUnitsFromTotalKg() {
+        // Need total Kg
+        const totalKg = parseLocaleFloat(totalKgInput.value);
+        const presKg = getPresentationWeightKg();
+
+        if (totalKg > 0 && presKg > 0) {
+            const units = Math.floor(totalKg / presKg);
+            unitsInput.value = units;
+            calculateBoxesFromUnits();
+        } else {
+            // If manual override isn't intended, clear?
+            // Or keep existing if user typed it? 
+            // Logic: if total calculated is 0, maybe clear units to avoid confusion
+            // unless user manually typed units. 
+            // For now let's only auto-calc if valid.
+        }
+    }
+
+    document.getElementById('presentationInput').addEventListener('input', calculateUnitsFromTotalKg);
 
     // Calculation Logic: Bidirectional Boxes <-> Units
     const boxesInput = document.getElementById('boxesInput');
     const unitsInput = document.getElementById('unitsInput');
 
-    boxesInput.addEventListener('input', calculateUnits);
+    boxesInput.addEventListener('input', calculateUnitsFromBoxes);
+    unitsInput.addEventListener('input', calculateBoxesFromUnits);
 
-    function calculateUnits() {
-        // Boxes -> Units
+    function calculateBoxesFromUnits() {
+        const units = parseFloat(unitsInput.value) || 0;
+
+        // Safety: Try to find equiv if 0 (e.g. user typed description manually)
+        if (currentBoxEquiv === 0) {
+            const currentDesc = searchInput.value.trim();
+            const found = articlesData.find(a => a.description === currentDesc);
+            if (found) {
+                currentBoxEquiv = found.box_equiv || 0;
+            }
+        }
+
+        if (currentBoxEquiv > 0) {
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        }
+    }
+
+    function calculateUnitsFromBoxes() {
         const boxes = parseLocaleFloat(boxesInput.value);
         if (currentBoxEquiv > 0 && boxes > 0) {
             unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
         }
     }
-
-    // Units -> Boxes (Reverse Calc)
-    unitsInput.addEventListener('input', () => {
-        const units = parseFloat(unitsInput.value) || 0;
-        if (currentBoxEquiv > 0) {
-            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
-        }
-    });
 
     // Close dropdown
     document.addEventListener('click', function (e) {
@@ -515,26 +812,37 @@
             data.kg = parseLocaleFloat(data.kg);
             data.boxes = parseLocaleFloat(data.boxes);
             data.batches = parseInt(data.batches) || 0;
+            data.kg = parseLocaleFloat(data.kg);
+            data.boxes = parseLocaleFloat(data.boxes);
+            data.batches = parseInt(data.batches) || 0;
             data.units = parseInt(data.units) || 0;
+            data.waste_percentage = parseLocaleFloat(data.waste_percentage);
         } catch (err) {
             alert("Error en formato de números");
             return;
         }
 
-        const response = await fetch('/api/planning', {
-            method: 'POST',
+        const planId = document.getElementById('planId').value;
+        const method = planId ? 'PUT' : 'POST';
+        const url = planId ? `/api/planning/${planId}` : '/api/planning';
+
+        const response = await fetch(url, {
+            method: method,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
 
         if (response.ok) {
-            // Odoo Style Success: Maybe redirect to list or show "Created" toast?
-            // For now simple alert
-            alert('Orden de Fabricación Confirmada (Guardada)');
-            window.location.reload();
+            if (method === 'POST') {
+                window.location.reload();
+            } else {
+                alert("Cambios guardados");
+                // Keep in edit mode or revert to read-only? usually revert
+                // Reloading to refresh state implies loose changes
+                window.location.reload();
+            }
         } else {
-            const err = await response.json();
-            alert('Error al guardar: ' + JSON.stringify(err.detail));
+            alert('Error al guardar');
         }
     });
 </script>

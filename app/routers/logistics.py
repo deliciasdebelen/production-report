@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 from ..dependencies import get_db, templates, get_current_user
-from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User
+from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport
 
 router = APIRouter(
     prefix="/logistics",
@@ -24,6 +24,14 @@ async def logistics_dashboard(request: Request, user: User = Depends(get_current
         "request": request,
         "user": user,
         "title": "Logística"
+    })
+
+@router.get("/inventory")
+async def view_logistics_inventory(request: Request, user: User = Depends(get_current_user)):
+    return templates.TemplateResponse("logistics/inventory.html", {
+        "request": request,
+        "user": user,
+        "title": "Control de Inventario"
     })
 
 @router.get("/reception/production")
@@ -81,16 +89,16 @@ async def get_pending_production(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    query = db.query(models.ProductionReport).filter(models.ProductionReport.status == "Pending")
+    query = db.query(ProductionReport).filter(ProductionReport.status == "Pending")
     
     if order_id:
-        query = query.filter(models.ProductionReport.order_number.contains(order_id))
+        query = query.filter(ProductionReport.order_number.contains(order_id))
     
     if date_start:
         try:
             # Assume YYYY-MM-DD coming from frontend date input
             d_start = datetime.strptime(date_start, "%Y-%m-%d")
-            query = query.filter(models.ProductionReport.created_at >= d_start)
+            query = query.filter(ProductionReport.created_at >= d_start)
         except ValueError:
             pass # Ignore invalid dates
             
@@ -99,12 +107,20 @@ async def get_pending_production(
             d_end = datetime.strptime(date_end, "%Y-%m-%d")
             # Set to end of day
             d_end = d_end.replace(hour=23, minute=59, second=59)
-            query = query.filter(models.ProductionReport.created_at <= d_end)
+            query = query.filter(ProductionReport.created_at <= d_end)
         except ValueError:
             pass
 
-    reports = query.order_by(models.ProductionReport.created_at.desc()).all()
-    return reports
+    reports = query.order_by(ProductionReport.created_at.desc()).all()
+    
+    return [{
+        "id": r.id,
+        "order_number": r.order_number,
+        "article_type": r.article_type,
+        "pt_units": r.pt_units,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+        "status": r.status
+    } for r in reports]
 
 @router.post("/reception/confirm")
 async def confirm_reception(
@@ -114,7 +130,7 @@ async def confirm_reception(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    report = db.query(models.ProductionReport).filter(models.ProductionReport.id == production_id).first()
+    report = db.query(ProductionReport).filter(ProductionReport.id == production_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
     
