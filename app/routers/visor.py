@@ -55,6 +55,7 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
         "order_number": p.order_number,
         "date": p.date, # date is String in DB, no isoformat needed
         "article": p.article,
+        "article_short": (p.article[:20] + '...') if p.article and len(p.article) > 20 else p.article,
         "presentation": p.presentation,
         "batches": p.batches,
         "units": p.units,
@@ -69,6 +70,7 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
         "date": r.created_at.isoformat() if r.created_at else None,
         "created_at": r.created_at.isoformat() if r.created_at else None,
         "article": r.article_type, 
+        "article_short": (r.article_type[:20] + '...') if r.article_type and len(r.article_type) > 20 else r.article_type,
         "article_type": r.article_type,
         "presentation": r.presentation, 
         "boxes": r.boxes,

@@ -140,7 +140,7 @@ async def view_dashboard(request: Request, user: models.User = Depends(get_curre
 async def view_visor(request: Request, user: models.User = Depends(get_current_active_user)):
     return templates.TemplateResponse("visor.html", {"request": request, "title": "Visor de Producción", "user": user})
 
-@app.get("/user/management", response_class=HTMLResponse)
+@app.get("/assistant", response_class=HTMLResponse)
 async def view_assistant(request: Request, user: models.User = Depends(get_current_active_user)):
      return templates.TemplateResponse("assistant.html", {"request": request, "title": "Asistente", "user": user})
 

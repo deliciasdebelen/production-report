@@ -363,6 +363,58 @@
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
         background: #94a3b8;
     }
+
+    /* RESPONSIVE BREAKPOINTS */
+    @media (max-width: 1024px) {
+        .grid-container {
+            /* Keep grid but perhaps tighten gaps */
+            gap: 1rem;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+        }
+
+        .clock {
+            font-size: 1.8rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .visor-wrapper {
+            padding: 0.5rem;
+            min-height: auto;
+            /* Allow scrolling on long mobile */
+        }
+
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-right {
+            align-self: flex-end;
+            text-align: right;
+            margin-top: -3.5rem;
+            /* Tuck next to title if space */
+        }
+
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visor-col {
+            min-height: 400px;
+            /* Force visual height for each section */
+        }
+
+        /* Adjust headers for mobile */
+        .brand-title {
+            font-size: 1.25rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -393,7 +445,7 @@
             const planningItems = data.pending.map(i => ({
                 col1: `<span class="primary-text">#${i.order_number || i.id}</span>
                        <span class="sub-text">${i.date}</span>`,
-                col2: `<span class="primary-text">${i.article}</span>
+                col2: `<span class="primary-text" title="${i.article}">${i.article_short || i.article}</span>
                        <span class="sub-text">${i.presentation} | ${i.batches} Batches</span>`,
                 colStatus: `<span class="order-tag">${i.status || 'Pendiente'}</span>`,
                 col3: `<span class="primary-text">${(i.units_pending || i.units || 0).toLocaleString()}</span>`
@@ -404,7 +456,7 @@
             const productionItems = data.processed.map(i => ({
                 col1: `<span class="primary-text">#${i.order_number || i.id}</span>
                        <span class="sub-text">${i.date || new Date(i.created_at).toLocaleDateString()}</span>`,
-                col2: `<span class="primary-text">${i.article || i.article_type}</span>
+                col2: `<span class="primary-text" title="${i.article}">${i.article_short || i.article || i.article_type}</span>
                        <span class="sub-text">${i.presentation} | ${i.boxes || 0} Cajas</span>`,
                 colStatus: `<span class="order-tag" style="background:#10b981;">${i.status || 'Procesado'}</span>`,
                 col3: `<span class="primary-text" style="color:SpringGreen;">+${(i.pt_units || 0).toLocaleString()}</span>`
