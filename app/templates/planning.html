@@ -801,6 +801,7 @@
     document.querySelector('input[name="date"]').valueAsDate = new Date();
 
     loadArticles();
+    loadNextId();
 
     document.getElementById('planningForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -808,6 +809,11 @@
         const data = Object.fromEntries(formData.entries());
 
         // Sanitization
+        if (!data.article || data.article.trim() === "") {
+            alert("Por favor, seleccione un producto válido.");
+            return;
+        }
+
         try {
             data.kg = parseLocaleFloat(data.kg);
             data.boxes = parseLocaleFloat(data.boxes);

@@ -40,6 +40,23 @@
         <h2 style="margin-bottom: 1.5rem; color: var(--primary);">Iniciar Sesión</h2>
 
         <form action="/login" method="post">
+            {% if request.query_params.get("error") == "invalid_user" %}
+            <div
+                style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;">
+                Usuario inválido
+            </div>
+            {% elif request.query_params.get("error") == "invalid_password" %}
+            <div
+                style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;">
+                Contraseña inválida
+            </div>
+            {% elif request.query_params.get("error") %}
+            <div
+                style="background-color: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 6px; margin-bottom: 1rem; font-size: 0.9rem;">
+                {{ request.query_params.get("error") }}
+            </div>
+            {% endif %}
+
             <div class="form-group" style="text-align: left;">
                 <label>Usuario</label>
                 <input type="text" name="username" required>

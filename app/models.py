@@ -79,6 +79,7 @@ class InventoryCapture(Base):
     quantity = Column(Float, nullable=False)
     capture_date = Column(String, nullable=False) # YYYY-MM-DD
     capture_time = Column(String, nullable=False) # HH:MM
+    department = Column(String, nullable=True) # Logistica/Produccion
     out_of_range = Column(Boolean, default=False)
     
     user_id = Column(Integer, ForeignKey("users.id"))
@@ -92,7 +93,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
-    role = Column(Integer, default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin
+    role = Column(Integer, default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin, 5=Almacen, 6=Inventory
     is_active = Column(Integer, default=1)
 
 class LogisticsReceptionProduction(Base):

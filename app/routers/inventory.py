@@ -33,6 +33,7 @@ async def create_capture(
         quantity=capture.quantity,
         capture_date=capture.capture_date,
         capture_time=capture.capture_time,
+        department=capture.department,
         out_of_range=capture.out_of_range,
         user_id=user.id
     )

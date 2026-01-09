@@ -26,13 +26,14 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Reporte de Produccion")
 
+from .routers import external, traslados, visor, inventory, logistics, reports
+
 app.include_router(external.router)
 app.include_router(traslados.router)
-from .routers import logistics, inventory
-app.include_router(logistics.router)
-app.include_router(inventory.router)
-from .routers import visor
 app.include_router(visor.router)
+app.include_router(inventory.router)
+app.include_router(logistics.router)
+app.include_router(reports.router)
 
 from app.utils_id import get_next_order_number
 
@@ -82,8 +83,10 @@ async def login_page(request: Request):
 @app.post("/login")
 async def login(response: Response, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == username).first()
-    if not user or not auth_utils.verify_password(password, user.password_hash):
-        return RedirectResponse(url="/login?error=Invalid credentials", status_code=303)
+    if not user:
+        return RedirectResponse(url="/login?error=invalid_user", status_code=303)
+    if not auth_utils.verify_password(password, user.password_hash):
+        return RedirectResponse(url="/login?error=invalid_password", status_code=303)
     
     # Simple Cookie Session (In prod, use signed tokens)
     response = RedirectResponse(url="/", status_code=303)

@@ -946,7 +946,7 @@
         try {
             const res = await fetch('/api/next-id/production');
             const data = await res.json();
-            document.getElementById('orderNumberDisplay').textContent = String(data.next_id).padStart(4, '0');
+            document.getElementById('orderNumberDisplay').textContent = String(data.next_id).padStart(8, '0');
         } catch (e) {
             console.error("ID Fetch Error", e);
         }

@@ -18,7 +18,7 @@ router = APIRouter(
 
 @router.get("/")
 async def logistics_dashboard(request: Request, user: User = Depends(get_current_user)):
-    if user.role not in [1, 3, 4]: # Logic/Admin/Planner roles
+    if user.role not in [1, 3, 4, 5]: # Logic/Admin/Planner/Almacen
         raise HTTPException(status_code=403, detail="Not authorized")
     return templates.TemplateResponse("logistics/dashboard.html", {
         "request": request,
@@ -28,6 +28,8 @@ async def logistics_dashboard(request: Request, user: User = Depends(get_current
 
 @router.get("/inventory")
 async def view_logistics_inventory(request: Request, user: User = Depends(get_current_user)):
+    if user.role not in [1, 3, 4, 5, 6]: # All logistics roles inc Inventory
+        raise HTTPException(status_code=403, detail="Not authorized")
     return templates.TemplateResponse("logistics/inventory.html", {
         "request": request,
         "user": user,
@@ -36,6 +38,8 @@ async def view_logistics_inventory(request: Request, user: User = Depends(get_cu
 
 @router.get("/reception/production")
 async def view_reception_production(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsReceptionProduction).order_by(desc(LogisticsReceptionProduction.date)).limit(50).all()
     return templates.TemplateResponse("logistics/reception_production.html", {
         "request": request, 
@@ -46,6 +50,8 @@ async def view_reception_production(request: Request, user: User = Depends(get_c
 
 @router.get("/reception/merchandise")
 async def view_reception_merchandise(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsReceptionMerchandise).order_by(desc(LogisticsReceptionMerchandise.date)).limit(50).all()
     # Parse JSON items for display
     for log in logs:
@@ -63,6 +69,8 @@ async def view_reception_merchandise(request: Request, user: User = Depends(get_
 
 @router.get("/dispatch")
 async def view_dispatch(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsDispatch).order_by(desc(LogisticsDispatch.date)).limit(50).all()
     for log in logs:
         try:

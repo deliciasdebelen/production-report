@@ -86,6 +86,8 @@
                         <option value="2">2 - Producción</option>
                         <option value="3">3 - Planificación</option>
                         <option value="4">4 - Admin (Todo)</option>
+                        <option value="5">5 - Almacén General</option>
+                        <option value="6">6 - Inventario</option>
                     </select>
                 </div>
             </div>
@@ -122,6 +124,8 @@
                         {% elif u.role == 2 %} Producción
                         {% elif u.role == 3 %} Planificación
                         {% elif u.role == 4 %} Admin
+                        {% elif u.role == 5 %} Almacén Gen.
+                        {% elif u.role == 6 %} Inventario
                         {% endif %}
                     </td>
                     <td style="padding: 0.5rem;">

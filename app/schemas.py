@@ -85,6 +85,7 @@ class InventoryCaptureBase(BaseModel):
     quantity: float
     capture_date: str
     capture_time: str
+    department: Optional[str] = None
     out_of_range: bool = False
 
 class InventoryCaptureCreate(InventoryCaptureBase):

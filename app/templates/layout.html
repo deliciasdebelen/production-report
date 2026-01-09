@@ -95,6 +95,20 @@
                     </a>
                     {% endif %}
 
+                    <!-- Reportes Section -->
+                    {% if user %}
+                    <div class="nav-section-title">Reportes</div>
+                    <a href="/reports/planning" class="nav-link" title="Planificación">
+                        <span class="nav-icon">📅</span> <span class="nav-text">Planificación</span>
+                    </a>
+                    <a href="/reports/production" class="nav-link" title="Producción">
+                        <span class="nav-icon">📝</span> <span class="nav-text">Producción</span>
+                    </a>
+                    <a href="/reports/logistics" class="nav-link" title="Logística">
+                        <span class="nav-icon">📦</span> <span class="nav-text">Logística</span>
+                    </a>
+                    {% endif %}
+
                     <!-- Logistics Section -->
                     {% if user and (user.role == 1 or user.role == 3 or user.role == 4) %}
                     <div class="nav-section-title">Logística</div>
