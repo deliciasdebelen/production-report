@@ -26,7 +26,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Reporte de Produccion")
 
-from .routers import external, traslados, visor, inventory, logistics, reports
+from .routers import external, traslados, visor, inventory, logistics, reports, maintenance
 
 app.include_router(external.router)
 app.include_router(traslados.router)
@@ -34,6 +34,7 @@ app.include_router(visor.router)
 app.include_router(inventory.router)
 app.include_router(logistics.router)
 app.include_router(reports.router)
+app.include_router(maintenance.router)
 
 from app.utils_id import get_next_order_number
 
@@ -147,251 +148,15 @@ async def view_visor(request: Request, user: models.User = Depends(get_current_a
 async def view_assistant(request: Request, user: models.User = Depends(get_current_active_user)):
      return templates.TemplateResponse("assistant.html", {"request": request, "title": "Asistente", "user": user})
 
-@app.get("/maintenance", response_class=HTMLResponse)
-async def view_maintenance(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_active_user)):
-    if user.role != 4:
-        return templates.TemplateResponse("403.html", {"request": request, "user": user})
-    
-    users = db.query(models.User).all()
-    return templates.TemplateResponse("maintenance.html", {"request": request, "title": "Mantenimiento", "user": user, "users": users})
+# @app.get("/maintenance", response_class=HTMLResponse)
+# async def view_maintenance(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_active_user)):
+#     if user.role != 4:
+#         return templates.TemplateResponse("403.html", {"request": request, "user": user})
+#     
+#     users = db.query(models.User).all()
+#     return templates.TemplateResponse("maintenance.html", {"request": request, "title": "Mantenimiento", "user": user, "users": users})
 
-# --- Maintenance API ---
-@app.post("/maintenance/users")
-async def create_user(username: str = Form(...), password: str = Form(...), role: int = Form(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
-    if current_user.role != 4: raise HTTPException(403)
-    hashed = auth_utils.get_password_hash(password)
-    new_user = models.User(username=username, password_hash=hashed, role=role)
-    try:
-        db.add(new_user)
-        db.commit()
-    except:
-        return RedirectResponse("/maintenance?error=User exists", status_code=303)
-    return RedirectResponse("/maintenance", status_code=303)
 
-@app.post("/maintenance/users/delete")
-async def delete_user(user_id: int = Form(...), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
-    if current_user.role != 4: raise HTTPException(403)
-    user = db.query(models.User).filter(models.User.id == user_id).first()
-    if user and user.username != "admin": # Prevent deleting default admin
-        db.delete(user)
-        db.commit()
-    return RedirectResponse("/maintenance", status_code=303)
-
-    return RedirectResponse("/maintenance", status_code=303)
-
-@app.post("/maintenance/data/preview")
-async def preview_data(
-    table: str = Form(...),
-    start_date: Optional[str] = Form(None),
-    end_date: Optional[str] = Form(None),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-
-    model = None
-    date_field = None
-    if table == 'production': 
-        model = models.ProductionReport
-        date_field = models.ProductionReport.created_at # TODO: Cast to date if needed, or use string filtering
-    elif table == 'planning': 
-        model = models.ProductionPlanning
-        date_field = models.ProductionPlanning.date # This is a string YYYY-MM-DD
-    
-    if not model: return {"error": "Invalid table"}
-
-    query = db.query(model)
-
-    # Date Filtering
-    if start_date:
-        if table == 'planning':
-            query = query.filter(date_field >= start_date)
-        else:
-             # Simplistic string comparison for datetime might work if format matches, otherwise need cast
-             # specific for sqlite/sql server. For now, assuming basic string comparison works for ISO dates
-             pass 
-    if end_date:
-        if table == 'planning':
-             query = query.filter(date_field <= end_date)
-
-    data = query.limit(100).all()
-    return data
-
-@app.get("/maintenance/report/print", response_class=HTMLResponse)
-async def print_report(
-    request: Request,
-    type: str,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_active_user)
-):
-    # Authorization Logic
-    allowed = False
-    if user.role == 4: # Admin sees all
-        allowed = True
-    elif type == "planning" and user.role == 3: # Plan sees Plan
-        allowed = True
-    elif type == "production" and user.role == 2: # Prod sees Prod
-        allowed = True
-    
-    if not allowed:
-        return templates.TemplateResponse("403.html", {"request": request, "user": user})
-
-    rows = []
-    columns = []
-    title = ""
-    
-    # 1. USERS REPORT
-    if type == "users":
-        title = "Reporte de Usuarios del Sistema"
-        users_list = db.query(models.User).all()
-        columns = ["ID", "Usuario", "Rol", "Hash (Parcial)"]
-        
-        role_map = {1: "KPI (Lectura)", 2: "Producción", 3: "Planificación", 4: "Administrador"}
-        
-        for u in users_list:
-            r_name = role_map.get(u.role, "Desconocido")
-            rows.append([u.id, u.username, r_name, u.password_hash[:10] + "..."])
-
-    # 2. PLANNING REPORT
-    elif type == "planning":
-        title = "Reporte de Planificación de Producción"
-        columns = ["ID", "Fecha Planificada", "Fecha Asignación", "Artículo", "Batches", "Kg Plan", "Unidades"]
-        
-        query = db.query(models.ProductionPlanning)
-        if start_date: query = query.filter(models.ProductionPlanning.date >= start_date)
-        if end_date: query = query.filter(models.ProductionPlanning.date <= end_date)
-        
-        results = query.order_by(models.ProductionPlanning.date.desc()).all()
-        
-        for p in results:
-            rows.append([
-                p.id,
-                p.date,
-                p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "-",
-                f"{p.article} - {p.presentation}",
-                p.batches,
-                f"{p.kg:.2f}",
-                p.units
-            ])
-
-    # 3. PRODUCTION REPORT
-    elif type == "production":
-        title = "Reporte de Producción Ejecutada"
-        columns = ["ID", "Fecha Registro", "Artículo", "Presentación", "Batches", "Kg Prod", "Unidades", "Cajas", "Mermas (Und)"]
-        
-        query = db.query(models.ProductionReport)
-        
-        # Datetime filtering logic
-        if start_date:
-            try:
-                sd = datetime.datetime.strptime(start_date, "%Y-%m-%d")
-                query = query.filter(models.ProductionReport.created_at >= sd)
-            except: pass
-        
-        if end_date:
-            try:
-                ed = datetime.datetime.strptime(end_date, "%Y-%m-%d")
-                ed_end = datetime.datetime.combine(ed, datetime.time.max)
-                query = query.filter(models.ProductionReport.created_at <= ed_end)
-            except: pass
-            
-        results = query.order_by(models.ProductionReport.created_at.desc()).all()
-        
-        for r in results:
-            waste = (r.pt_burned or 0) + (r.pt_lab or 0)
-            rows.append([
-                r.id,
-                r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "-",
-                r.article_type,
-                r.presentation,
-                r.batch_qty,
-                f"{r.kg_produced:.2f}",
-                r.pt_units,
-                r.boxes,
-                waste
-            ])
-
-    # 4. INVENTORY REPORT
-    elif type == "inventory":
-        title = "Reporte de Capturas de Inventario"
-        columns = ["ID", "Tipo", "Fecha", "Hora", "Artículo", "Lote", "Cantidad", "Usuario", "Fuera Rango"]
-        
-        query = db.query(models.InventoryCapture)
-        
-        if start_date:
-            query = query.filter(models.InventoryCapture.capture_date >= start_date)
-        if end_date:
-            query = query.filter(models.InventoryCapture.capture_date <= end_date)
-            
-        results = query.order_by(models.InventoryCapture.capture_date.desc(), models.InventoryCapture.capture_time.desc()).all()
-        
-        for i in results:
-            rows.append([
-                i.id,
-                i.capture_type,
-                i.capture_date,
-                i.capture_time,
-                f"{i.article_code} - {i.article_description}",
-                i.batch,
-                f"{i.quantity:.2f}",
-                i.user.username if i.user else "-",
-                "SI" if i.out_of_range else "NO"
-            ])
-
-    return templates.TemplateResponse("print_report.html", {
-        "request": request,
-        "title": title,
-        "columns": columns,
-        "rows": rows,
-        "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "date_range": f"{start_date or 'Inicio'} al {end_date or 'Fin'}" if (start_date or end_date) else "Periodo Completo"
-    })
-
-@app.post("/maintenance/data/delete")
-async def delete_data(
-    table: str = Form(...), 
-    action: str = Form(...), 
-    id: Optional[str] = Form(None),
-    start_date: Optional[str] = Form(None),
-    end_date: Optional[str] = Form(None),
-    db: Session = Depends(get_db), 
-    current_user: models.User = Depends(get_current_active_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    model = None
-    if table == 'production': model = models.ProductionReport
-    elif table == 'planning': model = models.ProductionPlanning
-    
-    if not model: return RedirectResponse("/maintenance?error=Invalid table", status_code=303)
-
-    query = db.query(model)
-    deleted_count = 0
-
-    if action == 'all':
-        # Apply filters if present
-        if start_date and table == 'planning':
-            query = query.filter(models.ProductionPlanning.date >= start_date)
-        if end_date and table == 'planning':
-            query = query.filter(models.ProductionPlanning.date <= end_date)
-        
-        # Check count before delete
-        count = query.count()
-        if count == 0:
-             return RedirectResponse("/maintenance?message=No hay datos para eliminar", status_code=303)
-        
-        deleted_count = query.delete(synchronize_session=False)
-
-    elif action == 'one' and id:
-        query = query.filter(model.id == id)
-        if query.count() == 0:
-             return RedirectResponse("/maintenance?message=Registro no encontrado", status_code=303)
-        deleted_count = query.delete(synchronize_session=False)
-        
-    db.commit()
-    return RedirectResponse(f"/maintenance?message=Se eliminaron {deleted_count} registros", status_code=303)
 
 # --- API Endpoints (Protected? Maybe allow allow all auth users for now) ---
 from .utils import generate_next_order_number

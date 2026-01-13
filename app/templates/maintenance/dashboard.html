@@ -1,0 +1,379 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex-between" style="margin-bottom: 2rem;">
+    <div>
+        <h1 style="margin-bottom: 0.5rem;">⚙️ Mantenimiento</h1>
+        <p style="color: var(--text-muted);">Configuración y ventanas de mantenimiento del sistema.</p>
+    </div>
+</div>
+
+<div class="input-container"
+    style="padding: 0; overflow: hidden; background: white; border-radius: var(--radius-md); box-shadow: var(--shadow-sm); border: 1px solid var(--border);">
+    <!-- Tabs Header -->
+    <div style="display: flex; border-bottom: 1px solid var(--border); background: #f8fafc;">
+        <button onclick="openTab(event, 'tab-users')" class="tab-btn active"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 600; color: var(--text-current); border-bottom: 3px solid var(--primary);">Usuarios</button>
+        <button onclick="openTab(event, 'tab-planning')" class="tab-btn"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Planificación</button>
+        <button onclick="openTab(event, 'tab-production')" class="tab-btn"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Producción</button>
+        <button onclick="openTab(event, 'tab-logistics')" class="tab-btn"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Logística</button>
+    </div>
+
+    <!-- Tab: USERS -->
+    <div id="tab-users" class="tab-content" style="padding: 2rem;">
+        <div class="grid-2" style="gap: 2rem; align-items: start;">
+            <!-- Create User -->
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Crea Nuevo Usuario</h3>
+                <form action="/maintenance/users" method="post">
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Usuario</label>
+                            <input type="text" name="username" required placeholder="Ej: ovargas"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="text" name="password" required placeholder="********"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Rol</label>
+                            <select name="role" required
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                                <option value="1">1 - KPI (Solo ver)</option>
+                                <option value="2">2 - Producción</option>
+                                <option value="3">3 - Planificación</option>
+                                <option value="4">4 - Admin (Todo)</option>
+                                <option value="5">5 - Almacén General</option>
+                                <option value="6">6 - Inventario</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn-primary"
+                            style="justify-self: end; width: auto; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 500; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-top: 0.5rem;">
+                            <span style="margin-right: 0.25rem;">+</span> Crear Usuario
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List Users -->
+            <div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+                    <h3 style="margin:0;">Lista de Usuarios</h3>
+                    <button onclick="window.open('/maintenance/report/print?type=users', '_blank')"
+                        style="background:transparent; border:1px solid var(--primary); color:var(--primary); padding: 0.25rem 0.75rem; border-radius:4px; cursor:pointer;">
+                        🖨 Imprimir
+                    </button>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                            <th style="padding: 0.5rem;">Usuario</th>
+                            <th style="padding: 0.5rem;">Rol</th>
+                            <th style="padding: 0.5rem; text-align: right;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem;"><strong>{{ u.username }}</strong></td>
+                            <td style="padding: 0.5rem; color: var(--text-muted);">
+                                {% if u.role == 1 %} KPI
+                                {% elif u.role == 2 %} Producción
+                                {% elif u.role == 3 %} Planificación
+                                {% elif u.role == 4 %} Admin
+                                {% elif u.role == 5 %} Almacén
+                                {% elif u.role == 6 %} Inventario
+                                {% endif %}
+                            </td>
+                            <td style="padding: 0.5rem; text-align: right;">
+                                {% if u.username != 'admin' %}
+                                <form action="/maintenance/users/delete" method="post"
+                                    onsubmit="return confirm('¿Eliminar usuario {{u.username}}?');"
+                                    style="display:inline;">
+                                    <input type="hidden" name="user_id" value="{{ u.id }}">
+                                    <button type="submit"
+                                        style="color: var(--danger); background: none; border: none; cursor: pointer; font-weight: 600;">Helper</button>
+                                </form>
+                                {% else %}
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">Sistema</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: PLANNING -->
+    <div id="tab-planning" class="tab-content" style="display: none; padding: 2rem;">
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary);">Gestión de Planificaciones</h3>
+                <span
+                    style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Eliminación
+                    Irreversible</span>
+            </div>
+
+            <div class="grid-4" style="gap: 1rem; align-items: end;">
+                <div class="form-group">
+                    <label>Desde</label>
+                    <input type="date" id="planStart"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <input type="date" id="planEnd"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div>
+                    <button type="button" class="btn-secondary" onclick="previewData('planning')">👁️ Buscar</button>
+                    <button type="button" class="btn-secondary" onclick="printReport('planning')">🖨️ Imprimir</button>
+                </div>
+                <div style="text-align: right;">
+                    <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');">
+                        <input type="hidden" name="table" value="planning">
+                        <input type="hidden" name="action" value="all">
+                        <input type="hidden" name="start_date" id="formPlanStart">
+                        <input type="hidden" name="end_date" id="formPlanEnd">
+                        <button type="submit"
+                            style="background: white; color: var(--danger); border: 1px solid var(--danger); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🗑️
+                            ELIMINAR TODO</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Preview Container -->
+        <div id="previewPlanning" class="preview-box"></div>
+    </div>
+
+    <!-- Tab: PRODUCTION -->
+    <div id="tab-production" class="tab-content" style="display: none; padding: 2rem;">
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary);">Gestión de Producción</h3>
+                <span
+                    style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Reportes
+                    Históricos</span>
+            </div>
+
+            <div class="grid-4" style="gap: 1rem; align-items: end;">
+                <div class="form-group">
+                    <label>Desde</label>
+                    <input type="date" id="prodStart"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <input type="date" id="prodEnd"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div>
+                    <button type="button" class="btn-secondary" onclick="previewData('production')">👁️ Buscar</button>
+                    <button type="button" class="btn-secondary" onclick="printReport('production')">🖨️
+                        Imprimir</button>
+                </div>
+                <div style="text-align: right;">
+                    <form action="/maintenance/data/delete" method="post"
+                        onsubmit="return confirm('ATENCION: Se borraran TODOS los reportes de producción. Esta acción no tiene filtros aun.');">
+                        <input type="hidden" name="table" value="production">
+                        <input type="hidden" name="action" value="all">
+                        <button type="submit"
+                            style="background: white; color: var(--danger); border: 1px solid var(--danger); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🗑️
+                            ELIMINAR TODO</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Preview Container -->
+        <div id="previewProduction" class="preview-box"></div>
+    </div>
+
+    <!-- Tab Content: Logistics -->
+    <div id="tab-logistics" class="tab-content" style="display: none; padding: 2rem;">
+        <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary);">Mantenimiento de Datos Logísticos</h3>
+                <span
+                    style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Consultar
+                    y Eliminar Registros</span>
+            </div>
+
+            <div class="grid-4" style="gap: 1rem; align-items: end;">
+                <div class="form-group">
+                    <label>Tabla</label>
+                    <select id="logTable"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                        <option value="logistics_reception_mp">Recepción MP/Insumos</option>
+                        <option value="logistics_reception_pt">Recepción Producción (PT)</option>
+                        <option value="logistics_dispatch">Despachos</option>
+                        <option value="inventory">Inventario Físico</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Desde</label>
+                    <input type="date" id="logStart"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div class="form-group">
+                    <label>Hasta</label>
+                    <input type="date" id="logEnd"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.5rem; border-radius: 6px;">
+                </div>
+                <div>
+                    <button type="button" class="btn-secondary" onclick="previewLogistics()">👁️ Buscar</button>
+                </div>
+
+                <!-- Full Width Actions -->
+                <div class="col-span-4" style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                    <form action="/maintenance/data/delete" method="post"
+                        onsubmit="return confirm('ATENCION: Se borrarán los registros seleccionados.');">
+                        <input type="hidden" name="table" id="formLogTable">
+                        <input type="hidden" name="action" value="all">
+                        <input type="hidden" name="start_date" id="formLogStart">
+                        <input type="hidden" name="end_date" id="formLogEnd">
+                        <button type="submit" onclick="syncLogForms()" class="btn-danger"
+                            style="background: white; color: var(--danger); border: 1px solid var(--danger); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🗑️
+                            ELIMINAR TODO EN RANGO</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Preview Container -->
+        <div id="previewLogistics" class="preview-box"></div>
+    </div>
+</div>
+
+<!-- COMMON PREVIEW TABLE template -->
+<div id="previewTemplate" style="display:none;">
+    <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+            <thead style="background: #f1f5f9; position: sticky; top: 0;"></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const today = new Date().toISOString().split('T')[0];
+        ['planStart', 'planEnd', 'prodStart', 'prodEnd', 'logStart', 'logEnd'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = today;
+        });
+    });
+
+    function openTab(evt, tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(el => {
+            el.classList.remove('active');
+            el.style.color = 'var(--text-muted)';
+            el.style.borderBottomColor = 'transparent';
+            el.style.fontWeight = '500';
+        });
+
+        document.getElementById(tabId).style.display = 'block';
+        evt.currentTarget.classList.add('active');
+        evt.currentTarget.style.color = 'var(--text-current)';
+        evt.currentTarget.style.borderBottomColor = 'var(--primary)';
+        evt.currentTarget.style.fontWeight = '600';
+    }
+
+    function confirmDelete(type) {
+        if (type === 'planning') {
+            document.getElementById('formPlanStart').value = document.getElementById('planStart').value;
+            document.getElementById('formPlanEnd').value = document.getElementById('planEnd').value;
+        }
+        return confirm("¿Estás seguro de eliminar estos registros? Esta acción no se puede deshacer.");
+    }
+
+    function printReport(table) {
+        let s, e;
+        if (table === 'planning') { s = document.getElementById('planStart').value; e = document.getElementById('planEnd').value; }
+        if (table === 'production') { s = document.getElementById('prodStart').value; e = document.getElementById('prodEnd').value; }
+
+        window.open(`/maintenance/report/print?type=${table}&start_date=${s}&end_date=${e}`, '_blank');
+    }
+
+    function syncLogForms() {
+        document.getElementById('formLogTable').value = document.getElementById('logTable').value;
+        document.getElementById('formLogStart').value = document.getElementById('logStart').value;
+        document.getElementById('formLogEnd').value = document.getElementById('logEnd').value;
+    }
+
+    async function previewLogistics() {
+        const table = document.getElementById('logTable').value;
+        const formData = new FormData();
+        formData.append('table', table);
+        formData.append('start_date', document.getElementById('logStart').value);
+        formData.append('end_date', document.getElementById('logEnd').value);
+
+        try {
+            const res = await fetch('/maintenance/data/preview', { method: 'POST', body: formData });
+            const data = await res.json();
+            renderTable(data, 'previewLogistics', table);
+        } catch (e) { alert("Error"); }
+    }
+
+    // Creating a reusable render function since logic was repeated
+    function renderTable(data, containerId, tableType) {
+        let html = '<table style="width:100%; border-collapse:collapse; font-size:0.85rem;"><thead><tr style="background:#f1f5f9;">';
+
+        if (data.length === 0) {
+            html += '<td style="padding:1rem;">No se encontraron datos.</td></tr></table>';
+        } else {
+            const keys = Object.keys(data[0]).filter(k => !['items_json', 'notes', '_sa_instance_state'].includes(k));
+            keys.forEach(k => html += `<th style="padding:0.5rem; text-align:left;">${k}</th>`);
+            html += '<th style="padding:0.5rem;">Acción</th></tr></thead><tbody>';
+
+            data.forEach(row => {
+                html += '<tr style="border-bottom:1px solid #eee;">';
+                keys.forEach(k => html += `<td style="padding:0.5rem;">${row[k] === null ? '-' : row[k]}</td>`);
+                html += `<td style="padding:0.5rem;">
+                            <button onclick="deleteOne('${tableType}', '${row.id}')" style="color:var(--danger); border:none; background:none; cursor:pointer;">&times; Eliminar</button>
+                         </td></tr>`;
+            });
+            html += '</tbody></table>';
+        }
+        document.getElementById(containerId).innerHTML = html;
+    }
+
+    async function previewData(table) {
+        const formData = new FormData();
+        formData.append('table', table);
+
+        if (table === 'planning') {
+            formData.append('start_date', document.getElementById('planStart').value);
+            formData.append('end_date', document.getElementById('planEnd').value);
+        } else if (table === 'production') {
+            formData.append('start_date', document.getElementById('prodStart').value);
+            formData.append('end_date', document.getElementById('prodEnd').value);
+        }
+
+        try {
+            const res = await fetch('/maintenance/data/preview', { method: 'POST', body: formData });
+            const data = await res.json();
+            renderTable(data, table === 'planning' ? 'previewPlanning' : 'previewProduction', table);
+        } catch (e) {
+            alert("Error al cargar datos");
+        }
+    }
+
+    async function deleteOne(table, id) {
+        if (!confirm(`¿Eliminar registro ID ${id}?`)) return;
+        const fd = new FormData();
+        fd.append('table', table);
+        fd.append('action', 'one');
+        fd.append('id', id);
+
+        await fetch('/maintenance/data/delete', { method: 'POST', body: fd });
+        previewData(table); // Refresh
+    }
+</script>
+{% endblock %}

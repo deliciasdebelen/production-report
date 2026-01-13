@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
+from sqlalchemy import desc, text
 from typing import Optional, List
+from ..external_db import get_external_db
 import json
 from datetime import datetime
 
@@ -86,6 +87,114 @@ async def view_dispatch(request: Request, user: User = Depends(get_current_user)
     })
 
 # --- API Actions ---
+
+@router.get("/api/clients/search")
+async def search_clients(
+    q: str, 
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_external_db)
+):
+    if not q or len(q) < 2:
+        return []
+    
+    try:
+        # Search by code or description, top 10 results
+        sql = text("""
+            SELECT TOP 10 co_cli, cli_des 
+            FROM sacliente 
+            WHERE (co_cli LIKE :search OR cli_des LIKE :search)
+            AND inactivo = 0
+            ORDER BY cli_des
+        """)
+        
+        # Use simple wildcard search
+        search_pattern = f"%{q}%"
+        result = db.execute(sql, {"search": search_pattern}).fetchall()
+        
+        return [{"co_cli": row.co_cli.strip(), "cli_des": row.cli_des.strip()} for row in result]
+        
+    except Exception as e:
+        print(f"Error searching clients: {e}")
+        # Return empty list or mock if connection fails (graceful degradation)
+        return []
+
+@router.get("/api/external/client/{co_cli}/pending-invoices")
+async def get_pending_invoices(
+    co_cli: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_external_db),
+    local_db: Session = Depends(get_db)
+):
+    """
+    Executes SP_CRM_FacturasPendientesPorCliente @co_cli
+    Returns list of items pending to be dispatched.
+    """
+    try:
+        # Check Local History for Duplicate Invoices
+        # Search last 200 dispatches for this client to find used invoice numbers
+        dispatches = local_db.query(LogisticsDispatch.document_ref)\
+            .filter(LogisticsDispatch.document_ref.isnot(None))\
+            .filter(LogisticsDispatch.client_destination.contains(co_cli))\
+            .order_by(desc(LogisticsDispatch.date)).limit(200).all()
+            
+        used_invoices = set()
+        import re
+        for d in dispatches:
+            if d.document_ref:
+                # Extract all number sequences that look like our invoices (usually > 1 digit)
+                nums = re.findall(r'\b\d+\b', d.document_ref)
+                used_invoices.update(nums)
+
+        # Execute SP
+        sql = text("EXEC SP_CRM_FacturasPendientesPorCliente @co_cli = :cli")
+        result_proxy = db.execute(sql, {"cli": co_cli})
+        keys = result_proxy.keys()
+        # print(f"--- DEBUG COLS: {keys} ---") # Keep this useful for now if needed, or rely on logic below
+        
+        result = result_proxy.fetchall()
+
+        def get_col(row_map, candidates):
+            # Try exact match first
+            for c in candidates:
+                if c in row_map: return row_map[c]
+            # Try case-insensitive strip match
+            keys = list(row_map.keys())
+            for c in candidates:
+                for k in keys:
+                    if c.lower() in k.lower(): return row_map[k]
+            return None
+
+        items = []
+        for row in result:
+             row_map = row._mapping
+             
+             # Robust Mapping
+             fact_num = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "UNKNOWN").strip()
+             
+             # FILTER: If invoice is already in history, skip
+             if fact_num in used_invoices:
+                 continue
+
+             co_art = get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or ""
+             art_des = get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or ""
+             co_uni = get_col(row_map, ['Unidad', 'co_uni', 'Unid', 'UND']) or "UNI"
+             
+             items.append({
+                "fact_num": str(fact_num).strip(), 
+                "co_art": str(co_art).strip(),
+                "art_des": str(art_des).strip(),
+                "co_uni": str(co_uni).strip(),
+                "total_art": 1.0 
+             })
+            
+        return items
+        
+    except Exception as e:
+        print(f"Error executing SP_CRM_FacturasPendientesPorCliente: {e}")
+        return []
+
+
+
 
 # ... existing code ...
 
@@ -195,15 +304,65 @@ async def create_reception_merchandise(
 
 @router.post("/dispatch")
 async def create_dispatch(
-    client_destination: str = Form(...),
-    document_ref: str = Form(...),
+    client_destination: str = Form(...), # Fallback/Search Input
+    document_ref: str = Form(...), # Mandatory now
+    imported_invoices: str = Form(None), 
     items: str = Form(...), # JSON string
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # 1. Mandatory Guide Validation
+    if not document_ref or not document_ref.strip():
+        raise HTTPException(status_code=400, detail="El Número de Guía es obligatorio.")
+    
+    # 2. Unique Guide Validation (Global)
+    exists = db.query(LogisticsDispatch).filter(LogisticsDispatch.document_ref.like(f"{document_ref.strip()}%")).first()
+    # Note: Using LIKE because we append "| Fact: ..." to the ref. 
+    # Or strict check? User said "Guide number cannot repeat".
+    # If we store "1234 | Fact: ...", checking "1234" might fail exact match.
+    # Better: Check startswith or exact. 
+    # Let's assume the user enters "1234" and we store "1234 | Fact: X".
+    # Checking "1234" against "1234 | Fact: X" requires LIKE '1234%'.
+    
+    existing_guide = db.query(LogisticsDispatch).filter(
+        LogisticsDispatch.document_ref.like(f"{document_ref.strip()} | %") 
+        | (LogisticsDispatch.document_ref == document_ref.strip())
+    ).first()
+    
+    if existing_guide:
+        raise HTTPException(status_code=400, detail=f"El Número de Guía {document_ref} ya existe en el sistema.")
+
+    # 3. Determine Final Client (Multi-Client Support)
+    try:
+        items_list = json.loads(items)
+        distinct_clients = set()
+        for i in items_list:
+            if 'client' in i and i['client']:
+                distinct_clients.add(i['client'])
+        
+        final_client = client_destination # Default to form input
+        if len(distinct_clients) > 1:
+            final_client = "Multi-Destino" # Or " / ".join(distinct_clients)
+        elif len(distinct_clients) == 1:
+            final_client = list(distinct_clients)[0]
+            
+    except:
+        final_client = client_destination # Fallback
+
+    # 4. Concatenate Invoices to Reference
+    final_ref = document_ref.strip()
+    if imported_invoices:
+        # Check for Duplicate Invoices (Previous Logic - Global Check?)
+        # Let's keep it safe: Check provided invoices against history?
+        # User emphasized Guide Number uniqueness heavily this time.
+        # But let's keep the invoice check if possible, though maybe less strict if guide is unique?
+        # Proceeding with strict Guide Check as primary request.
+        
+        final_ref += f" | Fact: {imported_invoices}"
+            
     new_log = LogisticsDispatch(
-        client_destination=client_destination,
-        document_ref=document_ref,
+        client_destination=final_client,
+        document_ref=final_ref,
         items_json=items
     )
     db.add(new_log)

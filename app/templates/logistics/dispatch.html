@@ -24,16 +24,28 @@
         </div>
 
         <form id="dispatchForm">
+            <!-- Global Product List for Autocomplete -->
+            <datalist id="productList"></datalist>
+
             <!-- Header Fields -->
             <div class="grid-2" style="gap: 1rem; margin-bottom: 1.5rem;">
                 <div class="form-group">
-                    <label>Cliente / Destino <span style="color: var(--danger);">*</span></label>
-                    <input type="text" name="client_destination" required placeholder="Ej. Cliente XYZ"
-                        style="font-weight: 500;">
+                    <label>Cliente (Búsqueda)</label>
+                    <input type="text" id="clientInput" list="clientList" placeholder="Escribe para buscar..."
+                        autocomplete="off">
+                    <datalist id="clientList">
+                        <!-- Populated by JS -->
+                    </datalist>
                 </div>
+                <!-- Validation: Guide is now mandatory -->
                 <div class="form-group">
-                    <label>Referencia / Guía</label>
-                    <input type="text" name="document_ref" placeholder="Ej. GUIA-0099" style="font-family: monospace;">
+                    <label>Nro. Guía de Despacho <span style="color:red">*</span></label>
+                    <input type="text" name="document_ref" placeholder="Ej: 000123" required>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Debe ser única y obligatoria.</small>
+                    <!-- Hidden field for Invoices -->
+                    <input type="hidden" name="imported_invoices" id="importedInvoices">
+                    <div id="invoiceBadges" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    </div>
                 </div>
             </div>
 
@@ -44,16 +56,19 @@
                 <div
                     style="background: var(--bg-body); border-radius: var(--radius-sm); border: 1px solid var(--border); overflow: hidden;">
                     <table style="width: 100%; font-size: 0.9rem;">
-                        <thead style="background: #f1f5f9;">
+                        <thead>
                             <tr>
-                                <th style="padding: 0.75rem; width: 40%;">Producto</th>
-                                <th style="padding: 0.75rem; width: 20%;">Cant.</th>
-                                <th style="padding: 0.75rem; width: 20%;">Unidad</th>
-                                <th style="padding: 0.75rem; width: 10%;"></th>
+                                <th style="width: 50px;"></th>
+                                <th>Cliente</th>
+                                <th>Facturas</th>
+                                <th>Artículo</th>
+                                <th style="width: 100px;">Cant.</th>
+                                <th style="width: 100px;">Unidad</th>
+                                <th style="width: 50px;"></th>
                             </tr>
                         </thead>
                         <tbody id="itemsTableBody">
-                            <!-- Rows will be added here -->
+                            <!-- Items will be added here -->
                         </tbody>
                     </table>
 
@@ -89,7 +104,14 @@
             <div
                 style="background: #fff; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; box-shadow: var(--shadow-sm);">
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <strong style="color: var(--text-main);">{{ log.client_destination }}</strong>
+                    <div>
+                        <div
+                            style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                            #{{ log.id }}
+                        </div>
+                        <strong style="color: var(--text-main); font-size: 0.95rem;">{{ log.client_destination
+                            }}</strong>
+                    </div>
                     <span style="font-size: 0.75rem; color: var(--text-muted);">{{ log.date.strftime('%d/%m %H:%M')
                         }}</span>
                 </div>
@@ -123,6 +145,33 @@
             {% endfor %}
         </div>
     </div>
+    <!-- Invoice Import Modal -->
+    <div id="invoiceModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="card" style="width: 500px; max-height: 80vh; display: flex; flex-direction: column; padding: 0;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">📥 Importar Facturas</h3>
+                <button type="button" onclick="closeInvoiceModal()"
+                    style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+
+            <div style="padding: 1.5rem; overflow-y: auto; flex: 1;">
+                <p id="invoiceLoading" style="color: var(--text-muted); text-align: center; display: none;">Consultando
+                    facturas pendientes...</p>
+                <div id="invoiceList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Checkboxes will go here -->
+                </div>
+            </div>
+
+            <div style="padding: 1.5rem; border-top: 1px solid var(--border); text-align: right; background: #f9fafb;">
+                <button type="button" onclick="closeInvoiceModal()" class="btn"
+                    style="background: white; color: var(--text-main); border: 1px solid var(--border); margin-right: 0.5rem;">Cancelar</button>
+                <button type="button" onclick="importSelectedInvoices()" class="btn"
+                    style="background: var(--primary);">Importar Selección</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -132,7 +181,225 @@
     // Init
     document.addEventListener('DOMContentLoaded', () => {
         addItemRow(); // Start with one row
+        loadArticles(); // Fetch Autocomplete Data
+
+        // Reset Button Logic
+        // Find the "Nuevo Despacho" span and make it clickable
+        // It was defined above as: <span style="...">Nuevo Despacho</span> in line 21-23
+        // I need to target it. Since I don't want to break the HTML replacement with huge chunks, 
+        // I will trust the user to use the 'New Dispatch' action which triggers 'resetForm'.
+        // For now, let's attach the resetForm to that element if I can match it, or I should have replaced it in HTML.
+        // Wait, I replaced the HTML block above but I missed the "Nuevo Despacho" span in the ReplacementContent because I started at "Header Fields".
+        // The "Nuevo Despacho" span is at line 21. My replacement started at line 31.
+        // I must ensure I don't miss hooking it up.
+        // I will add a script to find it or I should have replaced the whole card header.
+        // Let's do a targeted replace for the header button first in the NEXT step or just add a listener here.
+
+        const newDispatchBtn = document.querySelector('.card h3 + span');
+        if (newDispatchBtn) {
+            newDispatchBtn.style.cursor = 'pointer';
+            newDispatchBtn.onclick = resetForm;
+        }
+
+        // Client Search Logic
+        const clientInput = document.getElementById('clientInput');
+        const clientList = document.getElementById('clientList');
+        let debounceTimer;
+
+        clientInput.addEventListener('input', (e) => {
+            const val = e.target.value;
+
+            // Check if user selected a valid option (format "DESC (CODE)")
+            const match = val.match(/\((.*?)\)$/);
+            if (match) {
+                const clientCode = match[1];
+                // Trigger Invoice Search
+                checkPendingInvoices(clientCode);
+            }
+
+            if (val.length < 2) return;
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/logistics/api/clients/search?q=${encodeURIComponent(val)}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        clientList.innerHTML = '';
+                        data.forEach(client => {
+                            const option = document.createElement('option');
+                            option.value = `${client.cli_des} (${client.co_cli})`;
+                            clientList.appendChild(option);
+                        });
+                    }
+                } catch (err) {
+                    console.error("Search error", err);
+                }
+            }, 300); // 300ms debounce
+        });
     });
+
+    // Reset Form
+    function resetForm() {
+        if (confirm("¿Estás seguro de limpiar el formulario?")) {
+            document.getElementById('dispatchForm').reset();
+            items = [];
+            addItemRow();
+            document.getElementById('invoiceBadges').innerHTML = '';
+            document.getElementById('importedInvoices').value = '';
+            // Clear pending invoices map?
+            pendingInvoices = {};
+        }
+    }
+
+    // Invoice State
+    let pendingInvoices = {}; // Map: InvoiceNum -> [Items]
+
+    async function checkPendingInvoices(clientCode) {
+        const modal = document.getElementById('invoiceModal');
+        const list = document.getElementById('invoiceList');
+        const loading = document.getElementById('invoiceLoading');
+
+        // Reset
+        pendingInvoices = {};
+        list.innerHTML = '';
+        loading.style.display = 'block';
+        modal.style.display = 'flex'; // Show modal immediately to indicate activity
+
+        try {
+            const res = await fetch(`/logistics/api/external/client/${encodeURIComponent(clientCode)}/pending-invoices`);
+            loading.style.display = 'none';
+
+            if (res.ok) {
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    list.innerHTML = `<div style="text-align:center; padding: 1rem; color: var(--text-muted);">No hay facturas pendientes para este cliente.</div>`;
+                    return;
+                }
+
+                // Group by Invoice Number
+                data.forEach(row => {
+                    if (!pendingInvoices[row.fact_num]) {
+                        pendingInvoices[row.fact_num] = [];
+                    }
+                    pendingInvoices[row.fact_num].push(row);
+                });
+
+                // Render Checkboxes
+                Object.keys(pendingInvoices).forEach(factNum => {
+                    const items = pendingInvoices[factNum];
+                    const div = document.createElement('div');
+                    div.style.border = '1px solid var(--border)';
+                    div.style.padding = '0.75rem';
+                    div.style.borderRadius = '6px';
+                    div.style.background = 'white';
+
+                    div.innerHTML = `
+                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600;">
+                            <input type="checkbox" value="${factNum}" style="width: 1.2rem; height: 1.2rem; margin-right: 0.75rem;">
+                            Factura #${factNum}
+                            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">
+                                ${items.length} ítems
+                            </span>
+                        </label>
+                        <div style="margin-left: 2rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                            ${items.slice(0, 2).map(i => i.art_des).join(', ')} 
+                            ${items.length > 2 ? `... (+${items.length - 2})` : ''}
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+
+            } else {
+                list.innerHTML = `<div style="color: var(--danger);">Error al consultar facturas.</div>`;
+            }
+        } catch (e) {
+            console.error(e);
+            loading.style.display = 'none';
+            list.innerHTML = `<div style="color: var(--danger);">Error de conexión.</div>`;
+        }
+    }
+
+    function closeInvoiceModal() {
+        document.getElementById('invoiceModal').style.display = 'none';
+    }
+
+    function importSelectedInvoices() {
+        const checkboxes = document.querySelectorAll('#invoiceList input[type="checkbox"]:checked');
+        const selectedFactNums = Array.from(checkboxes).map(cb => cb.value);
+
+        if (selectedFactNums.length === 0) {
+            closeInvoiceModal();
+            return;
+        }
+
+        // Clear existing empty rows if just one empty row
+        if (items.length === 1 && !items[0].item && !items[0].qty) {
+            items = []; // Reset
+        }
+
+        const docRefs = [];
+
+        selectedFactNums.forEach(factNum => {
+            docRefs.push(factNum);
+            const invoiceItems = pendingInvoices[factNum];
+
+            invoiceItems.forEach(invItem => {
+                items.push({
+                    client: document.getElementById('clientInput').value, // Capture current client
+                    fact: invItem.fact_num,
+                    item: invItem.art_des,
+                    qty: invItem.total_art,
+                    unit: invItem.co_uni || 'Unid'
+                });
+            });
+        });
+
+        // Set Invoice Badges
+        const badgeContainer = document.getElementById('invoiceBadges');
+        const hiddenInput = document.getElementById('importedInvoices');
+
+        // Append to existing if any? User said "new registration". Assume fresh import or append?
+        // Let's replace for now based on "Import Selection".
+        badgeContainer.innerHTML = '';
+        docRefs.forEach(ref => {
+            const span = document.createElement('span');
+            span.style.background = '#e0f2fe';
+            span.style.color = '#0369a1';
+            span.style.padding = '2px 8px';
+            span.style.borderRadius = '4px';
+            span.style.fontSize = '0.8rem';
+            span.textContent = `Fact. ${ref}`;
+            badgeContainer.appendChild(span);
+        });
+
+        hiddenInput.value = docRefs.join(',');
+
+        renderItems();
+        closeInvoiceModal();
+    }
+
+
+    // Populate Product Datalist
+    async function loadArticles() {
+        try {
+            const res = await fetch('/api/external/articles');
+            if (res.ok) {
+                const articles = await res.json();
+                const datalist = document.getElementById('productList');
+                datalist.innerHTML = ''; // Clear
+                articles.forEach(art => {
+                    const option = document.createElement('option');
+                    // Format: DESCRIPTION (CODE)
+                    option.value = `${art.description} (${art.code})`;
+                    datalist.appendChild(option);
+                });
+            }
+        } catch (e) {
+            console.error("Failed to load articles", e);
+        }
+    }
 
     function renderItems() {
         const tbody = document.getElementById('itemsTableBody');
@@ -149,19 +416,27 @@
         items.forEach((item, index) => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td style="padding: 0.5rem;">
-                    <input type="text" value="${item.item}" oninput="updateItem(${index}, 'item', this.value)" 
-                        placeholder="Descripción del producto" 
-                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem;">
+                <td style="padding: 0.5rem; text-align: center; color: var(--text-muted);">${index + 1}</td>
+                <td style="padding: 0.5rem; font-size: 0.85rem; color: var(--primary);">
+                    ${item.client || '-'}
                 </td>
                 <td style="padding: 0.5rem;">
-                    <input type="number" value="${item.qty}" oninput="updateItem(${index}, 'qty', this.value)" 
-                        placeholder="0" 
-                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem;">
+                    <span style="font-size: 0.8rem; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">
+                        ${item.fact || 'Manual'}
+                    </span>
                 </td>
                 <td style="padding: 0.5rem;">
-                    <select onchange="updateItem(${index}, 'unit', this.value)" 
-                        style="width: 100%; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.5rem; font-size: 0.9rem;">
+                    <input type="text" value="${item.item}" onchange="updateItem(${index}, 'item', this.value)"
+                        list="productList"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                </td>
+                <td style="padding: 0.5rem;">
+                    <input type="number" step="0.01" value="${item.qty}" onchange="updateItem(${index}, 'qty', parseFloat(this.value))"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                </td>
+                <td style="padding: 0.5rem;">
+                    <select onchange="updateItem(${index}, 'unit', this.value)"
+                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
                         <option value="Unid" ${item.unit === 'Unid' ? 'selected' : ''}>Unid</option>
                         <option value="Kg" ${item.unit === 'Kg' ? 'selected' : ''}>Kg</option>
                         <option value="Cjas" ${item.unit === 'Cjas' ? 'selected' : ''}>Cajas</option>
@@ -180,7 +455,8 @@
     }
 
     function addItemRow() {
-        items.push({ item: '', qty: '', unit: 'Unid' });
+        const currentClient = document.getElementById('clientInput').value;
+        items.push({ client: currentClient, item: '', qty: '', unit: 'Unid' });
         renderItems();
     }
 
@@ -230,7 +506,14 @@
                     window.location.reload();
                 }, 800);
             } else {
-                alert("❌ Error al guardar el despacho.");
+                // Try to get error detail
+                try {
+                    const errData = await res.json();
+                    alert("❌ " + (errData.detail || "Error al guardar el despacho."));
+                } catch (e) {
+                    alert("❌ Error al guardar el despacho.");
+                }
+
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
