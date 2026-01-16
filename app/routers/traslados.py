@@ -265,3 +265,53 @@ def api_cierres_manufactura(
     except Exception as e:
         print(f"Error /api/traslados/cierres-manufactura: {e}")
         return []
+
+@router.get("/traslados/ordenes-cierre", response_class=HTMLResponse)
+async def view_traslados_ordenes_cierre(request: Request, user: User = Depends(get_current_active_user)):
+    if user.role not in [2, 4]:
+         return templates.TemplateResponse("403.html", {"request": request, "user": user})
+    return templates.TemplateResponse("traslados-ordenes-cierre.html", {"request": request, "title": "Órdenes sin Cierre", "user": user})
+
+@router.get("/api/traslados/ordenes-cierre-pendientes")
+def api_ordenes_cierre_pendientes(
+    days: int = Query(15),
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_manufacturing_db)
+):
+    try:
+        sql = text("SELECT odp_num, fec_emis, cie_num FROM NSPCierreOP WHERE aju_num IS NULL")
+        result = db.execute(sql).fetchall()
+        
+        data = []
+        today = datetime.now()
+        
+        for row in result:
+            # Map Row
+            d = dict(row._mapping)
+            
+            # Parse Date
+            f_emis_dt = d.get('fec_emis') # SQLAlchemy usually returns datetime/date object for SQL Server DATE/DATETIME
+            
+            # Filter by Aging
+            aging_days = 0
+            if f_emis_dt:
+                if isinstance(f_emis_dt, datetime):
+                     aging_days = (today - f_emis_dt).days
+                elif hasattr(f_emis_dt, 'year'): # date object
+                     aging_days = (today.date() - f_emis_dt).days
+            
+            if aging_days < days:
+                continue
+
+            item = {
+                "Numero": str(d.get('odp_num', '')).strip(),
+                "Fecha": f_emis_dt.strftime('%Y-%m-%d') if f_emis_dt else "-",
+                "Cierre": str(d.get('cie_num', '')).strip(),
+                "DiasVencidos": aging_days
+            }
+            data.append(item)
+            
+        return data
+    except Exception as e:
+        print(f"Error /api/traslados/ordenes-cierre-pendientes: {e}")
+        return []

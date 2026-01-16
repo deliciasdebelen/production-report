@@ -6,7 +6,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - Reporte de Producción</title>
     <link rel="stylesheet" href="/static/style.css?v=3.0">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Global DataTables Overrides for Odoo Theme */
+        .dataTables_wrapper .dataTables_paginate .paginate_button {
+            padding: 0.5em 1em;
+            /* More space */
+            margin-left: 5px;
+            /* Gap between buttons */
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+            background: white !important;
+            /* Force white background */
+            color: #4b5563 !important;
+            cursor: pointer;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+            background: #f1f5f9 !important;
+            border-color: #cbd5e1;
+            color: #1e293b !important;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+        .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+            background: #714B67 !important;
+            /* Odoo Primary */
+            color: white !important;
+            border-color: #714B67;
+            font-weight: 600;
+        }
+
+        .dataTables_wrapper .dataTables_length select {
+            padding: 4px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-left: 8px;
+        }
+    </style>
 </head>
 
 <body>
@@ -126,6 +170,9 @@
                     {% if user.role == 1 or user.role == 4 %}
                     <a href="/traslados/tiempo-real" class="nav-link" title="Tiempo Real">
                         <span class="nav-icon">⏱</span> <span class="nav-text">Tiempo Real</span>
+                    </a>
+                    <a href="/traslados/ordenes-cierre" class="nav-link" title="Órdenes Cierre">
+                        <span class="nav-icon">🏭</span> <span class="nav-text">Ordenes sin Cierre</span>
                     </a>
                     <a href="/traslados/facturas" class="nav-link" title="Facturas Pendientes">
                         <span class="nav-icon">📄</span> <span class="nav-text">Facturas Pendientes</span>

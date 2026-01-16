@@ -254,11 +254,25 @@
                 onclick="enableEdit()">Editar</button>
             <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
             <!-- Navigation Moved Here -->
-            <div style="margin-left: 20px; display: flex; gap: 5px;">
+            <!-- Premium Navigation -->
+            <div
+                style="margin-left: 20px; display: flex; border: 1px solid var(--odoo-border); border-radius: 4px; overflow: hidden;">
                 <button type="button" onclick="navigateRecord('prev')" class="btn-odoo-secondary"
-                    style="padding: 0.2rem 0.6rem;">&lt;</button>
+                    title="Registro Anterior"
+                    style="border: none; border-right: 1px solid var(--odoo-border); border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
                 <button type="button" onclick="navigateRecord('next')" class="btn-odoo-secondary"
-                    style="padding: 0.2rem 0.6rem;">&gt;</button>
+                    title="Siguiente Registro"
+                    style="border: none; border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
             </div>
         </div>
         <div class="odoo-statusbar-status">
@@ -352,7 +366,7 @@
                     <thead>
                         <tr style="border-bottom: 2px solid #eee; text-align: left;">
                             <th style="padding: 10px; font-weight: 600; color: #666;">Parámetro</th>
-                            <th style="padding: 10px; font-weight: 600; color: #666;">Valor</th>
+                            <th style="padding: 10px; font-weight: 600; color: #666; text-align: left;">Valor</th>
                             <th style="padding: 10px; font-weight: 600; color: #666;">Unidad</th>
                         </tr>
                     </thead>
@@ -361,7 +375,7 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Presentación</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" name="presentation" id="presentationInput" placeholder="Ej: 600G"
-                                    style="border:none; width: 100%;">
+                                    style="border:none; width: 150px; text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Texto</td>
                         </tr>
@@ -369,7 +383,7 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Merma Estimada (%)</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" inputmode="decimal" name="waste_percentage" id="wastePercentageInput"
-                                    placeholder="0.00" style="border:none; width: 100%;">
+                                    placeholder="0.00" style="border:none; width: 150px; text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">%</td>
                         </tr>
@@ -377,7 +391,7 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Kg por Batch</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00"
-                                    style="border:none; width: 100%;">
+                                    style="border:none; width: 150px; text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
                         </tr>
@@ -386,7 +400,7 @@
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required readonly
-                                    style="border:none; width: 100%; background: transparent; font-weight: 700; color: var(--odoo-primary);">
+                                    style="border:none; width: 150px; background: transparent; font-weight: 700; color: var(--odoo-primary); text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
                         </tr>
@@ -394,7 +408,7 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Unidades Esperadas</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="number" name="units" id="unitsInput" required
-                                    style="border:none; width: 100%;">
+                                    style="border:none; width: 150px; text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Ud</td>
                         </tr>
@@ -402,7 +416,7 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Numero de Cajas</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required
-                                    style="border:none; width: 100%;">
+                                    style="border:none; width: 150px; text-align: left;">
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Cajas</td>
                         </tr>
@@ -678,7 +692,8 @@
             presentationInput.value = "";
         }
 
-        calculateUnits();
+        // Recalculate
+        calculateTotalKg();
     }
 
     // Kg Calculator
@@ -771,8 +786,8 @@
 
         // Safety: Try to find equiv if 0 (e.g. user typed description manually)
         if (currentBoxEquiv === 0) {
-            const currentDesc = searchInput.value.trim();
-            const found = articlesData.find(a => a.description === currentDesc);
+            const currentDesc = searchInput.value.trim().toLowerCase();
+            const found = articlesData.find(a => a.description.toLowerCase() === currentDesc);
             if (found) {
                 currentBoxEquiv = found.box_equiv || 0;
             }
@@ -839,17 +854,32 @@
         });
 
         if (response.ok) {
-            if (method === 'POST') {
-                window.location.reload();
-            } else {
-                alert("Cambios guardados");
-                // Keep in edit mode or revert to read-only? usually revert
-                // Reloading to refresh state implies loose changes
-                window.location.reload();
-            }
+            showSuccessModal();
         } else {
             alert('Error al guardar');
         }
     });
 </script>
+
+<!-- Success Modal -->
+<div id="successModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+    <div class="card"
+        style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <button onclick="closeSuccessAndReload()" class="btn"
+            style="width: 100%; justify-content: center; background: var(--odoo-primary); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
+    </div>
+</div>
+<script>
+    function showSuccessModal() {
+        document.getElementById('successModal').style.display = 'flex';
+    }
+    function closeSuccessAndReload() {
+        window.location.reload();
+    }
+</script>
+
 {% endblock %}

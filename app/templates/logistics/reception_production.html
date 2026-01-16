@@ -16,7 +16,7 @@
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Seleccione una orden pendiente para
             registrar su recepción.</p>
         <button class="btn" onclick="openImportModal()"
-            style="background: var(--primary); color: white; padding: 0.75rem 1.5rem; width: 100%;">
+            style="background: var(--primary); color: white; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
             Seleccionar Orden Pendiente
         </button>
     </div>
@@ -161,11 +161,21 @@
             </div>
 
             <div class="form-group" style="margin-top: 1rem;">
+                <label>Total Cajas</label>
+                <input type="number" id="totalBoxes" step="0.01" readonly
+                    style="background: #f0f0f0; font-weight: bold; color: var(--primary);">
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
                 <label>Notas de Recepción</label>
                 <textarea id="notes" rows="2" placeholder="Opcional"></textarea>
             </div>
-            <button type="button" class="btn" onclick="validateAndSubmit()" style="width: 100%;">Validar y
-                Confirmar</button>
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="button" class="btn" onclick="validateAndSubmit()"
+                    style="padding: 0.5rem 2rem; font-size: 0.9rem; background: var(--primary); color: white;">
+                    Validar y Confirmar
+                </button>
+            </div>
         </form>
     </div>
 
@@ -317,8 +327,45 @@
         document.getElementById('receivedQty').value = ''; // Clear previous
 
         closeImportModal();
+        closeImportModal();
         window.scrollTo(0, card.offsetTop);
+
+        // Fetch Box Equivalence
+        fetchArticleDetails(order.article_type);
     }
+
+    let currentBoxEquiv = 0;
+
+    async function fetchArticleDetails(description) {
+        if (!description) return;
+        try {
+            // Re-use external articles API to find the article and get box_equiv
+            const res = await fetch('/api/external/articles');
+            if (res.ok) {
+                const articles = await res.json();
+                const found = articles.find(a => a.description === description);
+                if (found) {
+                    currentBoxEquiv = found.box_equiv || 0;
+                    calculateBoxes();
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching article details", e);
+        }
+    }
+
+    function calculateBoxes() {
+        const units = parseFloat(document.getElementById('receivedQty').value) || 0;
+        const boxesInput = document.getElementById('totalBoxes');
+
+        if (currentBoxEquiv > 0 && units > 0) {
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        } else {
+            boxesInput.value = '';
+        }
+    }
+
+    document.getElementById('receivedQty').addEventListener('input', calculateBoxes);
 
     function validateAndSubmit() {
         const expected = parseFloat(document.getElementById('expectedUnits').value);
@@ -362,8 +409,7 @@
             const data = await res.json();
 
             if (res.ok) {
-                alert("Recepción Confirmada Exitosamente");
-                window.location.reload();
+                showSuccessModal();
             } else {
                 alert("Error: " + data.detail);
             }
@@ -378,4 +424,26 @@
         submitForm(emailTo);
     }
 </script>
+
+<!-- Success Modal -->
+<div id="successModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+    <div class="card"
+        style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <button onclick="closeSuccessAndReload()" class="btn"
+            style="width: 100%; justify-content: center; background: var(--odoo-primary); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
+    </div>
+</div>
+<script>
+    function showSuccessModal() {
+        document.getElementById('successModal').style.display = 'flex';
+    }
+    function closeSuccessAndReload() {
+        window.location.reload();
+    }
+</script>
+
 {% endblock %}

@@ -25,9 +25,12 @@ def get_articles(db: Session = Depends(get_external_db)):
                 a.co_art as code,
                 a.art_des as description,
                 u.des_uni as unit,
-                ISNULL((SELECT TOP 1 equivalencia 
-                 FROM saartunidad 
-                 WHERE co_art = a.co_art AND co_uni = 'CAJ'), 0) as box_equiv
+                ISNULL((
+                    SELECT TOP 1 equivalencia 
+                    FROM v_saArticulo_saArtUnidad 
+                    WHERE co_art = a.co_art 
+                    AND (co_uni = 'CAJ' OR des_uni LIKE '%CAJA%')
+                ), 0) as box_equiv
             FROM saarticulo a
             LEFT JOIN saartunidad au ON a.co_art = au.co_art AND au.equivalencia = 1
             LEFT JOIN saUnidad u ON au.co_uni = u.co_uni

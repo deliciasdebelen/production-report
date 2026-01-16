@@ -58,7 +58,6 @@ def debug_db_connection():
         return {"status": "error", "details": str(e)}
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Dependencies moved to dependencies.py
 from .dependencies import get_db, get_current_user, get_current_active_user, templates

@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
 from typing import Optional, List
 from ..external_db import get_external_db
 import json
 from datetime import datetime
+import re
 
 from ..dependencies import get_db, templates, get_current_user
 from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport
@@ -309,7 +311,8 @@ async def create_dispatch(
     imported_invoices: str = Form(None), 
     items: str = Form(...), # JSON string
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    external_db: Session = Depends(get_external_db)
 ):
     # 1. Mandatory Guide Validation
     if not document_ref or not document_ref.strip():
@@ -350,21 +353,270 @@ async def create_dispatch(
         final_client = client_destination # Fallback
 
     # 4. Concatenate Invoices to Reference
+    # 4. Concatenate Invoices to Reference
     final_ref = document_ref.strip()
     if imported_invoices:
-        # Check for Duplicate Invoices (Previous Logic - Global Check?)
-        # Let's keep it safe: Check provided invoices against history?
-        # User emphasized Guide Number uniqueness heavily this time.
-        # But let's keep the invoice check if possible, though maybe less strict if guide is unique?
-        # Proceeding with strict Guide Check as primary request.
-        
         final_ref += f" | Fact: {imported_invoices}"
+
+    # 5. Calculate Dispatch Summary & Enrich Items (BEFORE SAVING)
+    summary_data = [] # For Response
+    enriched_items = [] # For DB Storage
+    
+    try:
+        # Group by SKU for Summary Response
+        sku_totals = {}
+        
+        # Parse Input Items
+        input_items_list = json.loads(items) 
+        
+        # Determine Equivalencies for EACH item and enrich it
+        # Note: We also calculate the global summary
+        
+        for item in input_items_list:
+            raw_item = item.get('item', '')
+            qty = float(item.get('qty', 0))
+            unit = item.get('unit', 'Unid')
             
+            # Extract SKU
+            sku_match = re.search(r'\((.*?)\)$', raw_item)
+            sku = sku_match.group(1).strip() if sku_match else raw_item.strip()
+            
+            # --- Per-Item Breakdown Calculation (Best Effort) ---
+            item_breakdown = f"{qty} {unit}" # Default
+            try:
+                 # Fetch units from external DB for this SKU
+                rows = external_db.execute(
+                    text("SELECT co_uni, equivalencia FROM saArtUnidad WHERE co_art = :sku"), 
+                    {"sku": sku}
+                ).fetchall()
+                
+                if rows:
+                    base_unit = "UNI"
+                    pack_unit = "UNI"
+                    pack_factor = 1.0
+                    
+                    # 1. Find Base (Equiv = 1)
+                    for r in rows:
+                        if r.equivalencia == 1:
+                            base_unit = r.co_uni.strip()
+                            
+                    # 2. Find Max Pack (Equiv > 1)
+                    max_equiv = 1.0
+                    for r in rows:
+                        if r.equivalencia > 1 and r.equivalencia > max_equiv:
+                            max_equiv = float(r.equivalencia)
+                            pack_unit = r.co_uni.strip()
+                            pack_factor = max_equiv
+                    
+                    # 3. Calculate breakdown if unit is "Unid" or similar
+                    # If user engaged "Unid", we break it down. 
+                    # If user engaged "Cjas", we might want to show total units? 
+                    # Let's stick to the "Boxes + Units" logic found previously.
+                    
+                    if pack_factor > 1:
+                        # Normalize to base units first? 
+                        # Assuming input qty is in base units if unit == base_unit.
+                        # What if unit is 'Cjas'? 
+                        # Let's assume input 'qty' is always treated as base units for now OR strictly follow what user inputs.
+                        # The previous logic treated 'qty' as raw.
+                        
+                        # Calculation Logic
+                        boxes = int(qty // pack_factor)
+                        loose = qty % pack_factor
+                        
+                        parts = []
+                        if boxes > 0:
+                            parts.append(f"{boxes} {pack_unit}")
+                        if loose > 0 or boxes == 0:
+                            loose_fmt = f"{int(loose)}" if loose.is_integer() else f"{loose:.2f}"
+                            parts.append(f"{loose_fmt} {base_unit}")
+                        
+                        item_breakdown = " + ".join(parts)
+            except Exception as e:
+                print(f"Error calculating per-item breakdown: {e}")
+            
+            # Add to Enriched Item
+            item['breakdown'] = item_breakdown
+            enriched_items.append(item)
+
+            # --- Add to Global Summary ---
+            if sku not in sku_totals:
+                sku_totals[sku] = {'qty': 0.0, 'name': raw_item, 'breakdown': ''}
+            sku_totals[sku]['qty'] += qty
+
+        # Finalize Global Summary (Re-calculate breakdown on total qty)
+        for sku, data in sku_totals.items():
+            total_qty = data['qty']
+            total_breakdown = f"{total_qty}"
+            
+            # Re-run calc for total (Optimization: could functionize this)
+            try:
+                rows = external_db.execute(text("SELECT co_uni, equivalencia FROM saArtUnidad WHERE co_art = :sku"), {"sku": sku}).fetchall()
+                if rows:
+                    base_unit = "UNI"; pack_unit = "UNI"; pack_factor = 1.0; 
+                    for r in rows: 
+                        if r.equivalencia == 1: base_unit = r.co_uni.strip()
+                    for r in rows: 
+                        if r.equivalencia > 1 and r.equivalencia > max_equiv: max_equiv = float(r.equivalencia); pack_unit = r.co_uni.strip(); pack_factor = max_equiv
+                    
+                    if pack_factor > 1:
+                        boxes = int(total_qty // pack_factor)
+                        loose = total_qty % pack_factor
+                        parts = []
+                        if boxes > 0: parts.append(f"{boxes} {pack_unit}")
+                        if loose > 0 or boxes == 0: loose_fmt = f"{int(loose)}" if loose.is_integer() else f"{loose:.2f}"; parts.append(f"{loose_fmt} {base_unit}")
+                        total_breakdown = " + ".join(parts)
+                    else:
+                        total_breakdown = f"{total_qty} {base_unit}"
+            except: pass
+
+            summary_data.append({
+                "sku": sku,
+                "name": data['name'],
+                "total": total_qty,
+                "breakdown": total_breakdown
+            })
+
+    except Exception as e:
+        print(f"Error in dispatch calculation: {e}")
+        # Fallback: Just save raw items if calc fails
+        enriched_items = json.loads(items)
+
+    # 6. Save to DB
     new_log = LogisticsDispatch(
         client_destination=final_client,
         document_ref=final_ref,
-        items_json=items
+        items_json=json.dumps(enriched_items) # Save Enriched JSON
     )
     db.add(new_log)
     db.commit()
-    return {"status": "success"}
+
+    return {"status": "success", "summary": summary_data}
+
+@router.get("/dispatch/{dispatch_id}/print", response_class=HTMLResponse)
+async def print_dispatch(
+    dispatch_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    external_db: Session = Depends(get_external_db)
+):
+    log = db.query(LogisticsDispatch).filter(LogisticsDispatch.id == dispatch_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Despacho no encontrado")
+        
+    # Parse items
+    try:
+        raw_items = json.loads(log.items_json)
+    except:
+        raw_items = []
+
+    # --- Aggregation Logic ---
+    aggregated_items = {}
+    
+    for item in raw_items:
+        # Extract name and SKU
+        raw_name = item.get('name', item.get('item', 'Unknown'))
+        # Try to extract SKU from name if not present
+        sku = item.get('sku')
+        if not sku:
+             sku_match = re.search(r'\((.*?)\)$', raw_name)
+             sku = sku_match.group(1).strip() if sku_match else raw_name.strip()
+        
+        qty = float(item.get('qty', 0))
+        unit = item.get('unit', 'UNID') # Default unit
+
+        if sku not in aggregated_items:
+            aggregated_items[sku] = {
+                'sku': sku,
+                'name': raw_name,
+                'qty': 0.0,
+                'unit': unit,
+                'breakdown': '' 
+            }
+        
+        aggregated_items[sku]['qty'] += qty
+
+    # --- Limit items for print view (Consolidated) ---
+    final_items = []
+    
+    for sku, data in aggregated_items.items():
+        total_qty = data['qty']
+        
+        # Calculate Breakdown (Boxes logic)
+        total_breakdown = f"{total_qty} {data['unit']}" # Fallback
+        
+        try:
+            # Query v_saArticulo_saArtUnidad for robust box equivalence (Same as Planning)
+            # We look for 'CAJ' or 'CAJA'
+            sql = text("""
+                SELECT equivalencia, des_uni, co_uni
+                FROM v_saArticulo_saArtUnidad 
+                WHERE co_art = :sku 
+            """)
+            rows = external_db.execute(sql, {"sku": sku}).fetchall()
+            
+            if rows:
+                base_unit = "UNI"
+                pack_unit = "UNI"
+                pack_factor = 1.0
+                
+                # 1. Identify Base Unit (Equiv = 1)
+                for r in rows:
+                    if r.equivalencia == 1:
+                        base_unit = r.co_uni.strip()
+                
+                # 2. Identify Box/Pack Unit
+                # Prioritize 'CAJ' or 'CAJA', otherwise largest unit
+                found_box = False
+                for r in rows:
+                    if r.co_uni.strip().upper() == 'CAJ' or 'CAJA' in r.des_uni.upper():
+                        pack_factor = float(r.equivalencia)
+                        pack_unit = r.co_uni.strip()
+                        found_box = True
+                        break
+                
+                if not found_box:
+                    # Fallback to max equiv if no 'CAJ' found
+                    max_equiv = 1.0
+                    for r in rows:
+                        if r.equivalencia > max_equiv:
+                            max_equiv = float(r.equivalencia)
+                            pack_unit = r.co_uni.strip()
+                    if max_equiv > 1.0:
+                        pack_factor = max_equiv
+
+                # 3. Calculate (Consolidado Fisico)
+                if pack_factor > 1:
+                    # Logic requested: Total / Equiv when co_uni = CAJ
+                    boxes = int(total_qty // pack_factor)
+                    loose = total_qty % pack_factor
+                    
+                    parts = []
+                    if boxes > 0:
+                        parts.append(f"{boxes} {pack_unit}")
+                    if loose > 0:
+                        loose_fmt = f"{int(loose)}" if loose.is_integer() else f"{loose:.2f}"
+                        parts.append(f"{loose_fmt} {base_unit}")
+                        
+                    if not parts:
+                        parts.append(f"0 {base_unit}")
+                        
+                    total_breakdown = " + ".join(parts)
+                else:
+                    total_breakdown = f"{total_qty} {base_unit}"
+
+        except Exception as e:
+            print(f"Error calculating print breakdown for {sku}: {e}")
+
+        data['breakdown'] = total_breakdown
+        final_items.append(data)
+
+    # Sort by name
+    final_items.sort(key=lambda x: x['name'])
+
+    return templates.TemplateResponse("logistics/print_dispatch.html", {
+        "request": request,
+        "log": log,
+        "items": final_items,
+        "now": datetime.now()
+    })
