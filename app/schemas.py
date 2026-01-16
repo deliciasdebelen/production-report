@@ -99,3 +99,39 @@ class InventoryCapture(InventoryCaptureBase):
     class Config:
         orm_mode = True
 
+
+# Inventory Schemas (Master-Detail)
+
+class InventoryLineBase(BaseModel):
+    article_code: str
+    article_description: str
+    batch: str
+    quantity: float
+
+class InventoryLineCreate(InventoryLineBase):
+    pass
+
+class InventoryLine(InventoryLineBase):
+    id: int
+    header_id: int
+    
+    class Config:
+        from_attributes = True
+
+class InventoryHeaderBase(BaseModel):
+    date: datetime
+    notes: Optional[str] = None
+
+class InventoryHeaderCreate(InventoryHeaderBase):
+    lines: list[InventoryLineCreate]
+
+class InventoryHeader(InventoryHeaderBase):
+    id: int
+    correlative: str
+    status: str
+    user_id: int
+    # created_at removed to match model 'date'
+    lines: list[InventoryLine] = []
+    
+    class Config:
+        from_attributes = True

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Form
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
 from typing import Optional, List
@@ -21,6 +21,8 @@ router = APIRouter(
 
 @router.get("/")
 async def logistics_dashboard(request: Request, user: User = Depends(get_current_user)):
+    if not user:
+        return RedirectResponse(url="/login")
     if user.role not in [1, 3, 4, 5]: # Logic/Admin/Planner/Almacen
         raise HTTPException(status_code=403, detail="Not authorized")
     return templates.TemplateResponse("logistics/dashboard.html", {
@@ -31,9 +33,10 @@ async def logistics_dashboard(request: Request, user: User = Depends(get_current
 
 @router.get("/inventory")
 async def view_logistics_inventory(request: Request, user: User = Depends(get_current_user)):
+    if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5, 6]: # All logistics roles inc Inventory
         raise HTTPException(status_code=403, detail="Not authorized")
-    return templates.TemplateResponse("logistics/inventory.html", {
+    return templates.TemplateResponse("inventory.html", {
         "request": request,
         "user": user,
         "title": "Control de Inventario"
@@ -41,6 +44,7 @@ async def view_logistics_inventory(request: Request, user: User = Depends(get_cu
 
 @router.get("/reception/production")
 async def view_reception_production(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5]:
         raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsReceptionProduction).order_by(desc(LogisticsReceptionProduction.date)).limit(50).all()
@@ -53,6 +57,7 @@ async def view_reception_production(request: Request, user: User = Depends(get_c
 
 @router.get("/reception/merchandise")
 async def view_reception_merchandise(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5]:
         raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsReceptionMerchandise).order_by(desc(LogisticsReceptionMerchandise.date)).limit(50).all()
@@ -72,6 +77,7 @@ async def view_reception_merchandise(request: Request, user: User = Depends(get_
 
 @router.get("/dispatch")
 async def view_dispatch(request: Request, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5]:
         raise HTTPException(status_code=403, detail="Not authorized")
     logs = db.query(LogisticsDispatch).order_by(desc(LogisticsDispatch.date)).limit(50).all()

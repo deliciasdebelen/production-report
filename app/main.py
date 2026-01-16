@@ -26,7 +26,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Reporte de Produccion")
 
-from .routers import external, traslados, visor, inventory, logistics, reports, maintenance
+from .routers import external, traslados, visor, inventory, logistics, reports, maintenance, discuss
 
 app.include_router(external.router)
 app.include_router(traslados.router)
@@ -35,6 +35,7 @@ app.include_router(inventory.router)
 app.include_router(logistics.router)
 app.include_router(reports.router)
 app.include_router(maintenance.router)
+app.include_router(discuss.router)
 
 from app.utils_id import get_next_order_number
 

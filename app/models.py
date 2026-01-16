@@ -127,3 +127,65 @@ class LogisticsDispatch(Base):
     document_ref = Column(String, nullable=True)
     items_json = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Channel(Base):
+    __tablename__ = 'channels'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    type = Column(String, default='channel') # channel, chat
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Message(Base):
+    __tablename__ = 'messages'
+
+    id = Column(Integer, primary_key=True, index=True)
+    body = Column(Text, nullable=False)
+    message_type = Column(String, default='comment') # notification, comment, email
+    author_id = Column(Integer, ForeignKey('users.id'), nullable=True) # System messages might be null
+    channel_id = Column(Integer, ForeignKey('channels.id'), nullable=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    author = relationship('User')
+    channel = relationship('Channel')
+
+
+class InventoryCaptureHeader(Base):
+    __tablename__ = "inventory_headers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    correlative = Column(String, unique=True, index=True, nullable=False) # Generated ID
+    date = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey("users.id"))
+    status = Column(String, default="Confirmed")
+    notes = Column(Text, nullable=True)
+
+    user = relationship("User")
+    lines = relationship("InventoryCaptureLine", back_populates="header")
+
+class InventoryCaptureLine(Base):
+    __tablename__ = "inventory_lines"
+
+    id = Column(Integer, primary_key=True, index=True)
+    header_id = Column(Integer, ForeignKey("inventory_headers.id"))
+    article_code = Column(String, nullable=False)
+    article_description = Column(String, nullable=False)
+    batch = Column(String, nullable=False)
+    quantity = Column(Float, nullable=False)
+    
+    header = relationship("InventoryCaptureHeader", back_populates="lines")
+
+class MessageStatus(Base):
+    __tablename__ = 'message_statuses'
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), index=True)
+    message_id = Column(Integer, ForeignKey('messages.id'), index=True)
+    is_read = Column(Boolean, default=False)
+    is_starred = Column(Boolean, default=False)
+    received_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    user = relationship('User')
+    message = relationship('Message')
