@@ -36,7 +36,7 @@ async def view_logistics_inventory(request: Request, user: User = Depends(get_cu
     if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5, 6]: # All logistics roles inc Inventory
         raise HTTPException(status_code=403, detail="Not authorized")
-    return templates.TemplateResponse("inventory.html", {
+    return templates.TemplateResponse("logistics/inventory.html", {
         "request": request,
         "user": user,
         "title": "Control de Inventario"

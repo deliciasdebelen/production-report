@@ -225,11 +225,10 @@
                     <th>Items</th>
                     {% elif active_tab == 'inventory' %}
                     <th>Fecha</th>
-                    <th>Tipo</th>
-                    <th>Artículo</th>
-                    <th>Lote</th>
-                    <th class="text-right">Cantidad</th>
-                    <th>Usuario</th>
+                    <th>Ref</th>
+                    <th>Estado</th>
+                    <th>Notas</th>
+                    <th>Acciones</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -256,17 +255,22 @@
                     <td class="json-cell" data-json='{{ item.items_json }}'></td>
 
                     {% elif active_tab == 'inventory' %}
-                    <td>{{ item.capture_date }} {{ item.capture_time }}</td>
+                    <!-- Inventory now returns Headers, not flattened Capture Objects 
+                         We need to adjust fields: date, correlative, status, notes -->
+                    <td>{{ item.date.strftime('%Y-%m-%d') if item.date else '-' }}</td>
+                    <td>{{ item.correlative }}</td>
                     <td>
-                        <span class="status-badge"
-                            style="background: {{ '#5cb85c' if item.capture_type == 'Inicio' else '#d9534f' }}">
-                            {{ item.capture_type }}
+                        <span class="status-badge" style="background: #5cb85c;">
+                            {{ item.status }}
                         </span>
                     </td>
-                    <td>{{ item.article_description }}</td>
-                    <td>{{ item.batch }}</td>
-                    <td class="text-right">{{ item.quantity }}</td>
-                    <td>{{ item.user.username if item.user else '-' }}</td>
+                    <td>{{ item.notes or '-' }}</td>
+                    <td>
+                        <a href="/reports/inventory/print/{{ item.id }}" target="_blank" class="btn-filter"
+                            style="text-decoration: none; display: inline-flex; width: auto;">
+                            🖨️ Imprimir
+                        </a>
+                    </td>
                     {% endif %}
                 </tr>
                 {% else %}

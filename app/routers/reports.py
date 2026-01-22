@@ -1,9 +1,10 @@
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
+from sqlalchemy import desc, func, text
 from typing import Optional
 from ..database import get_db
+from ..external_db import get_external_db
 from .. import models
 from ..dependencies import get_current_active_user
 from fastapi.templating import Jinja2Templates
@@ -139,10 +140,10 @@ async def report_logistics(
         items = q.order_by(desc(models.LogisticsDispatch.date)).all()
         
     elif active_tab == "inventory":
-        q = db.query(models.InventoryCapture)
-        if start_date: q = q.filter(models.InventoryCapture.capture_date >= start_date)
-        if end_date: q = q.filter(models.InventoryCapture.capture_date <= end_date)
-        items = q.order_by(desc(models.InventoryCapture.capture_date)).all()
+        q = db.query(models.InventoryCaptureHeader)
+        if start_date: q = q.filter(models.InventoryCaptureHeader.date >= start_date)
+        if end_date: q = q.filter(models.InventoryCaptureHeader.date <= end_date)
+        items = q.order_by(desc(models.InventoryCaptureHeader.date)).all()
 
     return templates.TemplateResponse("reports/logistics.html", {
         "request": request,
@@ -152,4 +153,61 @@ async def report_logistics(
         "end_date": end_date,
         "title": "Reporte Logístico",
         "user": current_user
+    })
+
+@router.get("/inventory/physical-sheet")
+def print_physical_sheet(
+    request: Request,
+    db_ext: Session = Depends(get_external_db)
+):
+    try:
+        # Fetch Articles for Inventory Sheet (MP, ME, PT)
+        sql = text("""
+            SELECT 
+                a.co_art as code,
+                a.art_des as description,
+                u.des_uni as unit
+            FROM saArticulo a
+            LEFT JOIN saartunidad au ON a.co_art = au.co_art AND au.equivalencia = 1
+            LEFT JOIN saUnidad u ON au.co_uni = u.co_uni
+            WHERE a.anulado = 0 AND a.co_lin IN ('MP', 'ME', 'PT')
+            ORDER BY a.art_des
+        """)
+        result = db_ext.execute(sql).fetchall()
+        
+        articles = [
+            {
+                "code": str(row.code).strip(),
+                "description": str(row.description).strip(),
+                "unit": str(row.unit).strip() if row.unit else "N/A"
+            }
+            for row in result
+        ]
+    except Exception as e:
+        print(f"Error fetching articles for sheet: {e}")
+        articles = []
+
+    return templates.TemplateResponse("logistics/print_inventory_sheet.html", {
+        "request": request,
+        "articles": articles
+    })
+
+@router.get("/inventory/print/{id}")
+def print_inventory_record(
+    id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    header = db.query(models.InventoryCaptureHeader).filter(models.InventoryCaptureHeader.id == id).first()
+    if not header:
+        # If not found, maybe redirect or 404. For now, 404.
+        return templates.TemplateResponse("logistics/print_inventory_sheet.html", {
+            "request": request,
+            "error": "Documento no encontrado",
+            "articles": [] 
+        })
+    
+    return templates.TemplateResponse("logistics/print_inventory_sheet.html", {
+        "request": request,
+        "header": header
     })
