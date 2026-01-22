@@ -373,8 +373,7 @@
                         </tr>
                     </thead>
                     <tbody id="linesTableBody">
-                        <!-- Lines will go here -->
-                        <tr id="inputRow" style="background: #fafafa;">
+                        <tr id="inputRow" style="background: #fafafa; border-bottom: 2px solid #eee;">
                             <td>
                                 <div class="search-container">
                                     <input type="text" id="newArticleName" placeholder="Buscar producto..."
@@ -395,6 +394,7 @@
                                     style="border: none; background: none; color: var(--odoo-primary); cursor: pointer; font-size: 1.2rem;">✓</button>
                             </td>
                         </tr>
+                        <!-- Lines will go here -->
                     </tbody>
                 </table>
                 <div style="margin-top: 10px;">
@@ -578,9 +578,7 @@
         const rows = tbody.querySelectorAll('.data-row');
         rows.forEach(r => r.remove());
 
-        // Insert before input row
-        const inputRow = $('inputRow');
-
+        // Append to end of table (Input Row is now at top)
         inventoryLines.forEach((line, index) => {
             const tr = document.createElement('tr');
             tr.className = 'data-row';
@@ -592,7 +590,7 @@
                     <button type="button" onclick="removeLine(${index})" style="color: red; border: none; background: none; cursor: pointer;">×</button>
                 </td>
             `;
-            tbody.insertBefore(tr, inputRow);
+            tbody.appendChild(tr);
         });
     }
 
