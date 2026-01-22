@@ -416,7 +416,8 @@
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">Numero de Cajas</td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee;">
                                 <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required
-                                    style="border:none; width: 150px; text-align: left;">
+                                    style="border:none; width: 80px; text-align: left;">
+                                <span id="boxesHelper" style="font-size: 0.75rem; color: #999;"></span>
                             </td>
                             <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Cajas</td>
                         </tr>
@@ -691,6 +692,16 @@
             presentationInput.value = match[1].replace(/\s+/g, '').toUpperCase();
         } else {
             presentationInput.value = "";
+        }
+
+        // Equivalence Feedback
+        const boxesHelper = document.getElementById('boxesHelper');
+        if (currentBoxEquiv > 0) {
+            boxesHelper.textContent = `(Factor: ${currentBoxEquiv} Und/Caja)`;
+            boxesHelper.style.color = '#16a34a'; // Green
+        } else {
+            boxesHelper.textContent = `(Factor: No definido)`;
+            boxesHelper.style.color = '#dc2626'; // Red
         }
 
         // Recalculate
