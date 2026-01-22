@@ -441,9 +441,33 @@
 </form>
 
 <script>
+    // --- Global UI References (Declared at top to avoid TDZ) ---
+    const searchInput = document.getElementById('articleSearch');
+    const resultsDiv = document.getElementById('articleResults');
+    const hiddenInput = document.getElementById('articleHidden');
+
+    // Form Inputs
+    const documentNumberInput = document.getElementById('documentNumber');
+    const batchInput = document.querySelector('input[name="batches"]');
+    const kgPerBatchInput = document.getElementById('kgPerBatch');
+    const totalKgInput = document.getElementById('totalKgInput');
+    const wastePercentageInput = document.getElementById('wastePercentageInput');
+
+    const presentationInput = document.getElementById('presentationInput');
+    const unitsInput = document.getElementById('unitsInput');
+    const boxesInput = document.getElementById('boxesInput');
+
+    // Search Correlative
+    const searchInputCorr = document.getElementById('searchCorrelative');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    // State
+    let articlesData = [];
+    let currentBoxEquiv = 0;
+
     // --- Search & Edit Logic ---
     async function searchPlan() {
-        const query = document.getElementById('searchCorrelative').value;
+        const query = searchInputCorr.value;
         if (!query) return;
 
         try {
@@ -459,19 +483,19 @@
     function loadPlanIntoForm(plan) {
         // Set ID
         document.getElementById('planId').value = plan.id;
-        document.getElementById('documentNumber').value = plan.order_number.toString().padStart(8, '0');
+        documentNumberInput.value = plan.order_number.toString().padStart(8, '0');
 
         // Populate Fields
-        document.getElementById('articleSearch').value = plan.article; // Simplified, ideally Description
-        document.getElementById('articleHidden').value = plan.article;
-        document.querySelector('input[name="batches"]').value = plan.batches;
+        searchInput.value = plan.article;
+        hiddenInput.value = plan.article;
+        batchInput.value = plan.batches;
         document.querySelector('input[name="date"]').value = plan.date;
-        document.getElementById('presentationInput').value = plan.presentation;
-        document.getElementById('wastePercentageInput').value = plan.waste_percentage;
-        document.getElementById('kgPerBatch').value = (plan.kg / plan.batches).toFixed(2); // Infer Kg/Batch
-        document.getElementById('totalKgInput').value = plan.kg;
-        document.getElementById('unitsInput').value = plan.units;
-        document.getElementById('boxesInput').value = plan.boxes;
+        presentationInput.value = plan.presentation;
+        wastePercentageInput.value = plan.waste_percentage;
+        kgPerBatchInput.value = (plan.kg / plan.batches).toFixed(2);
+        totalKgInput.value = plan.kg;
+        unitsInput.value = plan.units;
+        boxesInput.value = plan.boxes;
         document.querySelector('textarea[name="notes"]').value = plan.notes || "";
 
         // UI State
@@ -516,10 +540,7 @@
         const planId = document.getElementById('planId').value;
         setReadOnly(false);
         updateStatusUI(planId ? 'edit' : 'new');
-        // 'btnConfirm' changes handled in updateStatusUI
     }
-
-
 
     // Navigation
     async function navigateRecord(direction) {
@@ -527,11 +548,10 @@
         let url;
 
         if (!planId) {
-            // If new (no ID), only Prev works to go to Latest
             if (direction === 'prev') {
                 url = '/api/planning/latest';
             } else {
-                return; // Can't go next from New
+                return;
             }
         } else {
             url = `/api/planning/${planId}/navigate?direction=${direction}`;
@@ -544,14 +564,10 @@
             loadPlanIntoForm(plan);
         } catch (e) {
             console.log("Navigation limit reached");
-            // Optional: Shake animation or visual feedback
         }
     }
 
     // Autocomplete Logic
-    const searchInputCorr = document.getElementById('searchCorrelative');
-    const searchSuggestions = document.getElementById('searchSuggestions');
-
     searchInputCorr.addEventListener('input', async (e) => {
         const val = e.target.value;
         if (val.length < 1) {
@@ -574,8 +590,7 @@
                         div.onmouseover = () => div.style.background = '#f9f9f9';
                         div.onmouseout = () => div.style.background = 'white';
                         div.onclick = () => {
-                            // Directly populate and search
-                            document.getElementById('searchCorrelative').value = item.order_number;
+                            searchInputCorr.value = item.order_number;
                             searchSuggestions.style.display = 'none';
                             searchPlan();
                         };
@@ -589,15 +604,13 @@
         } catch (e) { console.error(e); }
     });
 
-    // Close suggestions on click outside
     document.addEventListener('click', (e) => {
         if (!searchInputCorr.contains(e.target) && !searchSuggestions.contains(e.target)) {
             searchSuggestions.style.display = 'none';
         }
     });
 
-    // Enter key for search
-    document.getElementById('searchCorrelative').addEventListener('keyup', (e) => {
+    searchInputCorr.addEventListener('keyup', (e) => {
         if (e.key === 'Enter') searchPlan();
     });
 
@@ -607,20 +620,15 @@
             const res = await fetch('/api/next-id/planning');
             const data = await res.json();
             const nextId = data.next_id || 1;
-            // Pad to 8 digits (e.g., 00000005)
-            const formattedId = nextId.toString().padStart(8, '0');
-            document.getElementById('documentNumber').value = formattedId;
+            documentNumberInput.value = nextId.toString().padStart(8, '0');
         } catch (e) {
             console.error("Failed to load next ID", e);
-            document.getElementById('documentNumber').value = "00000000";
+            documentNumberInput.value = "00000000";
         }
     }
-    loadNextId();
 
-    // Load Articles from Profit Plus
-    let articlesData = [];
+    // Load Articles
     async function loadArticles() {
-        const searchInput = document.getElementById('articleSearch');
         try {
             searchInput.placeholder = "Cargando artículos...";
             const res = await fetch('/api/external/articles');
@@ -634,10 +642,6 @@
     }
 
     // Progressive Search Logic
-    const searchInput = document.getElementById('articleSearch');
-    const resultsDiv = document.getElementById('articleResults');
-    const hiddenInput = document.getElementById('articleHidden');
-
     searchInput.addEventListener('input', (e) => {
         const term = e.target.value.toLowerCase();
         if (term.length < 1) {
@@ -671,8 +675,6 @@
         }
     });
 
-    let currentBoxEquiv = 0;
-
     function selectArticle(item) {
         searchInput.value = item.description;
         hiddenInput.value = item.description;
@@ -681,11 +683,10 @@
         // Store equivalence
         currentBoxEquiv = item.box_equiv || 0;
 
-        // Smart Extraction for Presentation
+        // Smart Extraction
         const regex = /(\d+(?:\.|,)?\d*\s*(?:g|kg|ml|l|cc|gr|lb|oz|ton)\b)/i;
         const match = item.description.match(regex);
 
-        const presentationInput = document.getElementById('presentationInput');
         if (match) {
             presentationInput.value = match[1].replace(/\s+/g, '').toUpperCase();
         } else {
@@ -696,15 +697,9 @@
         calculateTotalKg();
     }
 
-    // Kg Calculator
-    const batchInput = document.querySelector('input[name="batches"]');
-    const kgPerBatchInput = document.getElementById('kgPerBatch');
-    const totalKgInput = document.getElementById('totalKgInput');
-    const wastePercentageInput = document.getElementById('wastePercentageInput');
-
+    // Calculators
     function parseLocaleFloat(val) {
         if (!val) return 0;
-        // Replace comma with dot if present
         return parseFloat(val.toString().replace(',', '.')) || 0;
     }
 
@@ -714,7 +709,6 @@
         const wastePct = parseLocaleFloat(wastePercentageInput.value) || 0;
 
         if (batches > 0 && kgBatch > 0) {
-            // Formula: (Batches * KgBatch) * (1 - Waste%)
             let grossTotal = batches * kgBatch;
             let netTotal = grossTotal * (1 - (wastePct / 100));
 
@@ -727,10 +721,8 @@
     kgPerBatchInput.addEventListener('input', calculateTotalKg);
     wastePercentageInput.addEventListener('input', calculateTotalKg);
 
-    // Presentation Parser
     function getPresentationWeightKg() {
-        const val = document.getElementById('presentationInput').value.trim().toLowerCase();
-        // Regex for number + unit
+        const val = presentationInput.value.trim().toLowerCase();
         const match = val.match(/([\d,\.]+)\s*(g|kg|ml|l|cc|gr|lb|oz|ton)\b/);
 
         if (!match) return 0;
@@ -755,7 +747,6 @@
     }
 
     function calculateUnitsFromTotalKg() {
-        // Need total Kg
         const totalKg = parseLocaleFloat(totalKgInput.value);
         const presKg = getPresentationWeightKg();
 
@@ -763,28 +754,15 @@
             const units = Math.floor(totalKg / presKg);
             unitsInput.value = units;
             calculateBoxesFromUnits();
-        } else {
-            // If manual override isn't intended, clear?
-            // Or keep existing if user typed it? 
-            // Logic: if total calculated is 0, maybe clear units to avoid confusion
-            // unless user manually typed units. 
-            // For now let's only auto-calc if valid.
         }
     }
 
-    document.getElementById('presentationInput').addEventListener('input', calculateUnitsFromTotalKg);
-
-    // Calculation Logic: Bidirectional Boxes <-> Units
-    const boxesInput = document.getElementById('boxesInput');
-    const unitsInput = document.getElementById('unitsInput');
-
-    boxesInput.addEventListener('input', calculateUnitsFromBoxes);
-    unitsInput.addEventListener('input', calculateBoxesFromUnits);
+    presentationInput.addEventListener('input', calculateUnitsFromTotalKg);
 
     function calculateBoxesFromUnits() {
         const units = parseFloat(unitsInput.value) || 0;
 
-        // Safety: Try to find equiv if 0 (e.g. user typed description manually)
+        // Try to recover equiv if missing
         if (currentBoxEquiv === 0) {
             const currentDesc = searchInput.value.trim().toLowerCase();
             const found = articlesData.find(a => a.description.toLowerCase() === currentDesc);
@@ -797,6 +775,23 @@
             boxesInput.value = (units / currentBoxEquiv).toFixed(2);
         }
     }
+
+    function calculateUnitsFromBoxes() {
+        const boxes = parseLocaleFloat(boxesInput.value);
+        if (currentBoxEquiv > 0 && boxes > 0) {
+            unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
+        }
+    }
+
+    boxesInput.addEventListener('input', calculateUnitsFromBoxes);
+    unitsInput.addEventListener('input', calculateBoxesFromUnits);
+
+    // Close dropdown
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
 
     function calculateUnitsFromBoxes() {
         const boxes = parseLocaleFloat(boxesInput.value);
