@@ -122,7 +122,7 @@ def get_pending_planning(db: Session = Depends(get_db)):
     # Return formatted list for dropdown
     plans = db.query(models.ProductionPlanning).filter(
         models.ProductionPlanning.status == 'Pending'
-    ).order_by(models.ProductionPlanning.id.asc()).all()
+    ).order_by(models.ProductionPlanning.id.desc()).all()
     
     return [{
         "id": p.id,
