@@ -16,17 +16,19 @@
 
     <!-- Left Column: Dispatch Form -->
     <div class="card">
-        <div
-            style="display: flex; flex-direction: column; align-items: center; gap: 1rem; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
-            <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                <h3>🚚 Registrar Salida</h3>
-                <span
-                    style="font-size: 0.8rem; background: var(--secondary); color: white; padding: 0.25rem 0.75rem; border-radius: 20px;">Nuevo
-                    Despacho</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h3 style="margin: 0;">🚚 Registrar Salida</h3>
             </div>
-            <!-- Top Centered Save Button -->
+            <span onclick="resetForm()"
+                style="font-size: 0.8rem; background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; cursor: pointer; font-weight: 600;">Nuevo
+                Despacho</span>
+        </div>
+
+        <!-- Top Centered Save Button -->
+        <div style="display: flex; justify-content: center; margin-bottom: 2rem;">
             <button type="submit" form="dispatchForm" class="btn"
-                style="background: var(--text-main); color: white; padding: 0.75rem 2rem; font-size: 1rem; box-shadow: var(--shadow-md); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem;"
+                style="background: #1e293b; color: white; padding: 0.75rem 3rem; font-size: 1rem; border-radius: 6px; box-shadow: var(--shadow-md); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;"
                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)';"
                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-md)';">
                 <span>📤</span> Confirmar Salida
@@ -38,20 +40,28 @@
             <datalist id="productList"></datalist>
 
             <!-- Header Fields -->
-            <div class="grid-2" style="gap: 1rem; margin-bottom: 1.5rem;">
-                <div class="form-group">
-                    <label>Cliente (Búsqueda)</label>
-                    <input type="text" id="clientInput" name="client_destination" list="clientList"
-                        placeholder="Escribe para buscar..." autocomplete="off">
-                    <datalist id="clientList">
-                        <!-- Populated by JS -->
-                    </datalist>
+            <div class="grid-2" style="gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="mb-3">
+                    <label class="form-label"
+                        style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.5rem;">Cliente
+                        (Búsqueda)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="clientInput" name="client_destination"
+                            list="clientList" placeholder="Buscar Cliente..." autocomplete="off" onclick="this.value=''"
+                            style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+                        <datalist id="clientList"></datalist>
+                    </div>
                 </div>
-                <!-- Validation: Guide is now mandatory -->
+                <!-- Validation: Guide Auto-Generated -->
                 <div class="form-group">
-                    <label>Nro. Guía de Despacho <span style="color:red">*</span></label>
-                    <input type="text" name="document_ref" placeholder="Ej: 000123" required>
-                    <small style="color: var(--text-muted); font-size: 0.75rem;">Debe ser única y obligatoria.</small>
+                    <label style="font-weight: 600; color: #ef4444; display: block; margin-bottom: 0.5rem;">Nro. Guía de
+                        Despacho *</label>
+                    <input type="text" name="document_ref" value="{{ next_guide_number }}"
+                        style="width: 100%; background-color: white; border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius-sm); color: #6b7280; font-family: monospace; font-weight: 500;"
+                        readonly>
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Debe ser única y obligatoria.
+                    </div>
+
                     <!-- Hidden field for Invoices -->
                     <input type="hidden" name="imported_invoices" id="importedInvoices">
                     <div id="invoiceBadges" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
@@ -102,7 +112,13 @@
 
     <!-- Right Column: Recent Activity -->
     <div class="card" style="background: linear-gradient(to bottom, #ffffff, #f8fafc);">
-        <h3 style="margin-bottom: 1rem;">🕒 Últimos Despachos</h3>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="margin: 0;">🕒 Últimos Despachos</h3>
+            <button onclick="openConsolidatedModal()" class="btn"
+                style="background: var(--secondary); padding: 0.25rem 0.5rem; font-size: 0.8rem;">
+                📊 Consulta Guia Consolidada
+            </button>
+        </div>
 
         <!-- Search Bar -->
         <div style="margin-bottom: 1.5rem;">
@@ -203,6 +219,99 @@
             </div>
         </div>
     </div>
+
+    <!-- Consolidated Report Modal -->
+    <div id="consolidatedModal"
+        style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="card" style="width: 800px; max-height: 90vh; display: flex; flex-direction: column; padding: 0;">
+            <div
+                style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">📊 Reporte de Guía Consolidada</h3>
+                <div>
+                    <button onclick="printConsolidatedReport()" id="btnPrintConsolidated" class="btn"
+                        style="background: var(--text-main); color: white; margin-right: 1rem; display: none;">🖨️
+                        Imprimir</button>
+                    <button type="button" onclick="closeConsolidatedModal()"
+                        style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+                </div>
+            </div>
+
+            <div
+                style="padding: 1rem; border-bottom: 1px solid var(--border); background: #f9fafb; display: flex; gap: 1rem; align-items: end;">
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; font-weight: 600;">Nro. Guía (Prefijo)</label>
+                    <input type="text" id="consGuideRef" placeholder="Ej: 10154"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <!-- Optional Date Input -->
+                <!-- Date Range Inputs -->
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; font-weight: 600;">Desde</label>
+                    <input type="date" id="consDateFrom"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <div style="flex: 1;">
+                    <label style="font-size: 0.8rem; font-weight: 600;">Hasta</label>
+                    <input type="date" id="consDateTo"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px;">
+                </div>
+                <button onclick="searchGuides()" class="btn" style="background: var(--primary);">Buscar</button>
+            </div>
+
+            <!-- Guide Selection List -->
+            <div id="consGuideListContainer" style="padding: 0; overflow-y: auto; flex: 1; display: none;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 1;">
+                        <tr>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border);">
+                                Fecha</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border);">Nro.
+                                Guía</th>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border);">
+                                Cliente</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border);">
+                                Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consGuideListBody">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="consResultsContainer" style="display: none; padding: 0; overflow-y: auto; flex: 1;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead style="position: sticky; top: 0; background: #f1f5f9; z-index: 1;">
+                        <tr>
+                            <th style="padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border);">SKU
+                                / Ítem</th>
+                            <th style="padding: 0.75rem; text-align: center; border-bottom: 1px solid var(--border);">
+                                Total Unidades</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 1px solid var(--border);">
+                                Total Cajas</th>
+                            <th style="padding: 0.75rem; text-align: right; border-bottom: 1px solid var(--border);">
+                                Peso Total (Kg)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consTableBody">
+                        <tr>
+                            <td colspan="4" style="text-align: center; padding: 2rem; color: var(--text-muted);">Ingrese
+                                criterios de búsqueda.</td>
+                        </tr>
+                    </tbody>
+                    <tfoot
+                        style="position: sticky; bottom: 0; background: #f8fafc; font-weight: 700; border-top: 2px solid var(--border);">
+                        <tr>
+                            <td style="padding: 0.75rem; text-align: right;">TOTALES:</td>
+                            <td style="padding: 0.75rem; text-align: center;">-</td>
+                            <td style="padding: 0.75rem; text-align: right;" id="consTotalBoxes">0.0</td>
+                            <td style="padding: 0.75rem; text-align: right;" id="consTotalWeight">0.00 kg</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Success Modal -->
@@ -212,7 +321,9 @@
         style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
         <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
         <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
-        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <p style="color: #64748b; margin-bottom: 0.5rem;">La información se ha guardado correctamente.</p>
+        <p id="successGuideRef"
+            style="color: var(--primary); font-weight: 700; font-size: 1.2rem; margin-bottom: 1.5rem;"></p>
         <button onclick="closeSuccessAndReload()" class="btn"
             style="width: 100%; justify-content: center; background: #714B67; color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
     </div>
@@ -258,7 +369,7 @@
             const match = val.match(/\((.*?)\)$/);
             if (match) {
                 const clientCode = match[1];
-                // Trigger Invoice Search
+                // Trigger Pending Invoices Check for Client
                 checkPendingInvoices(clientCode);
             }
 
@@ -300,6 +411,98 @@
     // Invoice State
     let pendingInvoices = {}; // Map: InvoiceNum -> [Items]
 
+    async function importSpecificInvoice(docNum) {
+        const modal = document.getElementById('invoiceModal');
+        const list = document.getElementById('invoiceList');
+        const loading = document.getElementById('invoiceLoading');
+
+        // Reset
+        pendingInvoices = {};
+        list.innerHTML = '';
+        loading.style.display = 'block';
+        loading.innerText = `Consultando factura ${docNum}...`;
+        modal.style.display = 'flex';
+
+        try {
+            const res = await fetch(`/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`);
+            loading.style.display = 'none';
+
+            if (res.ok) {
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    list.innerHTML = `<p style="text-align:center; color: var(--text-muted);">No hay ítems pendientes para la factura ${docNum}.</p>`;
+                    return;
+                }
+
+                // Group by Invoice (trivial here since only 1 invoice, but structure expects grouping)
+                // data is flat list of items.
+
+                // Group locally
+                data.forEach(item => {
+                    const invRef = item.fact_num;
+                    if (!pendingInvoices[invRef]) {
+                        pendingInvoices[invRef] = [];
+                    }
+                    pendingInvoices[invRef].push(item);
+                });
+
+                // Render in Modal
+                Object.keys(pendingInvoices).forEach(invNum => {
+                    const invGroup = document.createElement('div');
+                    invGroup.className = 'card';
+                    invGroup.style.padding = '1rem';
+                    invGroup.style.border = '1px solid var(--border)';
+
+                    // Header
+                    const header = document.createElement('div');
+                    header.style.display = 'flex';
+                    header.style.justifyContent = 'space-between';
+                    header.style.marginBottom = '0.5rem';
+
+                    const title = document.createElement('strong');
+                    // data[0].client_name might be available if we added it, assuming all same client
+                    const clientName = data[0].client_name || '';
+                    title.innerText = `Factura: ${invNum} ${clientName ? '- ' + clientName : ''}`;
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = invNum;
+                    checkbox.checked = true; // Pre-select for convenience
+                    checkbox.id = `inv-${invNum}`;
+
+                    header.appendChild(title);
+                    header.appendChild(checkbox);
+                    invGroup.appendChild(header);
+
+                    // Items List
+                    const itemUl = document.createElement('ul');
+                    itemUl.style.listStyle = 'none';
+                    itemUl.style.padding = '0';
+                    itemUl.style.fontSize = '0.85rem';
+                    itemUl.style.color = '#64748b';
+
+                    pendingInvoices[invNum].forEach(i => {
+                        const li = document.createElement('li');
+                        li.innerText = `${i.total_articulo} ${i.co_uni} - ${i.art_des}`;
+                        itemUl.appendChild(li);
+                    });
+
+                    invGroup.appendChild(itemUl);
+                    list.appendChild(invGroup);
+                });
+
+            } else {
+                list.innerHTML = `<p style="text-align:center; color: var(--danger);">Error cargando factura.</p>`;
+            }
+        } catch (e) {
+            console.error(e);
+            loading.style.display = 'none';
+            list.innerHTML = `<p style="text-align:center; color: var(--danger);">Error de conexión.</p>`;
+        }
+    }
+
+    // Legacy function, kept if needed or can be removed if unused.
     async function checkPendingInvoices(clientCode) {
         const modal = document.getElementById('invoiceModal');
         const list = document.getElementById('invoiceList');
@@ -392,11 +595,14 @@
 
             invoiceItems.forEach(invItem => {
                 items.push({
-                    client: document.getElementById('clientInput').value, // Capture current client
+                    client: document.getElementById('clientInput').value,
                     fact: invItem.fact_num,
                     item: invItem.art_des,
-                    qty: invItem.total_art,
-                    unit: invItem.co_uni || 'Unid'
+                    qty: invItem.total_articulo,
+                    unit: invItem.co_uni || 'Unid',
+                    // Pass conversion data
+                    total_cajas: invItem.total_cajas,
+                    unidad_cajas: invItem.unidad_cajas
                 });
             });
         });
@@ -405,8 +611,6 @@
         const badgeContainer = document.getElementById('invoiceBadges');
         const hiddenInput = document.getElementById('importedInvoices');
 
-        // Append to existing if any? User said "new registration". Assume fresh import or append?
-        // Let's replace for now based on "Import Selection".
         badgeContainer.innerHTML = '';
         docRefs.forEach(ref => {
             const span = document.createElement('span');
@@ -423,6 +627,9 @@
 
         renderItems();
         closeInvoiceModal();
+
+        // Clear Client Search to allow next client search
+        document.getElementById('clientInput').value = '';
     }
 
 
@@ -459,6 +666,13 @@
         }
 
         items.forEach((item, index) => {
+            // Determine breakdown text
+            let breakdownHtml = '';
+            if (item.total_cajas && item.total_cajas > 0) {
+                const unit = item.unidad_cajas || 'CAJ';
+                breakdownHtml = `<div style="font-size: 0.75rem; color: #16a34a; margin-top:0.25rem;">📦 ${item.total_cajas} ${unit}</div>`;
+            }
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td style="padding: 0.5rem; text-align: center; color: var(--text-muted);">${index + 1}</td>
@@ -474,6 +688,7 @@
                     <input type="text" value="${item.item}" onchange="updateItem(${index}, 'item', this.value)"
                         list="productList"
                         style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                    ${breakdownHtml}
                 </td>
                 <td style="padding: 0.5rem;">
                     <input type="number" step="0.01" value="${item.qty}" onchange="updateItem(${index}, 'qty', parseFloat(this.value))"
@@ -486,6 +701,7 @@
                         <option value="Kg" ${item.unit === 'Kg' ? 'selected' : ''}>Kg</option>
                         <option value="Cjas" ${item.unit === 'Cjas' ? 'selected' : ''}>Cajas</option>
                         <option value="Lts" ${item.unit === 'Lts' ? 'selected' : ''}>Litros</option>
+                        <option value="${item.unit}" ${['Unid', 'Kg', 'Cjas', 'Lts'].includes(item.unit) ? '' : 'selected'}>${item.unit}</option>
                     </select>
                 </td>
                 <td style="padding: 0.5rem; text-align: center;">
@@ -544,7 +760,7 @@
 
             if (res.ok) {
                 const data = await res.json();
-                showSuccessModal();
+                showSuccessModal(data.document_ref);
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             } else {
@@ -585,7 +801,10 @@
     });
 
     // Summary Modal Logic
-    function showSuccessModal() {
+    function showSuccessModal(guideRef) {
+        if (guideRef) {
+            document.getElementById('successGuideRef').textContent = "Nro. Guía: " + guideRef;
+        }
         document.getElementById('successModal').style.display = 'flex';
     }
 
@@ -625,6 +844,183 @@
             `/logistics/dispatch/${id}/print`,
             'PrintDispatch',
             `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+        );
+    }
+
+    // --- Consolidated Report Logic ---
+    let searchDebounceTimer;
+
+    function debounceSearchGuides() {
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            searchGuides();
+        }, 600);
+    }
+
+    function openConsolidatedModal() {
+        document.getElementById('consolidatedModal').style.display = 'flex';
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('consDateFrom').value = today;
+        document.getElementById('consDateTo').value = today;
+        document.getElementById('consGuideRef').value = '';
+
+        // Reset Views
+        document.getElementById('consGuideListContainer').style.display = 'none';
+        document.getElementById('consResultsContainer').style.display = 'none';
+
+        // Clear Report Data
+        const tbody = document.getElementById('consTableBody');
+        if (tbody) tbody.innerHTML = '';
+        document.getElementById('consTotalBoxes').textContent = '0';
+        document.getElementById('consTotalWeight').textContent = '0.00 kg';
+
+        document.getElementById('btnPrintConsolidated').style.display = 'none';
+
+        // Initial Search
+        searchGuides();
+    }
+
+    function closeConsolidatedModal() {
+        document.getElementById('consolidatedModal').style.display = 'none';
+    }
+
+    async function searchGuides() {
+        const guideRef = document.getElementById('consGuideRef').value.trim();
+        const dateFrom = document.getElementById('consDateFrom').value;
+        const dateTo = document.getElementById('consDateTo').value;
+
+        // Visual loading state if needed, or silent for debounce
+        // Let's toggle the button logic if it was clicked
+        // But for debounce we might skip it to avoid flickering
+
+        document.getElementById('consResultsContainer').style.display = 'none';
+        document.getElementById('consGuideListContainer').style.display = 'none';
+        document.getElementById('btnPrintConsolidated').style.display = 'none';
+
+        try {
+            const url = new URL('/logistics/api/guides/search', window.location.origin);
+            if (guideRef) url.searchParams.append('q', guideRef);
+            if (dateFrom) url.searchParams.append('date_from', dateFrom);
+            if (dateTo) url.searchParams.append('date_to', dateTo);
+
+            const res = await fetch(url);
+            if (res.ok) {
+                const guides = await res.json();
+                renderGuideList(guides);
+            } else {
+                console.error("Search error");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderGuideList(guides) {
+        const tbody = document.getElementById('consGuideListBody');
+        tbody.innerHTML = '';
+        const container = document.getElementById('consGuideListContainer');
+        container.style.display = 'block';
+
+        if (guides.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:1rem;">No se encontraron guías.</td></tr>';
+            return;
+        }
+
+        guides.forEach(g => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">${g.date}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-weight: 600;">${g.guide_number}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.85rem;">${g.client}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: center;">
+                    <button onclick="selectConsolidatedGuide('${g.document_ref}')" 
+                        class="btn" style="background: var(--bg-hover); color: var(--primary); padding: 0.25rem 0.75rem; font-size: 0.8rem;">
+                        Ver Reporte
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function selectConsolidatedGuide(guideRef) {
+        try {
+            const url = new URL('/logistics/api/consolidated_report', window.location.origin);
+            url.searchParams.append('guide_ref', guideRef);
+
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("Error loading report");
+            const data = await res.json();
+
+            // Hide List, Show Report
+            document.getElementById('consGuideListContainer').style.display = 'none';
+            renderConsolidatedReport(data);
+
+            // Set Print Context
+            document.getElementById('consolidatedModal').setAttribute('data-selected-guide', guideRef);
+
+        } catch (e) {
+            console.error(e);
+            alert("Error cargando reporte");
+        }
+    }
+
+    function renderConsolidatedReport(data) {
+        const tbody = document.getElementById('consTableBody');
+        tbody.innerHTML = '';
+
+        if (!data.details || data.details.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 1rem;">No se encontraron datos.</td></tr>';
+            document.getElementById('consTotalBoxes').textContent = '0';
+            document.getElementById('consTotalWeight').textContent = '0.00 kg';
+            return;
+        }
+
+        data.details.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border);">${item.sku}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: center;">${item.total_units}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: center;">${item.total_boxes}</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); text-align: center;">${item.total_weight.toFixed(2)} kg</td>
+                <td style="padding: 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: #666;">
+                    ${item.invoices.join(', ')}
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+
+        document.getElementById('consTotalBoxes').textContent = data.total_boxes_all;
+        document.getElementById('consTotalWeight').textContent = data.total_weight_all.toFixed(2) + ' kg';
+
+        // Show print button and container if we have data
+        if (data.details && data.details.length > 0) {
+            document.getElementById('btnPrintConsolidated').style.display = 'inline-block';
+            document.getElementById('consResultsContainer').style.display = 'block';
+        }
+    }
+
+    function printConsolidatedReport() {
+        // Get selected guide from attribute
+        const guideRef = document.getElementById('consolidatedModal').getAttribute('data-selected-guide');
+
+        if (!guideRef) return;
+
+        // Extract number for pretty printing if needed, or pass full ref
+        const guideNum = guideRef.split('|')[0].trim();
+
+        const url = new URL('/logistics/consolidated_report/print', window.location.origin);
+        url.searchParams.append('guide_ref', guideNum);
+
+        const width = screen.availWidth;
+        const height = screen.availHeight;
+
+        window.open(
+            url.toString(),
+            'PrintConsolidated',
+            `width=${width},height=${height},top=0,left=0,resizable=yes,scrollbars=yes`
         );
     }
 </script>

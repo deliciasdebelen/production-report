@@ -87,11 +87,13 @@ async def view_dispatch(request: Request, user: User = Depends(get_current_user)
         except:
             log.items = []
 
+    next_ref = generate_next_guide_number(db)
     return templates.TemplateResponse("logistics/dispatch.html", {
         "request": request, 
         "user": user, 
         "logs": logs,
-        "title": "Despacho de Mercancía"
+        "title": "Despacho de Mercancía",
+        "next_guide_number": next_ref
     })
 
 # --- API Actions ---
@@ -126,6 +128,106 @@ async def search_clients(
         # Return empty list or mock if connection fails (graceful degradation)
         return []
 
+
+@router.get("/api/external/invoice/{doc_num}/items")
+async def get_invoice_items(
+    doc_num: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_external_db),
+    local_db: Session = Depends(get_db)
+):
+    """
+    Get items for a SPECIFIC invoice.
+    Can reuse the logic of 'pending invoices by client' but filtered for this invoice.
+    Or maybe there is a direct query/SP?
+    User said 'follow the process as defined', implies reusing the SP logic but for a known invoice.
+    Strategy:
+    1. Find the Client of this Invoice.
+    2. Call the SAME 'facturas pendientes' logic (SP) for that client.
+    3. Filter the result to return ONLY this invoice's items.
+    """
+    try:
+        # 1. Get Client Code
+        invoice_row = db.execute(text("SELECT co_cli, cli_des FROM safactura WHERE doc_num = :d"), {"d": doc_num}).fetchone()
+        if not invoice_row:
+            return {"error": "Factura no encontrada"}
+        
+        co_cli = invoice_row.co_cli.strip()
+        cli_des = invoice_row.cli_des.strip()
+        
+        # 2. Re-use existing logic (copy-paste or call? copy-paste safer for quick edit)
+        # Execute SP for Client
+        sql = text("EXEC SP_CRM_FacturasPendientesPorCliente @co_cli = :cli")
+        result_proxy = db.execute(sql, {"cli": co_cli})
+        result = result_proxy.fetchall()
+
+        def get_col(row_map, candidates):
+            for c in candidates:
+                if c in row_map: return row_map[c]
+            keys = list(row_map.keys())
+            for c in candidates:
+                for k in keys:
+                    if c.lower() in k.lower(): return row_map[k]
+            return None
+
+        final_items = []
+        
+        for row in result:
+             row_map = row._mapping
+             
+             fact_num_row = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "").strip()
+             
+             # FILTER: Only this invoice
+             # Note: SP might return formatted number? doc_num usually matches.
+             # Let's match loosely or exact.
+             if fact_num_row != doc_num:
+                 continue
+                 
+             co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
+             art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
+             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'Unid', 'UND']) or "UNI").strip()
+             
+             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo', 'total_art', 'unidades'])
+             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas', 'cajas'])
+             raw_box_unit = get_col(row_map, ['Unidad Cajas', 'unidad_cajas']) or "CAJ"
+
+             try: units = float(raw_units) if raw_units is not None else 1.0
+             except: units = 1.0
+             try: boxes = float(raw_boxes) if raw_boxes is not None else 0.0
+             except: boxes = 0.0
+
+             if not co_art: continue
+
+             final_items.append({
+                 "fact_num": fact_num_row, 
+                 "co_art": co_art,
+                 "art_des": art_des,
+                 "co_uni": co_uni, 
+                 "total_articulo": units,
+                 "total_cajas": round(boxes, 2),
+                 "unidad_cajas": raw_box_unit,
+                 "client_name": cli_des # Include client name for frontend display
+             })
+             
+        # Aggregate same SKU in same invoice? 
+        # Reuse logic? Yes, simpler to just return list and let frontend or helper aggregate.
+        # But wait, frontend expects aggregated?
+        # Let's aggregate here to avoid duplicates in display.
+        aggregated = {}
+        for i in final_items:
+            key = i['co_art']
+            if key not in aggregated:
+                aggregated[key] = i
+            else:
+                aggregated[key]['total_articulo'] += i['total_articulo']
+                aggregated[key]['total_cajas'] += i['total_cajas']
+                
+        return list(aggregated.values())
+        
+    except Exception as e:
+        print(f"Error fetching invoice items: {e}")
+        return []
+
 @router.get("/api/external/client/{co_cli}/pending-invoices")
 async def get_pending_invoices(
     co_cli: str,
@@ -135,11 +237,10 @@ async def get_pending_invoices(
 ):
     """
     Executes SP_CRM_FacturasPendientesPorCliente @co_cli
-    Returns list of items pending to be dispatched.
+    Returns list of items pending to be dispatched, grouped by Article.
     """
     try:
         # Check Local History for Duplicate Invoices
-        # Search last 200 dispatches for this client to find used invoice numbers
         dispatches = local_db.query(LogisticsDispatch.document_ref)\
             .filter(LogisticsDispatch.document_ref.isnot(None))\
             .filter(LogisticsDispatch.client_destination.contains(co_cli))\
@@ -149,53 +250,89 @@ async def get_pending_invoices(
         import re
         for d in dispatches:
             if d.document_ref:
-                # Extract all number sequences that look like our invoices (usually > 1 digit)
                 nums = re.findall(r'\b\d+\b', d.document_ref)
                 used_invoices.update(nums)
 
         # Execute SP
         sql = text("EXEC SP_CRM_FacturasPendientesPorCliente @co_cli = :cli")
         result_proxy = db.execute(sql, {"cli": co_cli})
-        keys = result_proxy.keys()
-        # print(f"--- DEBUG COLS: {keys} ---") # Keep this useful for now if needed, or rely on logic below
-        
         result = result_proxy.fetchall()
 
         def get_col(row_map, candidates):
-            # Try exact match first
             for c in candidates:
                 if c in row_map: return row_map[c]
-            # Try case-insensitive strip match
             keys = list(row_map.keys())
             for c in candidates:
                 for k in keys:
                     if c.lower() in k.lower(): return row_map[k]
             return None
 
-        items = []
+        # Grouping Dictionary: (fact_num, co_art) -> Data
+        grouped_items = {}
+
         for row in result:
              row_map = row._mapping
              
-             # Robust Mapping
              fact_num = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "UNKNOWN").strip()
              
-             # FILTER: If invoice is already in history, skip
              if fact_num in used_invoices:
                  continue
 
-             co_art = get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or ""
-             art_des = get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or ""
-             co_uni = get_col(row_map, ['Unidad', 'co_uni', 'Unid', 'UND']) or "UNI"
+             co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
+             art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
+             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'Unid', 'UND']) or "UNI").strip()
              
-             items.append({
-                "fact_num": str(fact_num).strip(), 
-                "co_art": str(co_art).strip(),
-                "art_des": str(art_des).strip(),
-                "co_uni": str(co_uni).strip(),
-                "total_art": 1.0 
+             # Extract Quantity & Boxes directly from SP
+             # User confirmed columns: "Total Articulo", "Cantidad Cajas", "Unidad Cajas"
+             
+             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo', 'total_art', 'unidades'])
+             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas', 'cajas'])
+             raw_box_unit = get_col(row_map, ['Unidad Cajas', 'unidad_cajas']) or "CAJ"
+
+             try:
+                 units = float(raw_units) if raw_units is not None else 1.0
+             except:
+                 units = 1.0
+                 
+             try:
+                 boxes = float(raw_boxes) if raw_boxes is not None else 0.0
+             except:
+                 boxes = 0.0
+
+             if not co_art:
+                 continue
+
+             key = (fact_num, co_art)
+
+             if key not in grouped_items:
+                 grouped_items[key] = {
+                     "fact_num": fact_num,
+                     "co_art": co_art,
+                     "art_des": art_des,
+                     "co_uni": co_uni,
+                     "total_articulo": 0.0,
+                     "total_cajas": 0.0,
+                     "unidad_cajas": raw_box_unit
+                 }
+             
+             grouped_items[key]["total_articulo"] += units
+             grouped_items[key]["total_cajas"] += boxes
+
+        # Flatten (No extra queries needed)
+        final_items = []
+        
+        for key, data in grouped_items.items():
+            final_items.append({
+                "fact_num": data["fact_num"], 
+                "co_art": data["co_art"],
+                "art_des": data["art_des"],
+                "co_uni": data["co_uni"], 
+                "total_articulo": data["total_articulo"],
+                "total_cajas": round(data["total_cajas"], 2),
+                "unidad_cajas": data["unidad_cajas"]
              })
             
-        return items
+        return final_items
         
     except Exception as e:
         print(f"Error executing SP_CRM_FacturasPendientesPorCliente: {e}")
@@ -312,7 +449,7 @@ async def create_reception_merchandise(
 
 @router.post("/dispatch")
 async def create_dispatch(
-    client_destination: str = Form(...), # Fallback/Search Input
+    request: Request,
     document_ref: str = Form(...), # Mandatory now
     imported_invoices: str = Form(None), 
     items: str = Form(...), # JSON string
@@ -320,9 +457,18 @@ async def create_dispatch(
     db: Session = Depends(get_db),
     external_db: Session = Depends(get_external_db)
 ):
+    # Manual Form Parsing to Bypass "Field required" persistence
+    # Pydantic/FastAPI was refusing to accept the missing/empty field despite Optional[str]
+    form_data = await request.form()
+    client_destination = form_data.get("client_destination", "")
     # 1. Mandatory Guide Validation
-    if not document_ref or not document_ref.strip():
-        raise HTTPException(status_code=400, detail="El Número de Guía es obligatorio.")
+    # Allow "(Generado Automáticamente)" or empty to trigger auto-gen
+    if not document_ref or not document_ref.strip() or document_ref == '(Generado Automáticamente)':
+         document_ref = generate_next_guide_number(db)
+    
+    # Re-validate just in case
+    if not document_ref:
+         raise HTTPException(status_code=400, detail="El Número de Guía es obligatorio.")
     
     # 2. Unique Guide Validation (Global)
     exists = db.query(LogisticsDispatch).filter(LogisticsDispatch.document_ref.like(f"{document_ref.strip()}%")).first()
@@ -497,7 +643,12 @@ async def create_dispatch(
     db.add(new_log)
     db.commit()
 
-    return {"status": "success", "summary": summary_data}
+    return {
+        "status": "success", 
+        "summary": summary_data, 
+        "document_ref": final_ref,
+        "id": new_log.id
+    }
 
 @router.get("/dispatch/{dispatch_id}/print", response_class=HTMLResponse)
 async def print_dispatch(
@@ -517,112 +668,353 @@ async def print_dispatch(
         raw_items = []
 
     # --- Aggregation Logic ---
-    aggregated_items = {}
+    # --- Aggregation Logic (Group by Invoice + SKU) ---
+    # We want to group everything under Invoices.
+    # Structure:
+    # aggregated_data = {
+    #    "000123": { "SKU1": { ...data... } }
+    # }
     
+    aggregated_data = {}
+    invoice_clients = {} # Map invoice -> client name
+    
+    # 1. Collect unique invoices to query DB
+    unique_invoices = set()
     for item in raw_items:
-        # Extract name and SKU
+        inv = item.get('fact')
+        if inv and inv.strip():
+            unique_invoices.add(inv.strip())
+            
+    # 2. Query Client Names
+    try:
+        data_invs = list(unique_invoices)
+        if data_invs:
+            # Safe parameterized IN clause is tricky in raw SQL, loop is safer for small sets
+            for inv_num in data_invs:
+                # Assuming saFacturaVenta links to saCliente via co_cli
+                # We need the client NAME (des_cli from saCliente, or potentially stored in header)
+                # saFacturaVenta usually has 'co_cli'. We join saCliente.
+                query = text("""
+                    SELECT c.descrip 
+                    FROM saFacturaVenta f
+                    JOIN saCliente c ON f.co_cli = c.co_cli
+                    WHERE f.doc_num = :doc_num
+                """)
+                row = external_db.execute(query, {"doc_num": inv_num}).first()
+                if row:
+                    invoice_clients[inv_num] = row[0].strip()
+                else:
+                    invoice_clients[inv_num] = "Cliente Desconocido"
+    except Exception as e:
+        print(f"Error fetching invoice clients: {e}")
+
+    for item in raw_items:
+        # 1. Identify Invoice
+        invoice = item.get('fact')
+        if not invoice or invoice.strip() == '':
+            invoice = "Otros / Manual"
+        else:
+            invoice = invoice.strip()
+            
+        # 2. Identify SKU/Target
         raw_name = item.get('name', item.get('item', 'Unknown'))
-        # Try to extract SKU from name if not present
         sku = item.get('sku')
         if not sku:
              sku_match = re.search(r'\((.*?)\)$', raw_name)
              sku = sku_match.group(1).strip() if sku_match else raw_name.strip()
+             
+        # 3. Values
+        try:
+            qty = float(item.get('qty', 0))
+        except: qty = 0.0
         
-        qty = float(item.get('qty', 0))
-        unit = item.get('unit', 'UNID') # Default unit
+        unit = item.get('unit', 'UNID')
+        
+        # New Fields (Imported)
+        try:
+            imported_boxes = float(item.get('total_cajas', 0))
+        except: imported_boxes = 0.0
+        imported_box_unit = item.get('unidad_cajas', 'CAJ')
 
-        if sku not in aggregated_items:
-            aggregated_items[sku] = {
+        # 4. Aggregate
+        if invoice not in aggregated_data:
+            aggregated_data[invoice] = {}
+        
+        if sku not in aggregated_data[invoice]:
+            aggregated_data[invoice][sku] = {
                 'sku': sku,
                 'name': raw_name,
                 'qty': 0.0,
                 'unit': unit,
-                'breakdown': '' 
+                'total_cajas': 0.0,
+                'unidad_cajas': imported_box_unit 
             }
         
-        aggregated_items[sku]['qty'] += qty
+        aggregated_data[invoice][sku]['qty'] += qty
+        aggregated_data[invoice][sku]['total_cajas'] += imported_boxes
+        # If units differ within same SKU/Invoice we stick to the first one found (simplicity)
 
-    # --- Limit items for print view (Consolidated) ---
-    final_items = []
+    # --- Flatten to Template Structure ---
+    # groups = [ { "invoice": "...", "items": [...] }, ... ]
     
-    for sku, data in aggregated_items.items():
-        total_qty = data['qty']
+    final_groups = []
+    
+    # Sort invoices? Maybe numerical if possible, or string sort.
+    sorted_invoices = sorted(aggregated_data.keys())
+    
+    for inv in sorted_invoices:
+        items_map = aggregated_data[inv]
+        group_items = []
         
-        # Calculate Breakdown (Boxes logic)
-        total_breakdown = f"{total_qty} {data['unit']}" # Fallback
-        
-        try:
-            # Query v_saArticulo_saArtUnidad for robust box equivalence (Same as Planning)
-            # We look for 'CAJ' or 'CAJA'
-            sql = text("""
-                SELECT equivalencia, des_uni, co_uni
-                FROM v_saArticulo_saArtUnidad 
-                WHERE co_art = :sku 
-            """)
-            rows = external_db.execute(sql, {"sku": sku}).fetchall()
+        for sku, data in items_map.items():
+            # Breakdown Text
+            # If we have box data, show that provided by SP
+            if data['total_cajas'] > 0:
+                 data['breakdown'] = f"{data['total_cajas']} {data['unidad_cajas']}"
+            else:
+                 # Fallback to old calc or logic? 
+                 # If manual item, maybe calculate? User said "Calculated by SP". 
+                 # Let's assume manual items don't have box conversion for now or show "-"
+                 # Or we could try to calculate BUT user specifically wanted to use the SP columns.
+                 # Let's leave as raw units if no box data.
+                 data['breakdown'] = f"{data['qty']} {data['unit']}"
             
-            if rows:
-                base_unit = "UNI"
-                pack_unit = "UNI"
-                pack_factor = 1.0
-                
-                # 1. Identify Base Unit (Equiv = 1)
-                for r in rows:
-                    if r.equivalencia == 1:
-                        base_unit = r.co_uni.strip()
-                
-                # 2. Identify Box/Pack Unit
-                # Prioritize 'CAJ' or 'CAJA', otherwise largest unit
-                found_box = False
-                for r in rows:
-                    if r.co_uni.strip().upper() == 'CAJ' or 'CAJA' in r.des_uni.upper():
-                        pack_factor = float(r.equivalencia)
-                        pack_unit = r.co_uni.strip()
-                        found_box = True
-                        break
-                
-                if not found_box:
-                    # Fallback to max equiv if no 'CAJ' found
-                    max_equiv = 1.0
-                    for r in rows:
-                        if r.equivalencia > max_equiv:
-                            max_equiv = float(r.equivalencia)
-                            pack_unit = r.co_uni.strip()
-                    if max_equiv > 1.0:
-                        pack_factor = max_equiv
-
-                # 3. Calculate (Consolidado Fisico)
-                if pack_factor > 1:
-                    # Logic requested: Total / Equiv when co_uni = CAJ
-                    boxes = int(total_qty // pack_factor)
-                    loose = total_qty % pack_factor
-                    
-                    parts = []
-                    if boxes > 0:
-                        parts.append(f"{boxes} {pack_unit}")
-                    if loose > 0:
-                        loose_fmt = f"{int(loose)}" if loose.is_integer() else f"{loose:.2f}"
-                        parts.append(f"{loose_fmt} {base_unit}")
-                        
-                    if not parts:
-                        parts.append(f"0 {base_unit}")
-                        
-                    total_breakdown = " + ".join(parts)
-                else:
-                    total_breakdown = f"{total_qty} {base_unit}"
-
-        except Exception as e:
-            print(f"Error calculating print breakdown for {sku}: {e}")
-
-        data['breakdown'] = total_breakdown
-        final_items.append(data)
-
-    # Sort by name
-    final_items.sort(key=lambda x: x['name'])
+            group_items.append(data)
+            
+        # Sort items by name
+        group_items.sort(key=lambda x: x['name'])
+        
+        final_groups.append({
+            "invoice": inv,
+            "client_name": invoice_clients.get(inv, ""),
+            "line_items": group_items
+        })
 
     return templates.TemplateResponse("logistics/print_dispatch.html", {
         "request": request,
         "log": log,
-        "items": final_items,
+        "groups": final_groups,
         "now": datetime.now()
     })
+
+@router.get("/api/guides/search")
+async def search_guides(
+    q: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(LogisticsDispatch)
+    
+    if q:
+        query = query.filter(LogisticsDispatch.document_ref.like(f"%{q}%"))
+        
+    if date_from:
+        try:
+            d_from = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(LogisticsDispatch.date >= d_from)
+        except: pass
+        
+    if date_to:
+        try:
+            d_to = datetime.strptime(date_to, '%Y-%m-%d')
+            d_to = d_to.replace(hour=23, minute=59, second=59)
+            query = query.filter(LogisticsDispatch.date <= d_to)
+        except: pass
+        
+    # Limit results to avoid overload if no filters
+    # User complained about slowness. Limit all searches to 200 for now.
+    query = query.order_by(LogisticsDispatch.date.desc()).limit(200)
+        
+    results = query.all()
+        
+    results = query.all()
+    
+    guides = []
+    for r in results:
+        # Extract clean guide number
+        ref_clean = r.document_ref.split('|')[0].strip()
+        guides.append({
+            "id": r.id,
+            "document_ref": r.document_ref,
+            "guide_number": ref_clean,
+            "date": r.date.strftime('%d/%m/%Y'),
+            "client": r.client_destination
+        })
+        
+    return guides
+
+@router.get("/api/consolidated_report")
+async def get_consolidated_report(
+    guide_ref: Optional[str] = None, # Matches document_ref
+    date_from: Optional[str] = None, 
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(LogisticsDispatch)
+    
+    # 1. Filters
+    if guide_ref:
+        query = query.filter(LogisticsDispatch.document_ref.like(f"{guide_ref}%"))
+        
+    if date_from:
+        try:
+            d_from = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(LogisticsDispatch.date >= d_from)
+        except: pass
+        
+    if date_to:
+        try:
+            d_to = datetime.strptime(date_to, '%Y-%m-%d')
+            # Set to end of day
+            d_to = d_to.replace(hour=23, minute=59, second=59)
+            query = query.filter(LogisticsDispatch.date <= d_to)
+        except: pass
+    
+    results = query.all()
+    
+    data = calculate_consolidated_data(results)
+    
+    return {
+        "status": "success",
+        "details": data['items'],
+        "total_boxes_all": data['grand_total_boxes'],
+        "total_weight_all": data['grand_total_weight']
+    }
+
+def calculate_consolidated_data(results):
+    aggregated_items = {}
+    total_guide_boxes = 0.0
+    total_guide_weight = 0.0
+    
+    for dispatch in results:
+        # Parse items
+        try:
+            items = json.loads(dispatch.items_json)
+        except: items = []
+        
+        for item in items:
+            sku = item.get('sku') or item.get('item', 'Unknown')
+            name = item.get('name') or item.get('item', 'Unknown')
+            
+            # Identify Invoice per item or from dispatch
+            item_invoice = item.get('fact', '').strip()
+            if not item_invoice and hasattr(dispatch, 'invoice') and dispatch.invoice:
+                item_invoice = dispatch.invoice
+            if not item_invoice:
+                 item_invoice = "S/F" # Sin Factura
+
+            try: qty = float(item.get('qty', 0))
+            except: qty = 0.0
+            
+            try: boxes = float(item.get('total_cajas', 0))
+            except: boxes = 0.0
+            
+            # Weight Extraction Logic
+            weight_per_unit = 0.0
+            
+            # 1. Regex for KG
+            kg_match = re.search(r'(\d+(\.\d+)?)\s*(kg|Kg|KG|kG)', name)
+            if kg_match:
+                weight_per_unit = float(kg_match.group(1))
+            else:
+                # 2. Regex for Grams
+                g_match = re.search(r'(\d+)\s*(g|gr|G|Gr|GR)', name)
+                if g_match:
+                    weight_per_unit = float(g_match.group(1)) / 1000.0
+
+            total_weight = qty * weight_per_unit
+            
+            if sku not in aggregated_items:
+                aggregated_items[sku] = {
+                    'sku': sku,
+                    'name': name,
+                    'total_units': 0.0,
+                    'total_boxes': 0.0,
+                    'total_weight': 0.0,
+                    'unit': item.get('unit', 'UNI'),
+                    'invoices': set()
+                }
+            
+            aggregated_items[sku]['total_units'] += qty
+            aggregated_items[sku]['total_boxes'] += boxes
+            aggregated_items[sku]['total_weight'] += total_weight
+            aggregated_items[sku]['invoices'].add(item_invoice)
+            
+            total_guide_boxes += boxes
+            total_guide_weight += total_weight
+
+    # Format list
+    response_items = []
+    for k, v in aggregated_items.items():
+        v['invoices'] = sorted(list(v['invoices'])) # Convert set to list
+        response_items.append(v)
+        
+    response_items.sort(key=lambda x: x['name'])
+    
+    return {
+        "items": response_items,
+        "grand_total_boxes": round(total_guide_boxes, 2),
+        "grand_total_weight": round(total_guide_weight, 4)
+    }
+
+@router.get("/consolidated_report/print")
+async def view_print_consolidated_report(
+    request: Request,
+    guide_ref: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    query = db.query(LogisticsDispatch)
+    
+    if guide_ref:
+        query = query.filter(LogisticsDispatch.document_ref.like(f"{guide_ref}%"))
+        
+    if date_from:
+        try:
+            d_from = datetime.strptime(date_from, '%Y-%m-%d')
+            query = query.filter(LogisticsDispatch.date >= d_from)
+        except: pass
+        
+    if date_to:
+        try:
+            d_to = datetime.strptime(date_to, '%Y-%m-%d')
+            d_to = d_to.replace(hour=23, minute=59, second=59)
+            query = query.filter(LogisticsDispatch.date <= d_to)
+        except: pass
+    
+    results = query.all()
+    data = calculate_consolidated_data(results)
+    
+    return templates.TemplateResponse("logistics/print_consolidated.html", {
+        "request": request,
+        "guide_ref": guide_ref,
+        "date_from": date_from,
+        "date_to": date_to,
+        "items": data['items'],
+        "grand_total_boxes": data['grand_total_boxes'],
+        "grand_total_weight": data['grand_total_weight'],
+        "now": datetime.now()
+    })
+
+def generate_next_guide_number(db: Session):
+    # Find all refs starting with GUIA-
+    last_dispatches = db.query(LogisticsDispatch.document_ref)\
+        .filter(LogisticsDispatch.document_ref.like('GUIA-%'))\
+        .order_by(LogisticsDispatch.id.desc())\
+        .limit(100).all() 
+        
+    max_num = 0
+    for r in last_dispatches:
+        try:
+            base_ref = r.document_ref.split('|')[0].strip()
+            match = re.search(r'GUIA-(\d+)', base_ref)
+            if match:
+                num = int(match.group(1))
+                if num > max_num:
+                    max_num = num
+        except: pass
+        
+    next_num = max_num + 1
+    return f"GUIA-{next_num:08d}"
