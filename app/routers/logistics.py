@@ -9,7 +9,8 @@ from datetime import datetime
 import re
 
 from ..dependencies import get_db, templates, get_current_user
-from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport
+from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport, LogisticsRoute
+from .. import schemas, models
 
 router = APIRouter(
     prefix="/logistics",
@@ -635,10 +636,18 @@ async def create_dispatch(
         enriched_items = json.loads(items)
 
     # 6. Save to DB
+    # Handle Route ID (Optional)
+    route_id_val = None
+    try:
+        if 'route_id' in form_data and form_data['route_id']:
+            route_id_val = int(form_data['route_id'])
+    except: pass
+
     new_log = LogisticsDispatch(
         client_destination=final_client,
         document_ref=final_ref,
-        items_json=json.dumps(enriched_items) # Save Enriched JSON
+        items_json=json.dumps(enriched_items), # Save Enriched JSON
+        route_id=route_id_val
     )
     db.add(new_log)
     db.commit()
@@ -649,6 +658,30 @@ async def create_dispatch(
         "document_ref": final_ref,
         "id": new_log.id
     }
+
+# --- Route APIs ---
+
+@router.get("/api/routes", response_model=List[schemas.LogisticsRoute])
+def get_routes(db: Session = Depends(get_db)):
+    return db.query(models.LogisticsRoute).filter(models.LogisticsRoute.active == True).order_by(models.LogisticsRoute.name).all()
+
+@router.post("/api/routes", response_model=schemas.LogisticsRoute)
+def create_route(route: schemas.LogisticsRouteCreate, db: Session = Depends(get_db)):
+    # Check exists
+    existing = db.query(models.LogisticsRoute).filter(models.LogisticsRoute.name == route.name).first()
+    if existing:
+        if not existing.active:
+            existing.active = True # Reactivate
+            db.commit()
+            db.refresh(existing)
+            return existing
+        return existing
+        
+    new_route = models.LogisticsRoute(name=route.name, active=route.active)
+    db.add(new_route)
+    db.commit()
+    db.refresh(new_route)
+    return new_route
 
 @router.get("/dispatch/{dispatch_id}/print", response_class=HTMLResponse)
 async def print_dispatch(

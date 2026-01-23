@@ -133,5 +133,20 @@ class InventoryHeader(InventoryHeaderBase):
     # created_at removed to match model 'date'
     lines: list[InventoryLine] = []
     
+    
+    class Config:
+        from_attributes = True
+
+class LogisticsRouteBase(BaseModel):
+    name: str
+    active: bool = True
+
+class LogisticsRouteCreate(LogisticsRouteBase):
+    pass
+
+class LogisticsRoute(LogisticsRouteBase):
+    id: int
+    created_at: datetime
+    
     class Config:
         from_attributes = True

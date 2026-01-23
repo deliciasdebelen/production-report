@@ -144,6 +144,13 @@
     <div class="client-section">
         <strong>Cliente / Destino</strong>
         <h3>{{ log.client_destination }}</h3>
+
+        {% if log.route %}
+        <div style="margin-top: 5px; font-size: 14px; font-weight: 600; color: #047857;">
+            Ruta: {{ log.route.name }}
+        </div>
+        {% endif %}
+
         {% if '| Fact:' in log.document_ref %}
         <div style="margin-top: 10px; font-size: 13px; color: #64748b;">
             Ref. Adicional: {{ log.document_ref.split('|')[1] }}

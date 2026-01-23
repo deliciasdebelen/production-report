@@ -67,6 +67,21 @@
                     <div id="invoiceBadges" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
                     </div>
                 </div>
+
+                <!-- Route Field (New) -->
+                <div class="form-group">
+                    <label style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.5rem;">Ruta</label>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <select name="route_id" id="routeSelect" class="form-control"
+                            style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white;">
+                            <option value="">Seleccione una Ruta...</option>
+                        </select>
+                        <button type="button" onclick="addNewRoute()" class="btn"
+                            style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600;">
+                            +
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Dynamic Items Table -->
@@ -338,61 +353,107 @@
     document.addEventListener('DOMContentLoaded', () => {
         addItemRow(); // Start with one row
         loadArticles(); // Fetch Autocomplete Data
+        loadRoutes(); // Fetch Active Routes
 
-        // Reset Button Logic
-        // Find the "Nuevo Despacho" span and make it clickable
-        // It was defined above as: <span style="...">Nuevo Despacho</span> in line 21-23
-        // I need to target it. Since I don't want to break the HTML replacement with huge chunks, 
-        // I will trust the user to use the 'New Dispatch' action which triggers 'resetForm'.
-        // For now, let's attach the resetForm to that element if I can match it, or I should have replaced it in HTML.
-        // Wait, I replaced the HTML block above but I missed the "Nuevo Despacho" span in the ReplacementContent because I started at "Header Fields".
-        // The "Nuevo Despacho" span is at line 21. My replacement started at line 31.
-        // I must ensure I don't miss hooking it up.
-        // I will add a script to find it or I should have replaced the whole card header.
-        // Let's do a targeted replace for the header button first in the NEXT step or just add a listener here.
+        // ... existing logic ...
+    });
 
-        const newDispatchBtn = document.querySelector('.card h3 + span');
-        if (newDispatchBtn) {
-            newDispatchBtn.style.cursor = 'pointer';
-            newDispatchBtn.onclick = resetForm;
+    // --- Route Logic ---
+    async function loadRoutes() {
+        try {
+            const res = await fetch('/logistics/api/routes');
+            if (res.ok) {
+                const routes = await res.json();
+                const select = document.getElementById('routeSelect');
+                const currentVal = select.value;
+                select.innerHTML = '<option value="">Seleccione una Ruta...</option>';
+                routes.forEach(r => {
+                    const option = document.createElement('option');
+                    option.value = r.id;
+                    option.textContent = r.name;
+                    select.appendChild(option);
+                });
+                if (currentVal) select.value = currentVal;
+            }
+        } catch (e) { console.error("Error loading routes", e); }
+    }
+
+    async function addNewRoute() {
+        const name = prompt("Ingrese el nombre de la nueva Ruta:");
+        if (name && name.trim()) {
+            try {
+                const res = await fetch('/logistics/api/routes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name.trim(), active: true })
+                });
+                if (res.ok) {
+                    const newRoute = await res.json();
+                    await loadRoutes();
+                    document.getElementById('routeSelect').value = newRoute.id;
+                } else {
+                    alert("Error al guardar ruta");
+                }
+            } catch (e) {
+                alert("Error de conexión");
+            }
+        }
+    }
+
+    // Reset Button Logic
+    // Find the "Nuevo Despacho" span and make it clickable
+    // It was defined above as: <span style="...">Nuevo Despacho</span> in line 21-23
+    // I need to target it. Since I don't want to break the HTML replacement with huge chunks, 
+    // I will trust the user to use the 'New Dispatch' action which triggers 'resetForm'.
+    // For now, let's attach the resetForm to that element if I can match it, or I should have replaced it in HTML.
+    // Wait, I replaced the HTML block above but I missed the "Nuevo Despacho" span in the ReplacementContent because I started at "Header Fields".
+    // The "Nuevo Despacho" span is at line 21. My replacement started at line 31.
+    // I must ensure I don't miss hooking it up.
+    // I will add a script to find it or I should have replaced the whole card header.
+    // Let's do a targeted replace for the header button first in the NEXT step or just add a listener here.
+
+    const newDispatchBtn = document.querySelector('.card h3 + span');
+    if (newDispatchBtn) {
+        newDispatchBtn.style.cursor = 'pointer';
+        newDispatchBtn.onclick = resetForm;
+    }
+
+    // Client Search Logic
+    const clientInput = document.getElementById('clientInput');
+    const clientList = document.getElementById('clientList');
+    let debounceTimer;
+
+    clientInput.addEventListener('input', (e) => {
+        const val = e.target.value;
+
+        // Check if user selected a valid option (format "DESC (CODE)")
+        const match = val.match(/\((.*?)\)$/);
+        if (match) {
+            const clientCode = match[1];
+            // Trigger Pending Invoices Check for Client
+            checkPendingInvoices(clientCode);
         }
 
-        // Client Search Logic
-        const clientInput = document.getElementById('clientInput');
-        const clientList = document.getElementById('clientList');
-        let debounceTimer;
+        if (val.length < 2) return;
 
-        clientInput.addEventListener('input', (e) => {
-            const val = e.target.value;
-
-            // Check if user selected a valid option (format "DESC (CODE)")
-            const match = val.match(/\((.*?)\)$/);
-            if (match) {
-                const clientCode = match[1];
-                // Trigger Pending Invoices Check for Client
-                checkPendingInvoices(clientCode);
-            }
-
-            if (val.length < 2) return;
-
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(async () => {
-                try {
-                    const res = await fetch(`/logistics/api/clients/search?q=${encodeURIComponent(val)}`);
-                    if (res.ok) {
-                        const data = await res.json();
-                        clientList.innerHTML = '';
-                        data.forEach(client => {
-                            const option = document.createElement('option');
-                            option.value = `${client.cli_des} (${client.co_cli})`;
-                            clientList.appendChild(option);
-                        });
-                    }
-                } catch (err) {
-                    console.error("Search error", err);
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            try {
+                const res = await fetch(`/logistics/api/clients/search?q=${encodeURIComponent(val)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    clientList.innerHTML = '';
+                    data.forEach(client => {
+                        const option = document.createElement('option');
+                        option.value = `${client.cli_des} (${client.co_cli})`;
+                        clientList.appendChild(option);
+                    });
                 }
-            }, 300); // 300ms debounce
-        });
+            } catch (err) {
+                console.error("Search error", err);
+            }
+        }, 300); // 300ms debounce
+    });
     });
 
     // Reset Form
