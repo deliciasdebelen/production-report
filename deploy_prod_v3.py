@@ -65,7 +65,9 @@ def deploy():
         full_deployment_cmd = (
             f"cd {REMOTE_DIR} && "
             f"tar -xzf {tar_name} && "
-            f"docker-compose restart web"
+            f"docker-compose restart web && "
+            f"sleep 5 && " # Wait for startup
+            f"docker-compose exec -T web python -m app.migrate_notifications"
         )
         
         run_cmd(full_deployment_cmd)

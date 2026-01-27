@@ -20,6 +20,9 @@
             style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Producción</button>
         <button onclick="openTab(event, 'tab-logistics')" class="tab-btn"
             style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Logística</button>
+        <button onclick="openTab(event, 'tab-routes')" class="tab-btn"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Rutas
+            de Despacho</button>
     </div>
 
     <!-- Tab: USERS -->
@@ -247,6 +250,86 @@
         </div>
         <!-- Preview Container -->
         <div id="previewLogistics" class="preview-box"></div>
+    </div>
+
+    <!-- Tab: ROUTES (NEW) -->
+    <div id="tab-routes" class="tab-content" style="display: none; padding: 2rem;">
+        <div class="grid-2" style="gap: 2rem; align-items: start;">
+            <!-- Create Route -->
+            <div class="card"
+                style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Agregar Nueva Ruta</h3>
+                <form action="/maintenance/routes/add" method="post">
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="form-group">
+                            <label>Nombre de la Ruta</label>
+                            <input type="text" name="name" required placeholder="Ej: Ruta 5 - Zona Norte"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <button type="submit" class="btn-primary"
+                            style="justify-self: end; width: auto; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 500; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-top: 0.5rem;">
+                            <span style="margin-right: 0.25rem;">+</span> Agregar Ruta
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List Routes -->
+            <div>
+                <h3 style="margin-bottom: 1rem;">Rutas Existentes</h3>
+                <div style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                        <thead style="background: #f1f5f9; position: sticky; top: 0;">
+                            <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                                <th style="padding: 0.5rem;">ID</th>
+                                <th style="padding: 0.5rem;">Nombre</th>
+                                <th style="padding: 0.5rem;">Estado</th>
+                                <th style="padding: 0.5rem; text-align: right;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for r in routes %}
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 0.5rem;">{{ r.id }}</td>
+                                <td style="padding: 0.5rem;"><strong>{{ r.name }}</strong></td>
+                                <td style="padding: 0.5rem;">
+                                    {% if r.active %}
+                                    <span
+                                        style="color: green; font-weight: 600; font-size: 0.8rem; background: #d1fae5; padding: 0.1rem 0.4rem; border-radius: 4px;">Activa</span>
+                                    {% else %}
+                                    <span
+                                        style="color: #64748b; font-weight: 600; font-size: 0.8rem; background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 4px;">Inactiva</span>
+                                    {% endif %}
+                                </td>
+                                <td
+                                    style="padding: 0.5rem; text-align: right; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <!-- Toggle Button -->
+                                    <form action="/maintenance/routes/toggle" method="post" style="display:inline;">
+                                        <input type="hidden" name="route_id" value="{{ r.id }}">
+                                        <button type="submit"
+                                            style="cursor: pointer; border: 1px solid var(--border); background: white; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+                                            {% if r.active %}Desactivar{% else %}Activar{% endif %}
+                                        </button>
+                                    </form>
+
+                                    <!-- Delete Button -->
+                                    <form action="/maintenance/routes/delete" method="post"
+                                        onsubmit="return confirm('¿Eliminar ruta {{r.name}}? Si tiene despachos asociados, no se podrá eliminar.');"
+                                        style="display:inline;">
+                                        <input type="hidden" name="route_id" value="{{ r.id }}">
+                                        <button type="submit"
+                                            style="cursor: pointer; border: 1px solid #fee2e2; background: #fef2f2; color: #dc2626; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.8rem;">
+                                            Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

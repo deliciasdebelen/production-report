@@ -160,12 +160,18 @@
 
     {% for group in groups %}
     <div style="margin-bottom: 25px;">
-        <h3 style="border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; color: #334155;">
-            Factura: {{ group.invoice }}
-            {% if group.client_name %}
-            <span style="font-weight: 400; color: #64748b; font-size: 0.9em; margin-left: 10px;">
-                ({{ group.client_name }})
+        <h3
+            style="border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; color: #334155; display: flex; justify-content: space-between;">
+            <span>
+                Factura: {{ group.invoice }}
+                {% if group.client_name %}
+                <span style="font-weight: 400; color: #64748b; font-size: 0.9em; margin-left: 10px;">
+                    ({{ group.client_name }})
+                </span>
+                {% endif %}
             </span>
+            {% if group.invoice_total %}
+            <span style="color: #047857;">ToT: {{ "{:,.2f}".format(group.invoice_total) }}</span>
             {% endif %}
         </h3>
         <table>

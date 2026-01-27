@@ -40,44 +40,60 @@
             <datalist id="productList"></datalist>
 
             <!-- Header Fields -->
-            <div class="grid-2" style="gap: 1.5rem; margin-bottom: 2rem;">
-                <div class="mb-3">
+            <!-- Header Fields -->
+            <div class="grid-2" style="gap: 1rem; margin-bottom: 1.5rem; align-items: start;">
+                <div>
                     <label class="form-label"
-                        style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.5rem;">Cliente
-                        (Búsqueda)</label>
-                    <div class="input-group">
-                        <input type="text" class="form-control" id="clientInput" name="client_destination"
-                            list="clientList" placeholder="Buscar Cliente..." autocomplete="off" onclick="this.value=''"
-                            style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm);">
-                        <datalist id="clientList"></datalist>
+                        style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.25rem;">Número de
+                        Factura</label>
+                    <div class="input-group" style="display:flex; gap:0.5rem;">
+                        <input type="text" class="form-control" id="invoiceInput" list="invoiceList"
+                            placeholder="Buscar Factura (Escriba nro o cliente)..." autocomplete="off"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm);"
+                            onkeypress="handleInvoiceEnter(event)" onfocus="this.value=''">
+                        <datalist id="invoiceList"></datalist>
+                        <button type="button" onclick="searchInvoice()" class="btn"
+                            style="background:#3b82f6; color:white; border-radius:4px;">🔍</button>
                     </div>
                 </div>
                 <!-- Validation: Guide Auto-Generated -->
-                <div class="form-group">
-                    <label style="font-weight: 600; color: #ef4444; display: block; margin-bottom: 0.5rem;">Nro. Guía de
+                <div>
+                    <label style="font-weight: 600; color: #ef4444; display: block; margin-bottom: 0.25rem;">Nro. Guía
+                        de
                         Despacho *</label>
                     <input type="text" name="document_ref" value="{{ next_guide_number }}"
-                        style="width: 100%; background-color: white; border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius-sm); color: #6b7280; font-family: monospace; font-weight: 500;"
+                        style="width: 100%; background-color: white; border: 1px solid var(--border); padding: 0.5rem; border-radius: var(--radius-sm); color: #6b7280; font-family: monospace; font-weight: 500;"
                         readonly>
-                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem;">Debe ser única y obligatoria.
+                    <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.1rem;">Debe ser única y obligatoria.
                     </div>
 
                     <!-- Hidden field for Invoices -->
                     <input type="hidden" name="imported_invoices" id="importedInvoices">
-                    <div id="invoiceBadges" style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    <!-- We still use this to track? Or just infer from items? 
+                         Logic below uses importedInvoices for badges. We'll update badge logic. -->
+                    <div id="invoiceBadges" style="margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.25rem;">
                     </div>
                 </div>
 
-                <!-- Route Field (New) -->
-                <div class="form-group">
-                    <label style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.5rem;">Ruta</label>
+                <!-- Route Field -->
+                <div>
+                    <label
+                        style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.25rem;">Ruta</label>
                     <div style="display: flex; gap: 0.5rem;">
-                        <select name="route_id" id="routeSelect" class="form-control"
-                            style="flex: 1; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white;">
+                        <!-- Select for Existing -->
+                        <select name="route_select" id="routeSelect" class="form-control"
+                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); background: white; display: block;">
                             <option value="">Seleccione una Ruta...</option>
                         </select>
-                        <button type="button" onclick="addNewRoute()" class="btn"
-                            style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 4px; font-weight: 600;">
+
+                        <!-- Input for New -->
+                        <input type="text" name="route_input" id="routeInput" class="form-control"
+                            placeholder="Escriba nueva ruta..."
+                            style="flex: 1; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); display: none;">
+
+                        <button type="button" onclick="toggleRouteInput()" id="btnToggleRoute" class="btn"
+                            style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 4px; font-weight: 600; min-width: 35px;"
+                            title="Agregar Nueva Ruta">
                             +
                         </button>
                     </div>
@@ -172,7 +188,7 @@
 
                 {% if log.document_ref %}
                 <div
-                    style="font-size: 0.8rem; color: var(--info); margin-bottom: 0.5rem; display: inline-block; background: #eff6ff; padding: 0.1rem 0.5rem; border-radius: 4px;">
+                    style="font-size: 0.8rem; color: var(--info); margin-bottom: 0.5rem; display: inline-block; background: #eff6ff; padding: 0.1rem 0.5rem; border-radius: 4px; word-break: break-all; white-space: normal;">
                     📄 {{ log.document_ref }}
                 </div>
                 {% endif %}
@@ -322,6 +338,14 @@
                             <td style="padding: 0.75rem; text-align: right;" id="consTotalBoxes">0.0</td>
                             <td style="padding: 0.75rem; text-align: right;" id="consTotalWeight">0.00 kg</td>
                         </tr>
+                        <tr>
+                            <td colspan="4"
+                                style="padding: 0.75rem; text-align: right; color: #047857; border-top: 1px solid var(--border);">
+                                <span style="margin-right: 2rem; color: #475569; font-weight: 600;">Total Facturas:
+                                    <span id="consTotalInvoices">0</span></span>
+                                Total Monto Guía: <span id="consTotalAmount">0.00</span>
+                            </td>
+                        </tr>
                     </tfoot>
                 </table>
             </div>
@@ -361,7 +385,7 @@
     // --- Route Logic ---
     async function loadRoutes() {
         try {
-            const res = await fetch('/logistics/api/routes');
+            const res = await fetch('/logistics/api/routes?t=' + new Date().getTime());
             if (res.ok) {
                 const routes = await res.json();
                 const select = document.getElementById('routeSelect');
@@ -374,29 +398,43 @@
                     select.appendChild(option);
                 });
                 if (currentVal) select.value = currentVal;
+
+                // DEBUG: Verify routes loaded
+                if (routes.length === 0) {
+                    console.warn("No routes returned from API");
+                } else {
+                    console.log("Loaded " + routes.length + " routes.");
+                }
             }
         } catch (e) { console.error("Error loading routes", e); }
     }
 
-    async function addNewRoute() {
-        const name = prompt("Ingrese el nombre de la nueva Ruta:");
-        if (name && name.trim()) {
-            try {
-                const res = await fetch('/logistics/api/routes', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: name.trim(), active: true })
-                });
-                if (res.ok) {
-                    const newRoute = await res.json();
-                    await loadRoutes();
-                    document.getElementById('routeSelect').value = newRoute.id;
-                } else {
-                    alert("Error al guardar ruta");
-                }
-            } catch (e) {
-                alert("Error de conexión");
-            }
+    function toggleRouteInput() {
+        const select = document.getElementById('routeSelect');
+        const input = document.getElementById('routeInput');
+        const btn = document.getElementById('btnToggleRoute');
+
+        if (input.style.display === 'none') {
+            // Switch to Input Mode
+            input.style.display = 'block';
+            select.style.display = 'none';
+            select.value = ""; // Clear selection
+            input.focus();
+
+            // Change Button to 'List' or 'Cancel' icon
+            btn.innerHTML = "☰"; // Menu icon to go back to list
+            btn.style.background = "#64748b"; // Grey for 'Back'
+            btn.title = "Seleccionar de lista";
+        } else {
+            // Switch to Select Mode
+            input.style.display = 'none';
+            select.style.display = 'block';
+            input.value = ""; // Clear input
+
+            // Change Button back to '+'
+            btn.innerHTML = "+";
+            btn.style.background = "#10b981";
+            btn.title = "Agregar Nueva Ruta";
         }
     }
 
@@ -418,43 +456,6 @@
         newDispatchBtn.onclick = resetForm;
     }
 
-    // Client Search Logic
-    const clientInput = document.getElementById('clientInput');
-    const clientList = document.getElementById('clientList');
-    let debounceTimer;
-
-    clientInput.addEventListener('input', (e) => {
-        const val = e.target.value;
-
-        // Check if user selected a valid option (format "DESC (CODE)")
-        const match = val.match(/\((.*?)\)$/);
-        if (match) {
-            const clientCode = match[1];
-            // Trigger Pending Invoices Check for Client
-            checkPendingInvoices(clientCode);
-        }
-
-        if (val.length < 2) return;
-
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(async () => {
-            try {
-                const res = await fetch(`/logistics/api/clients/search?q=${encodeURIComponent(val)}`);
-                if (res.ok) {
-                    const data = await res.json();
-                    clientList.innerHTML = '';
-                    data.forEach(client => {
-                        const option = document.createElement('option');
-                        option.value = `${client.cli_des} (${client.co_cli})`;
-                        clientList.appendChild(option);
-                    });
-                }
-            } catch (err) {
-                console.error("Search error", err);
-            }
-        }, 300); // 300ms debounce
-    });
-    });
 
     // Reset Form
     function resetForm() {
@@ -464,234 +465,173 @@
             addItemRow();
             document.getElementById('invoiceBadges').innerHTML = '';
             document.getElementById('importedInvoices').value = '';
-            // Clear pending invoices map?
-            pendingInvoices = {};
+            document.getElementById('invoiceInput').value = '';
         }
     }
 
-    // Invoice State
-    let pendingInvoices = {}; // Map: InvoiceNum -> [Items]
+    // --- Invoice Autocomplete & Search Logic ---
+    const invoiceInput = document.getElementById('invoiceInput');
+    const invoiceList = document.getElementById('invoiceList');
+    let invoiceDebounce;
 
-    async function importSpecificInvoice(docNum) {
-        const modal = document.getElementById('invoiceModal');
-        const list = document.getElementById('invoiceList');
-        const loading = document.getElementById('invoiceLoading');
+    invoiceInput.addEventListener('input', (e) => {
+        const val = e.target.value;
 
-        // Reset
-        pendingInvoices = {};
-        list.innerHTML = '';
-        loading.style.display = 'block';
-        loading.innerText = `Consultando factura ${docNum}...`;
-        modal.style.display = 'flex';
+        // If user selects an option "DOC - CLIENT", extract DOC
+        // Format: "DOC - CLIENT"
+        if (val.includes(' - ')) {
+            const parts = val.split(' - ');
+            // If it matches a known format, maybe auto-trigger search?
+            // Let's rely on user pressing Enter or Button for final confirmation to avoid accidental adds.
+            // But we could strip the client part for the value if we want cleaner input.
+            // Let's keep the full string for visibility or strip it?
+            // Users usually prefer seeing what they picked.
+            // But searchInvoice needs the ID.
+            // Let's check if it matches a datalist option exactly?
+            // For now, let's just let them search. searchInvoice needs to parse it.
+        }
 
-        try {
-            const res = await fetch(`/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`);
-            loading.style.display = 'none';
+        if (val.length < 2) return;
 
-            if (res.ok) {
-                const data = await res.json();
-
-                if (data.length === 0) {
-                    list.innerHTML = `<p style="text-align:center; color: var(--text-muted);">No hay ítems pendientes para la factura ${docNum}.</p>`;
-                    return;
-                }
-
-                // Group by Invoice (trivial here since only 1 invoice, but structure expects grouping)
-                // data is flat list of items.
-
-                // Group locally
-                data.forEach(item => {
-                    const invRef = item.fact_num;
-                    if (!pendingInvoices[invRef]) {
-                        pendingInvoices[invRef] = [];
-                    }
-                    pendingInvoices[invRef].push(item);
-                });
-
-                // Render in Modal
-                Object.keys(pendingInvoices).forEach(invNum => {
-                    const invGroup = document.createElement('div');
-                    invGroup.className = 'card';
-                    invGroup.style.padding = '1rem';
-                    invGroup.style.border = '1px solid var(--border)';
-
-                    // Header
-                    const header = document.createElement('div');
-                    header.style.display = 'flex';
-                    header.style.justifyContent = 'space-between';
-                    header.style.marginBottom = '0.5rem';
-
-                    const title = document.createElement('strong');
-                    // data[0].client_name might be available if we added it, assuming all same client
-                    const clientName = data[0].client_name || '';
-                    title.innerText = `Factura: ${invNum} ${clientName ? '- ' + clientName : ''}`;
-
-                    const checkbox = document.createElement('input');
-                    checkbox.type = 'checkbox';
-                    checkbox.value = invNum;
-                    checkbox.checked = true; // Pre-select for convenience
-                    checkbox.id = `inv-${invNum}`;
-
-                    header.appendChild(title);
-                    header.appendChild(checkbox);
-                    invGroup.appendChild(header);
-
-                    // Items List
-                    const itemUl = document.createElement('ul');
-                    itemUl.style.listStyle = 'none';
-                    itemUl.style.padding = '0';
-                    itemUl.style.fontSize = '0.85rem';
-                    itemUl.style.color = '#64748b';
-
-                    pendingInvoices[invNum].forEach(i => {
-                        const li = document.createElement('li');
-                        li.innerText = `${i.total_articulo} ${i.co_uni} - ${i.art_des}`;
-                        itemUl.appendChild(li);
+        clearTimeout(invoiceDebounce);
+        invoiceDebounce = setTimeout(async () => {
+            try {
+                const res = await fetch(`/logistics/api/external/invoices/search?q=${encodeURIComponent(val)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    invoiceList.innerHTML = '';
+                    data.forEach(inv => {
+                        const option = document.createElement('option');
+                        option.value = `${inv.doc_num} - ${inv.client}`; // Display value
+                        invoiceList.appendChild(option);
                     });
-
-                    invGroup.appendChild(itemUl);
-                    list.appendChild(invGroup);
-                });
-
-            } else {
-                list.innerHTML = `<p style="text-align:center; color: var(--danger);">Error cargando factura.</p>`;
-            }
-        } catch (e) {
-            console.error(e);
-            loading.style.display = 'none';
-            list.innerHTML = `<p style="text-align:center; color: var(--danger);">Error de conexión.</p>`;
-        }
-    }
-
-    // Legacy function, kept if needed or can be removed if unused.
-    async function checkPendingInvoices(clientCode) {
-        const modal = document.getElementById('invoiceModal');
-        const list = document.getElementById('invoiceList');
-        const loading = document.getElementById('invoiceLoading');
-
-        // Reset
-        pendingInvoices = {};
-        list.innerHTML = '';
-        loading.style.display = 'block';
-        modal.style.display = 'flex'; // Show modal immediately to indicate activity
-
-        try {
-            const res = await fetch(`/logistics/api/external/client/${encodeURIComponent(clientCode)}/pending-invoices`);
-            loading.style.display = 'none';
-
-            if (res.ok) {
-                const data = await res.json();
-
-                if (data.length === 0) {
-                    list.innerHTML = `<div style="text-align:center; padding: 1rem; color: var(--text-muted);">No hay facturas pendientes para este cliente.</div>`;
-                    return;
                 }
-
-                // Group by Invoice Number
-                data.forEach(row => {
-                    if (!pendingInvoices[row.fact_num]) {
-                        pendingInvoices[row.fact_num] = [];
-                    }
-                    pendingInvoices[row.fact_num].push(row);
-                });
-
-                // Render Checkboxes
-                Object.keys(pendingInvoices).forEach(factNum => {
-                    const items = pendingInvoices[factNum];
-                    const div = document.createElement('div');
-                    div.style.border = '1px solid var(--border)';
-                    div.style.padding = '0.75rem';
-                    div.style.borderRadius = '6px';
-                    div.style.background = 'white';
-
-                    div.innerHTML = `
-                        <label style="display: flex; align-items: center; cursor: pointer; font-weight: 600;">
-                            <input type="checkbox" value="${factNum}" style="width: 1.2rem; height: 1.2rem; margin-right: 0.75rem;">
-                            Factura #${factNum}
-                            <span style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted); font-weight: 400;">
-                                ${items.length} ítems
-                            </span>
-                        </label>
-                        <div style="margin-left: 2rem; margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                            ${items.slice(0, 2).map(i => i.art_des).join(', ')} 
-                            ${items.length > 2 ? `... (+${items.length - 2})` : ''}
-                        </div>
-                    `;
-                    list.appendChild(div);
-                });
-
-            } else {
-                list.innerHTML = `<div style="color: var(--danger);">Error al consultar facturas.</div>`;
+            } catch (err) {
+                console.error("Autocomplete error", err);
             }
-        } catch (e) {
-            console.error(e);
-            loading.style.display = 'none';
-            list.innerHTML = `<div style="color: var(--danger);">Error de conexión.</div>`;
+        }, 300);
+    });
+
+    function handleInvoiceEnter(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            searchInvoice();
         }
     }
 
-    function closeInvoiceModal() {
-        document.getElementById('invoiceModal').style.display = 'none';
-    }
+    async function searchInvoice() {
+        const input = document.getElementById('invoiceInput');
+        let val = input.value.trim();
 
-    function importSelectedInvoices() {
-        const checkboxes = document.querySelectorAll('#invoiceList input[type="checkbox"]:checked');
-        const selectedFactNums = Array.from(checkboxes).map(cb => cb.value);
+        // Extract Doc Num if "DOC - CLIENT" format
+        if (val.includes(' - ')) {
+            val = val.split(' - ')[0].trim();
+        }
 
-        if (selectedFactNums.length === 0) {
-            closeInvoiceModal();
+        const docNum = val;
+        if (!docNum) return;
+
+        // Check if already added
+        const hiddenInput = document.getElementById('importedInvoices');
+        const currentInvoices = hiddenInput.value ? hiddenInput.value.split(',') : [];
+        if (currentInvoices.includes(docNum)) {
+            alert("Esta factura ya está en la lista actual.");
             return;
         }
 
-        // Clear existing empty rows if just one empty row
-        if (items.length === 1 && !items[0].item && !items[0].qty) {
-            items = []; // Reset
-        }
+        // Show loading state?
+        input.disabled = true;
 
-        const docRefs = [];
+        try {
+            const res = await fetch(`/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`);
+            const data = await res.json();
 
-        selectedFactNums.forEach(factNum => {
-            docRefs.push(factNum);
-            const invoiceItems = pendingInvoices[factNum];
+            if (data.error) {
+                alert(data.error); // Show validation error from backend
+                input.disabled = false;
+                return;
+            }
+            if (!Array.isArray(data) || data.length === 0) {
+                alert("Factura no encontrada o sin ítems pendientes.");
+                input.disabled = false;
+                return;
+            }
 
-            invoiceItems.forEach(invItem => {
+            // Add Items
+            // Clear empty row if initial
+            if (items.length === 1 && !items[0].item && !items[0].qty) {
+                items = [];
+            }
+
+            const invoiceTotal = data[0].invoice_total || 0;
+            const clientName = data[0].client_name || '';
+
+            data.forEach(invItem => {
                 items.push({
-                    client: document.getElementById('clientInput').value,
+                    client: clientName,
                     fact: invItem.fact_num,
                     item: invItem.art_des,
                     qty: invItem.total_articulo,
                     unit: invItem.co_uni || 'Unid',
-                    // Pass conversion data
                     total_cajas: invItem.total_cajas,
-                    unidad_cajas: invItem.unidad_cajas
+                    unidad_cajas: invItem.unidad_cajas,
+                    invoice_total: invoiceTotal // Added this field
                 });
             });
-        });
 
-        // Set Invoice Badges
+            // Update Badges & Client Field
+            currentInvoices.push(docNum);
+            hiddenInput.value = currentInvoices.join(',');
+
+            updateBadges(currentInvoices, invoiceTotal);
+
+            // Set Client Destination hidden or implicitly? 
+            // The form had a 'client_destination' input being filled. 
+            // We removed it from UI but backend expects it?
+            // Wait, backend logic: "final_client = client_destination # Default to form input"
+            // We should ensure client_destination is sent.
+            // Let's assume we add a hidden input for client or auto-fill it if we keep it visible?
+            // "Display Client Name... in report". 
+            // We should append client name to badge? OR set a main client?
+            // If multiple clients, backend handles it.
+
+            // Just ensuring items rendering is updated
+            renderItems();
+            input.value = '';
+
+        } catch (e) {
+            console.error(e);
+            alert("Error consultando factura");
+        } finally {
+            input.disabled = false;
+            input.focus();
+        }
+    }
+
+    function updateBadges(invoices, lastTotal = 0) {
         const badgeContainer = document.getElementById('invoiceBadges');
-        const hiddenInput = document.getElementById('importedInvoices');
-
         badgeContainer.innerHTML = '';
-        docRefs.forEach(ref => {
+        invoices.forEach(ref => {
             const span = document.createElement('span');
             span.style.background = '#e0f2fe';
             span.style.color = '#0369a1';
             span.style.padding = '2px 8px';
             span.style.borderRadius = '4px';
             span.style.fontSize = '0.8rem';
+
+            // Format total if provided? We only have the last one easily.
+            // Ideally we store per-invoice data. 
+            // For now, simpler: Just Badge. 
+            // User asked "el nombre cliente en el reporte... al lado del numero factura".
+
             span.textContent = `Fact. ${ref}`;
             badgeContainer.appendChild(span);
         });
-
-        hiddenInput.value = docRefs.join(',');
-
-        renderItems();
-        closeInvoiceModal();
-
-        // Clear Client Search to allow next client search
-        document.getElementById('clientInput').value = '';
     }
+
+    // --- Legacy Functions Removed (checkPendingInvoices, importSpecificInvoice, importSelectedInvoices) ---
+    // Keeping empty stubs if referenced elsewhere, but essentially replaced by searchInvoice.
+
 
 
     // Populate Product Datalist
@@ -777,7 +717,8 @@
     }
 
     function addItemRow() {
-        const currentClient = document.getElementById('clientInput').value;
+        const clientInput = document.getElementById('clientInput');
+        const currentClient = clientInput ? clientInput.value : '';
         items.push({ client: currentClient, item: '', qty: '', unit: 'Unid' });
         renderItems();
     }
@@ -1055,6 +996,15 @@
 
         document.getElementById('consTotalBoxes').textContent = data.total_boxes_all;
         document.getElementById('consTotalWeight').textContent = data.total_weight_all.toFixed(2) + ' kg';
+
+        // Update Invoice Count
+        document.getElementById('consTotalInvoices').textContent = data.total_invoices_count || 0;
+
+        if (data.total_amount_all) {
+            document.getElementById('consTotalAmount').textContent = parseFloat(data.total_amount_all).toLocaleString('es-VE', { minimumFractionDigits: 2 });
+        } else {
+            document.getElementById('consTotalAmount').textContent = '0.00';
+        }
 
         // Show print button and container if we have data
         if (data.details && data.details.length > 0) {

@@ -63,9 +63,75 @@
 <div style="margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
     <button onclick="showTab('users', this)" class="tab-btn active">Usuarios</button>
     <button onclick="showTab('data', this)" class="tab-btn">Base de Datos</button>
+    <button onclick="showTab('routes', this)" class="tab-btn">Rutas</button>
+    <button onclick="showTab('validations', this)" class="tab-btn">Validaciones</button>
+    <button onclick="showTab('notifications', this)" class="tab-btn">Notificaciones</button>
 </div>
 
 <!-- Users Tab -->
+<div id="notifications" class="tab-content" style="display:none;">
+    <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Agregar Suscriptor</h3>
+        <form action="/maintenance/subscribers/add" method="post">
+            <div class="form-grid">
+                <div class="form-group col-span-4">
+                    <label>Nombre</label>
+                    <input type="text" name="name" required placeholder="Ej: Gerente Planta">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Email</label>
+                    <input type="email" name="email" required placeholder="nombre@empresa.com">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Reporte</label>
+                    <select name="report_type">
+                        <option value="Inventory">Inventario</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn"
+                    style="background-color: var(--primary); color: white;">Agregar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- List -->
+    <div class="card">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem;">Suscriptores Activos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Reporte</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscribers %}
+                <tr>
+                    <td>{{ sub.name }}</td>
+                    <td>{{ sub.email }}</td>
+                    <td><span class="badge badge-info">{{ sub.report_type }}</span></td>
+                    <td>
+                        <form action="/maintenance/subscribers/delete" method="post"
+                            onsubmit="return confirm('¿Eliminar?');">
+                            <input type="hidden" name="sub_id" value="{{ sub.id }}">
+                            <button type="submit" class="btn-icon danger">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No hay suscriptores.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div id="users" class="tab-content">
     <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
         <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Crear Nuevo Usuario</h3>

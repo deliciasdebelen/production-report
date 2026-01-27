@@ -168,6 +168,14 @@
                     <td style="text-align: right;">{{ grand_total_weight }} kg</td>
                     <td></td>
                 </tr>
+                <tr>
+                    <td colspan="5"
+                        style="text-align: right; border-top: 1px solid #cbd5e1; padding-top: 10px; color: #047857; font-size: 1.1em;">
+                        <span style="margin-right: 30px; color: #475569; font-weight: bold;">Total Facturas: {{
+                            grand_total_invoices_count }}</span>
+                        <strong>Total Monto Guía: {{ "{:,.2f}".format(grand_total_amount) }}</strong>
+                    </td>
+                </tr>
             </tfoot>
         </table>
     </div>

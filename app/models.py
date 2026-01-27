@@ -118,6 +118,14 @@ class LogisticsReceptionMerchandise(Base):
     items_json = Column(Text, nullable=False) # JSON format: [{"item": "X", "qty": 10}, ...]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class LogisticsRoute(Base):
+    __tablename__ = "logistics_routes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class LogisticsDispatch(Base):
     __tablename__ = "logistics_dispatch"
 
@@ -126,6 +134,10 @@ class LogisticsDispatch(Base):
     client_destination = Column(String, nullable=False)
     document_ref = Column(String, nullable=True)
     items_json = Column(Text, nullable=False)
+    
+    route_id = Column(Integer, ForeignKey("logistics_routes.id"), nullable=True)
+    route = relationship("LogisticsRoute")
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Channel(Base):
@@ -189,3 +201,13 @@ class MessageStatus(Base):
     
     user = relationship('User')
     message = relationship('Message')
+
+class NotificationSubscriber(Base):
+    __tablename__ = 'notification_subscribers'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    report_type = Column(String, default='Inventory') # Inventory, etc.
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

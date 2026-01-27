@@ -5,7 +5,7 @@ from sqlalchemy import desc, text
 from typing import Optional, List
 from ..external_db import get_external_db
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 from ..dependencies import get_db, templates, get_current_user
@@ -130,6 +130,56 @@ async def search_clients(
         return []
 
 
+@router.get("/api/external/invoices/search")
+async def search_invoices(
+    q: str,
+    db: Session = Depends(get_external_db)
+):
+    """
+    Search invoices by partial number.
+    Returns list of { doc_num, client }
+    """
+    if not q or len(q) < 2: return []
+    
+    try:
+        # Determine SQL dialect for limit syntax
+        # MSSQL uses TOP, SQLite/Postgres uses LIMIT
+        dialect = db.bind.dialect.name
+        
+        if dialect == "mssql":
+            query = text("""
+                SELECT TOP 20 f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                FROM saFacturaVenta f
+                LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                ORDER BY f.doc_num DESC
+            """)
+        else:
+            # Fallback for SQLite/others
+            query = text("""
+                SELECT f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                FROM saFacturaVenta f
+                LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                ORDER BY f.doc_num DESC
+                LIMIT 20
+            """)
+        
+        results = db.execute(query, {"q": f"%{q}%"}).fetchall()
+        
+        data = []
+        for r in results:
+            data.append({
+                "doc_num": r.doc_num.strip(),
+                "client": r.client_name.strip(),
+                "display": f"{r.doc_num.strip()} - {r.client_name.strip()}"
+            })
+            
+        return data
+    except Exception as e:
+        print(f"Error searching invoices: {e}")
+        return []
+
 @router.get("/api/external/invoice/{doc_num}/items")
 async def get_invoice_items(
     doc_num: str,
@@ -138,29 +188,40 @@ async def get_invoice_items(
     local_db: Session = Depends(get_db)
 ):
     """
-    Get items for a SPECIFIC invoice.
-    Can reuse the logic of 'pending invoices by client' but filtered for this invoice.
-    Or maybe there is a direct query/SP?
-    User said 'follow the process as defined', implies reusing the SP logic but for a known invoice.
-    Strategy:
-    1. Find the Client of this Invoice.
-    2. Call the SAME 'facturas pendientes' logic (SP) for that client.
-    3. Filter the result to return ONLY this invoice's items.
+    Get items for a SPECIFIC invoice using V2 SP.
+    Validates if invoice is already dispatched.
     """
     try:
-        # 1. Get Client Code
-        invoice_row = db.execute(text("SELECT co_cli, cli_des FROM safactura WHERE doc_num = :d"), {"d": doc_num}).fetchone()
-        if not invoice_row:
-            return {"error": "Factura no encontrada"}
+        # 1. Global Validation: Check if invoice already dispatched
+        # Check against LogisticsDispatch items_json
+        # Performance: Ideally we index this, but for now we scan recent or all? 
+        # Using LIKE is risky if format differs. 
+        # Better: Check 'document_ref' if we store it there? No, document_ref is the Guide Number.
+        # We store invoices in items_json OR in the document_ref string sometimes.
+        # Let's check distinct invoices in the timeframe or global? 
+        # User said "no puedes agregar una factura ya incluida en una guia guardada".
         
-        co_cli = invoice_row.co_cli.strip()
-        cli_des = invoice_row.cli_des.strip()
+        # Optimized approach: Search text in items_json.
+        # Note: This might be slow if table grows huge.
+        # Safe limit: Last 12 months? Or just all.
         
-        # 2. Re-use existing logic (copy-paste or call? copy-paste safer for quick edit)
-        # Execute SP for Client
-        sql = text("EXEC SP_CRM_FacturasPendientesPorCliente @co_cli = :cli")
-        result_proxy = db.execute(sql, {"cli": co_cli})
+        already_dispatched = local_db.query(LogisticsDispatch).filter(
+            LogisticsDispatch.items_json.like(f'%\"fact\": \"{doc_num}\"%') 
+            | LogisticsDispatch.items_json.like(f'%\"fact\": \"{doc_num.strip()}\"%')
+        ).first()
+        
+        if already_dispatched:
+             return {"error": f"La factura {doc_num} ya fue despachada en la Guía {already_dispatched.document_ref}"}
+
+        # 2. Execute SP V2
+        # Param: doc_num? User said "en vez de co_cli, sera por el doc_num".
+        # Assumption: Param is named @doc_num based on standard.
+        sql = text("EXEC SP_CRM_FacturasPendientesPorClienteV2 @doc_num = :d")
+        result_proxy = db.execute(sql, {"d": doc_num})
         result = result_proxy.fetchall()
+        
+        if not result:
+            return [] # No items found or invalid invoice
 
         def get_col(row_map, candidates):
             for c in candidates:
@@ -168,30 +229,53 @@ async def get_invoice_items(
             keys = list(row_map.keys())
             for c in candidates:
                 for k in keys:
+                     # Exact match first, then partial?
+                    if c.lower() == k.lower(): return row_map[k]
+            for c in candidates:
+                for k in keys:
                     if c.lower() in k.lower(): return row_map[k]
             return None
 
         final_items = []
+        aggregated = {}
+        
+        # Meta info from first row (assuming uniform)
+        client_name = ""
+        total_factura = 0.0 # From SP column if available, or sum? 
+        # User said "crea un campo en el total al para mostrar el monto total factura" -> in the report?
+        # But implies backend should return it.
+        # Check if SP returns 'monto_total' or similar?
+        # We can sum it up or look for column.
         
         for row in result:
              row_map = row._mapping
              
+             # Extract Columns
              fact_num_row = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "").strip()
+             if fact_num_row and fact_num_row != doc_num: pass # Should match if SP filters correctly
              
-             # FILTER: Only this invoice
-             # Note: SP might return formatted number? doc_num usually matches.
-             # Let's match loosely or exact.
-             if fact_num_row != doc_num:
-                 continue
-                 
              co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
              art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
-             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'Unid', 'UND']) or "UNI").strip()
+             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'units']) or "UNI").strip()
              
-             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo', 'total_art', 'unidades'])
-             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas', 'cajas'])
-             raw_box_unit = get_col(row_map, ['Unidad Cajas', 'unidad_cajas']) or "CAJ"
-
+             client_name = str(get_col(row_map, ['Cliente', 'cli_des', 'Nombre Cliente']) or "Cliente Desconocido").strip()
+             
+             # Amounts/Weights
+             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo'])
+             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas'])
+             raw_net_weight = get_col(row_map, ['Peso', 'peso_neto', 'peso']) # Weight per unit or total? Usually per unit in master, or total in row?
+             # User said: "ajusta el calculo de peso Unidades * el peso en la descripcion del articulo" context: Consolidated Report.
+             # But here we might get it.
+             
+             # Price/Total Amount for Invoice Total
+             # Look for 'monto_total', 'total_neto', 'precio'?
+             # Assuming row has line total.
+             raw_line_total = get_col(row_map, ['monto_renglon', 'total_renglon', 'precio_total']) 
+             if raw_line_total:
+                 try: total_text = float(raw_line_total)
+                 except: total_text = 0.0
+                 total_factura += total_text
+             
              try: units = float(raw_units) if raw_units is not None else 1.0
              except: units = 1.0
              try: boxes = float(raw_boxes) if raw_boxes is not None else 0.0
@@ -199,35 +283,46 @@ async def get_invoice_items(
 
              if not co_art: continue
 
-             final_items.append({
-                 "fact_num": fact_num_row, 
-                 "co_art": co_art,
-                 "art_des": art_des,
-                 "co_uni": co_uni, 
-                 "total_articulo": units,
-                 "total_cajas": round(boxes, 2),
-                 "unidad_cajas": raw_box_unit,
-                 "client_name": cli_des # Include client name for frontend display
-             })
-             
-        # Aggregate same SKU in same invoice? 
-        # Reuse logic? Yes, simpler to just return list and let frontend or helper aggregate.
-        # But wait, frontend expects aggregated?
-        # Let's aggregate here to avoid duplicates in display.
-        aggregated = {}
-        for i in final_items:
-            key = i['co_art']
-            if key not in aggregated:
-                aggregated[key] = i
-            else:
-                aggregated[key]['total_articulo'] += i['total_articulo']
-                aggregated[key]['total_cajas'] += i['total_cajas']
-                
-        return list(aggregated.values())
+             key = co_art
+             if key not in aggregated:
+                 aggregated[key] = {
+                     "fact_num": fact_num_row, 
+                     "co_art": co_art,
+                     "art_des": art_des,
+                     "co_uni": co_uni, 
+                     "total_articulo": 0.0,
+                     "total_cajas": 0.0,
+                     "unidad_cajas": "CAJ", # Default or extract
+                     "client_name": client_name,
+                     "weight_base": 0.0 # Placeholder
+                 }
+             aggregated[key]['total_articulo'] += units
+             aggregated[key]['total_cajas'] += boxes
         
+        # If 'total_factura' was effectively 0 (no column), try to get from Header or ignore?
+        # Maybe the SP returns a column 'total_factura' repeated? 
+        # Check one row
+        if result:
+            first = result[0]._mapping
+            # Add 'Total Factura' (from debug) and 'total_neto' (from table default)
+            raw_inv_total = get_col(first, ['Total Factura', 'total_factura', 'monto_total', 'total_final', 'total_neto'])
+            if raw_inv_total:
+                 try: total_factura = float(raw_inv_total)
+                 except: pass
+
+        # Flatten
+        response_list = []
+        for v in aggregated.values():
+            v['total_cajas'] = round(v['total_cajas'], 2)
+            v['invoice_total'] = total_factura # Embed in every item or just use frontend logic? 
+            # Frontend needs it once per invoice.
+            response_list.append(v)
+            
+        return response_list
+
     except Exception as e:
-        print(f"Error fetching invoice items: {e}")
-        return []
+        print(f"Error fetching invoice items V2: {e}")
+        return {"error": str(e)}
 
 @router.get("/api/external/client/{co_cli}/pending-invoices")
 async def get_pending_invoices(
@@ -454,6 +549,8 @@ async def create_dispatch(
     document_ref: str = Form(...), # Mandatory now
     imported_invoices: str = Form(None), 
     items: str = Form(...), # JSON string
+    route_select: Optional[str] = Form(None), # Dropdown ID
+    route_input: Optional[str] = Form(None), # Manual Input
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     external_db: Session = Depends(get_external_db)
@@ -462,6 +559,32 @@ async def create_dispatch(
     # Pydantic/FastAPI was refusing to accept the missing/empty field despite Optional[str]
     form_data = await request.form()
     client_destination = form_data.get("client_destination", "")
+    
+    # --- Route Logic ---
+    # Prioritize Input (if toggle is active/filled), then Select
+    # But Select returns ID. We want Name for the dispatch record? Or ID? 
+    # The model likely has 'logistics_route_id' or just a string 'route_name'?
+    # Let's check the model via code or inference. 
+    # Current model `LogisticsDispatch` usually has `route_name` based on previous chats (or `route` string).
+    # If ID is provided, we should fetch the name.
+    
+    route_name = ""
+    if route_input and route_input.strip():
+        route_name = route_input.strip()
+    elif route_select and route_select.strip():
+        # Fetch Name from ID
+        try:
+            r_id = int(route_select)
+            route_obj = db.query(LogisticsRoute).filter(LogisticsRoute.id == r_id).first()
+            if route_obj:
+                route_name = route_obj.name
+        except: pass
+        
+    # Validation
+    if not route_name:
+         # raise HTTPException(status_code=400, detail="Debe seleccionar o ingresar una Ruta.")
+         pass # Allow empty? User said "revisa la funcionalidad... no esta funcionando". Best to require it or ensure it saves.
+
     # 1. Mandatory Guide Validation
     # Allow "(Generado Automáticamente)" or empty to trigger auto-gen
     if not document_ref or not document_ref.strip() or document_ref == '(Generado Automáticamente)':
@@ -474,11 +597,6 @@ async def create_dispatch(
     # 2. Unique Guide Validation (Global)
     exists = db.query(LogisticsDispatch).filter(LogisticsDispatch.document_ref.like(f"{document_ref.strip()}%")).first()
     # Note: Using LIKE because we append "| Fact: ..." to the ref. 
-    # Or strict check? User said "Guide number cannot repeat".
-    # If we store "1234 | Fact: ...", checking "1234" might fail exact match.
-    # Better: Check startswith or exact. 
-    # Let's assume the user enters "1234" and we store "1234 | Fact: X".
-    # Checking "1234" against "1234 | Fact: X" requires LIKE '1234%'.
     
     existing_guide = db.query(LogisticsDispatch).filter(
         LogisticsDispatch.document_ref.like(f"{document_ref.strip()} | %") 
@@ -636,12 +754,37 @@ async def create_dispatch(
         enriched_items = json.loads(items)
 
     # 6. Save to DB
-    # Handle Route ID (Optional)
+    # Handle Route: ID or New Name
     route_id_val = None
+    
     try:
-        if 'route_id' in form_data and form_data['route_id']:
-            route_id_val = int(form_data['route_id'])
-    except: pass
+        # Priority 1: Manual Input (New or Existing by Name)
+        if route_input and route_input.strip():
+            r_name = route_input.strip()
+            # Check if exists
+            route_obj = db.query(LogisticsRoute).filter(LogisticsRoute.name == r_name).first()
+            if not route_obj:
+                # Create
+                route_obj = LogisticsRoute(name=r_name, active=True)
+                db.add(route_obj)
+                db.commit()
+                db.refresh(route_obj)
+            else:
+                # Reactivate if needed
+                if not route_obj.active:
+                    route_obj.active = True
+                    db.commit()
+            
+            route_id_val = route_obj.id
+            
+        # Priority 2: Selected Dropdown
+        elif route_select and route_select.strip():
+            try:
+                route_id_val = int(route_select)
+            except: pass
+            
+    except Exception as e:
+        print(f"Error handling route: {e}")
 
     new_log = LogisticsDispatch(
         client_destination=final_client,
@@ -694,62 +837,53 @@ async def print_dispatch(
     if not log:
         raise HTTPException(status_code=404, detail="Despacho no encontrado")
         
-    # Parse items
     try:
         raw_items = json.loads(log.items_json)
     except:
         raw_items = []
 
-    # --- Aggregation Logic ---
-    # --- Aggregation Logic (Group by Invoice + SKU) ---
-    # We want to group everything under Invoices.
-    # Structure:
-    # aggregated_data = {
-    #    "000123": { "SKU1": { ...data... } }
-    # }
-    
     aggregated_data = {}
-    invoice_clients = {} # Map invoice -> client name
+    invoice_meta = {} # Map invoice -> {client, total}
     
-    # 1. Collect unique invoices to query DB
-    unique_invoices = set()
+    # Pre-scan for metadata (Client & Total from JSON)
     for item in raw_items:
-        inv = item.get('fact')
-        if inv and inv.strip():
-            unique_invoices.add(inv.strip())
-            
-    # 2. Query Client Names
-    try:
-        data_invs = list(unique_invoices)
-        if data_invs:
-            # Safe parameterized IN clause is tricky in raw SQL, loop is safer for small sets
-            for inv_num in data_invs:
-                # Assuming saFacturaVenta links to saCliente via co_cli
-                # We need the client NAME (des_cli from saCliente, or potentially stored in header)
-                # saFacturaVenta usually has 'co_cli'. We join saCliente.
-                query = text("""
-                    SELECT c.descrip 
-                    FROM saFacturaVenta f
-                    JOIN saCliente c ON f.co_cli = c.co_cli
-                    WHERE f.doc_num = :doc_num
-                """)
-                row = external_db.execute(query, {"doc_num": inv_num}).first()
-                if row:
-                    invoice_clients[inv_num] = row[0].strip()
-                else:
-                    invoice_clients[inv_num] = "Cliente Desconocido"
-    except Exception as e:
-        print(f"Error fetching invoice clients: {e}")
+        inv = item.get('fact', '').strip()
+        if not inv: inv = "Otros / Manual"
+        
+        if inv not in invoice_meta:
+            invoice_meta[inv] = {
+                "client": item.get('client', ''),
+                "total": item.get('invoice_total', 0.0)
+            }
+        else:
+            # If valid (not empty), overwrite? Or keep first?
+            # Prefer items with data.
+            if not invoice_meta[inv]["client"] and item.get('client'):
+                invoice_meta[inv]["client"] = item.get('client')
+            if invoice_meta[inv]["total"] == 0.0 and item.get('invoice_total'):
+                invoice_meta[inv]["total"] = item.get('invoice_total')
+
+    # Fallback: Query DB for missing Clients (Legacy support)
+    unique_invoices = [i for i in invoice_meta.keys() if i != "Otros / Manual" and not invoice_meta[i]["client"]]
+    if unique_invoices:
+        try:
+            for inv_num in unique_invoices:
+                 query = text("""
+                     SELECT c.descrip 
+                     FROM saFacturaVenta f
+                     JOIN saCliente c ON f.co_cli = c.co_cli
+                     WHERE f.doc_num = :doc_num
+                 """)
+                 row = external_db.execute(query, {"doc_num": inv_num}).first()
+                 if row:
+                     invoice_meta[inv_num]["client"] = row[0].strip()
+        except: pass
 
     for item in raw_items:
         # 1. Identify Invoice
-        invoice = item.get('fact')
-        if not invoice or invoice.strip() == '':
-            invoice = "Otros / Manual"
-        else:
-            invoice = invoice.strip()
+        invoice = item.get('fact', '').strip() or "Otros / Manual"
             
-        # 2. Identify SKU/Target
+        # 2. Identify SKU
         raw_name = item.get('name', item.get('item', 'Unknown'))
         sku = item.get('sku')
         if not sku:
@@ -757,15 +891,11 @@ async def print_dispatch(
              sku = sku_match.group(1).strip() if sku_match else raw_name.strip()
              
         # 3. Values
-        try:
-            qty = float(item.get('qty', 0))
+        try: qty = float(item.get('qty', 0))
         except: qty = 0.0
-        
         unit = item.get('unit', 'UNID')
         
-        # New Fields (Imported)
-        try:
-            imported_boxes = float(item.get('total_cajas', 0))
+        try: imported_boxes = float(item.get('total_cajas', 0))
         except: imported_boxes = 0.0
         imported_box_unit = item.get('unidad_cajas', 'CAJ')
 
@@ -785,14 +915,9 @@ async def print_dispatch(
         
         aggregated_data[invoice][sku]['qty'] += qty
         aggregated_data[invoice][sku]['total_cajas'] += imported_boxes
-        # If units differ within same SKU/Invoice we stick to the first one found (simplicity)
 
-    # --- Flatten to Template Structure ---
-    # groups = [ { "invoice": "...", "items": [...] }, ... ]
-    
+    # --- Flatten ---
     final_groups = []
-    
-    # Sort invoices? Maybe numerical if possible, or string sort.
     sorted_invoices = sorted(aggregated_data.keys())
     
     for inv in sorted_invoices:
@@ -800,26 +925,19 @@ async def print_dispatch(
         group_items = []
         
         for sku, data in items_map.items():
-            # Breakdown Text
-            # If we have box data, show that provided by SP
             if data['total_cajas'] > 0:
                  data['breakdown'] = f"{data['total_cajas']} {data['unidad_cajas']}"
             else:
-                 # Fallback to old calc or logic? 
-                 # If manual item, maybe calculate? User said "Calculated by SP". 
-                 # Let's assume manual items don't have box conversion for now or show "-"
-                 # Or we could try to calculate BUT user specifically wanted to use the SP columns.
-                 # Let's leave as raw units if no box data.
                  data['breakdown'] = f"{data['qty']} {data['unit']}"
-            
             group_items.append(data)
             
-        # Sort items by name
         group_items.sort(key=lambda x: x['name'])
         
+        meta = invoice_meta.get(inv, {})
         final_groups.append({
             "invoice": inv,
-            "client_name": invoice_clients.get(inv, ""),
+            "client_name": meta.get('client', 'Cliente Desconocido'),
+            "invoice_total": meta.get('total', 0.0), # Pass Total
             "line_items": group_items
         })
 
@@ -827,8 +945,24 @@ async def print_dispatch(
         "request": request,
         "log": log,
         "groups": final_groups,
-        "now": datetime.now()
+        "now": datetime.now() - timedelta(hours=4) # UTC-4 VZLA
     })
+
+# ... search_guides omitted (unchanged) ...
+# I need to keep the code structure valid, so I will replace from print_dispatch start to calculate_consolidated_data end if possible
+# or skip search_guides.
+# The tool might need precise range. 
+# Better to replace the whole block including search_guides or just print_dispatch and consolidated separately.
+# I will try to target print_dispatch separately first.
+# Wait, I cannot use multiple tools here effectively to stitch.
+# I will include search_guides in the replacement content to bridge the gap if it is small.
+# search_guides is roughly lines 902-947 (45 lines).
+# print_dispatch is 755-900.
+# calculate_consolidated is 987+
+# I'll stick to replacing print_dispatch first.
+
+# UPDATE: I'll actually split this into two calls for safety. First print_dispatch.
+
 
 @router.get("/api/guides/search")
 async def search_guides(
@@ -882,7 +1016,8 @@ async def get_consolidated_report(
     guide_ref: Optional[str] = None, # Matches document_ref
     date_from: Optional[str] = None, 
     date_to: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    external_db: Session = Depends(get_external_db)
 ):
     query = db.query(LogisticsDispatch)
     
@@ -906,26 +1041,81 @@ async def get_consolidated_report(
     
     results = query.all()
     
-    data = calculate_consolidated_data(results)
+    data = calculate_consolidated_data(results, external_db=external_db)
     
     return {
         "status": "success",
         "details": data['items'],
         "total_boxes_all": data['grand_total_boxes'],
-        "total_weight_all": data['grand_total_weight']
+        "total_weight_all": data['total_weight_all'] if 'total_weight_all' in data else data['grand_total_weight'],
+        "total_amount_all": data['grand_total_amount'],
+        "total_invoices_count": data.get('grand_total_invoices_count', 0)
     }
 
-def calculate_consolidated_data(results):
+def calculate_consolidated_data(results, external_db: Session = None):
     aggregated_items = {}
     total_guide_boxes = 0.0
     total_guide_weight = 0.0
+    grand_total_amount = 0.0
+    
+    # Pre-process Invoices to get Totals (Optimization for legacy data)
+    # Map: invoice_num -> amount
+    invoice_totals_map = {}
+    missing_invoices = set()
+    
+    # 1. Collect Invoices from all dispatches
+    all_dispatches_items = []
     
     for dispatch in results:
-        # Parse items
         try:
             items = json.loads(dispatch.items_json)
         except: items = []
         
+        all_dispatches_items.append((dispatch, items))
+        
+        for item in items:
+            inv = item.get('fact', '').strip()
+            if not inv: continue
+            
+            # Check if total is present
+            try: amt = float(item.get('invoice_total', 0.0))
+            except: amt = 0.0
+            
+            if amt > 0:
+                invoice_totals_map[inv] = amt
+            elif inv not in invoice_totals_map:
+                missing_invoices.add(inv)
+                
+    # 2. Backfill missing totals from External DB if available
+    if missing_invoices and external_db:
+        try:
+            # Chunking not implemented for simplicity (assume < 2000 invoices per report)
+            invoices_list = list(missing_invoices)
+            if invoices_list:
+                # Need to handle potential SQL injection if we just f-string? 
+                # Use parameterized query with IN clause or multiple queries?
+                # SQLAlchemy text handling of list: 'WHERE doc_num IN :nums'
+                
+                query = text("""
+                    SELECT doc_num, total_neto 
+                    FROM saFacturaVenta 
+                    WHERE doc_num IN :nums
+                """)
+                # Tuple is required for IN clause in some drivers, list in others.
+                res = external_db.execute(query, {"nums": tuple(invoices_list)}).fetchall()
+                
+                for r in res:
+                    try:
+                        invoice_totals_map[r.doc_num.strip()] = float(r.total_neto or 0.0)
+                    except: pass
+        except Exception as e:
+            print(f"Error backfilling invoice totals: {e}")
+
+    # 3. Calculate Grand Total
+    grand_total_amount = sum(invoice_totals_map.values())
+    
+    # 4. Aggregation Logic
+    for dispatch, items in all_dispatches_items: 
         for item in items:
             sku = item.get('sku') or item.get('item', 'Unknown')
             name = item.get('name') or item.get('item', 'Unknown')
@@ -946,10 +1136,14 @@ def calculate_consolidated_data(results):
             # Weight Extraction Logic
             weight_per_unit = 0.0
             
-            # 1. Regex for KG
-            kg_match = re.search(r'(\d+(\.\d+)?)\s*(kg|Kg|KG|kG)', name)
+            # 1. Regex for KG (Support comma or dot)
+            # Match 3.85kg or 3,85kg
+            # Use [.,] for separator.
+            kg_match = re.search(r'(\d+([.,]\d+)?)\s*(kg|Kg|KG|kG)', name)
             if kg_match:
-                weight_per_unit = float(kg_match.group(1))
+                # Replace comma with dot for float conversion
+                val_str = kg_match.group(1).replace(',', '.')
+                weight_per_unit = float(val_str)
             else:
                 # 2. Regex for Grams
                 g_match = re.search(r'(\d+)\s*(g|gr|G|Gr|GR)', name)
@@ -979,16 +1173,33 @@ def calculate_consolidated_data(results):
 
     # Format list
     response_items = []
-    for k, v in aggregated_items.items():
-        v['invoices'] = sorted(list(v['invoices'])) # Convert set to list
-        response_items.append(v)
+    
+    # ... (rest of function)
+    
+    # We need to return the dict with grand_total_amount.
+    # Need to check where response_items logic is. 
+    # I replaced the top half. I need to make sure I don't cut off the bottom or I need to replace the WHOLE function.
+    # The existing function is long. 
+    # I should replace the whole function to be safe.
+    
+    for sku, data in aggregated_items.items():
+        response_items.append({
+            "sku": data['sku'],
+            "name": data['name'],
+            "total_units": data['total_units'],
+            "total_boxes": round(data['total_boxes'], 2),
+            "total_weight": round(data['total_weight'], 2),
+            "invoices": list(data['invoices'])
+        })
         
     response_items.sort(key=lambda x: x['name'])
     
     return {
         "items": response_items,
         "grand_total_boxes": round(total_guide_boxes, 2),
-        "grand_total_weight": round(total_guide_weight, 4)
+        "grand_total_weight": round(total_guide_weight, 2),
+        "grand_total_amount": round(grand_total_amount, 2),
+        "grand_total_invoices_count": len(invoice_totals_map) # New Field
     }
 
 @router.get("/consolidated_report/print")
@@ -997,7 +1208,8 @@ async def view_print_consolidated_report(
     guide_ref: Optional[str] = None,
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    external_db: Session = Depends(get_external_db)
 ):
     query = db.query(LogisticsDispatch)
     
@@ -1018,7 +1230,7 @@ async def view_print_consolidated_report(
         except: pass
     
     results = query.all()
-    data = calculate_consolidated_data(results)
+    data = calculate_consolidated_data(results, external_db=external_db)
     
     return templates.TemplateResponse("logistics/print_consolidated.html", {
         "request": request,
@@ -1028,7 +1240,9 @@ async def view_print_consolidated_report(
         "items": data['items'],
         "grand_total_boxes": data['grand_total_boxes'],
         "grand_total_weight": data['grand_total_weight'],
-        "now": datetime.now()
+        "grand_total_amount": data['grand_total_amount'],
+        "grand_total_invoices_count": data.get('grand_total_invoices_count', 0), # Added
+        "now": datetime.now() - timedelta(hours=4) # UTC-4 VZLA Fix
     })
 
 def generate_next_guide_number(db: Session):

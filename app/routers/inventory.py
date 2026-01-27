@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request, HTTPException, BackgroundTasks
+from ..email_utils import send_email
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -40,6 +41,7 @@ def generate_inventory_correlative(db: Session) -> str:
 @router.post("/api/full-capture", response_model=schemas.InventoryHeader)
 async def create_full_capture(
     data: schemas.InventoryHeaderCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_active_user)
 ):
@@ -69,7 +71,32 @@ async def create_full_capture(
         db.add(db_line)
         
     db.commit()
+    db.commit()
     db.refresh(header)
+
+    # --- Email Notification ---
+    try:
+        subscribers = db.query(models.NotificationSubscriber).filter(
+            models.NotificationSubscriber.report_type == 'Inventory',
+            models.NotificationSubscriber.is_active == True
+        ).all()
+        
+        if subscribers:
+            recipients = [s.email for s in subscribers]
+            subject = f"Nuevo Inventario Registrado: {correlative}"
+            body = f"""
+            <h3>Nuevo Registro de Inventario</h3>
+            <p><strong>Correlativo:</strong> {correlative}</p>
+            <p><strong>Fecha:</strong> {header.date}</p>
+            <p><strong>Usuario:</strong> {user.username}</p>
+            <p><strong>Registros:</strong> {len(data.lines)} ítems</p>
+            <hr>
+            <p><a href="http://192.168.1.18:8000/logistics/inventory">Ver en Sistema</a></p>
+            """
+            background_tasks.add_task(send_email, subject, body, recipients, is_html=True)
+    except Exception as e:
+        print(f"Error queuing email: {e}")
+
     return header
 
 @router.get("/api/history", response_model=list[schemas.InventoryHeader])
