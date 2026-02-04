@@ -118,13 +118,6 @@ class LogisticsReceptionMerchandise(Base):
     items_json = Column(Text, nullable=False) # JSON format: [{"item": "X", "qty": 10}, ...]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class LogisticsRoute(Base):
-    __tablename__ = "logistics_routes"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, unique=True, index=True, nullable=False)
-    active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class LogisticsDispatch(Base):
     __tablename__ = "logistics_dispatch"
@@ -195,12 +188,14 @@ class MessageStatus(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'), index=True)
     message_id = Column(Integer, ForeignKey('messages.id'), index=True)
-    is_read = Column(Boolean, default=False)
-    is_starred = Column(Boolean, default=False)
-    received_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class LogisticsRoute(Base):
+    __tablename__ = "logistics_routes"
     
-    user = relationship('User')
-    message = relationship('Message')
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class NotificationSubscriber(Base):
     __tablename__ = 'notification_subscribers'

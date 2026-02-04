@@ -95,11 +95,14 @@
         width: 100%;
         border-collapse: collapse;
         font-size: 0.95rem;
+        table-layout: fixed;
+        /* Enforce column widths if needed, or just let truncate work */
     }
 
     .odoo-table thead th {
         text-align: left;
-        padding: 0.75rem 1rem;
+        padding: 0.5rem 0.75rem;
+        /* Reduced padding */
         border-bottom: 2px solid #dee2e6;
         color: #495057;
         font-weight: 700;
@@ -108,10 +111,32 @@
     }
 
     .odoo-table tbody td {
-        padding: 0.75rem 1rem;
+        padding: 0.4rem 0.75rem;
+        /* Compact padding */
         border-bottom: 1px solid #e9ecef;
         color: #212529;
         vertical-align: middle;
+    }
+
+    /* TRUNCATION UTILITY */
+    .truncate-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 300px;
+        /* Default max width, can override inline */
+        display: block;
+        /* Needed for div/span, but on td acts usually if max-width set? */
+    }
+
+    /* Apply truncation to td directly via class */
+    td.truncate-cell {
+        display: table-cell;
+        /* Reset display */
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .odoo-table tbody tr:hover {
@@ -208,27 +233,27 @@
             <thead>
                 <tr>
                     {% if active_tab == 'reception_production' %}
-                    <th>Fecha</th>
-                    <th>Prod Ref</th>
+                    <th style="width: 150px;">Fecha</th>
+                    <th style="width: 100px;">Prod Ref</th>
                     <th>Producto</th>
-                    <th class="text-right">Cantidad</th>
+                    <th class="text-right" style="width: 100px;">Cantidad</th>
                     <th>Notas</th>
                     {% elif active_tab == 'reception_merchandise' %}
-                    <th>Fecha</th>
+                    <th style="width: 150px;">Fecha</th>
                     <th>Proveedor</th>
                     <th>Documento</th>
                     <th>Items</th>
                     {% elif active_tab == 'dispatch' %}
-                    <th>Fecha</th>
+                    <th style="width: 150px;">Fecha</th>
                     <th>Cliente Destino</th>
                     <th>Documento</th>
                     <th>Items</th>
                     {% elif active_tab == 'inventory' %}
-                    <th>Fecha</th>
+                    <th style="width: 150px;">Fecha</th>
                     <th>Ref</th>
                     <th>Estado</th>
                     <th>Notas</th>
-                    <th>Acciones</th>
+                    <th style="width: 120px;">Acciones</th>
                     {% endif %}
                 </tr>
             </thead>
@@ -238,21 +263,21 @@
                     {% if active_tab == 'reception_production' %}
                     <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
                     <td>{{ item.production_report_id or '-' }}</td>
-                    <td>{{ item.product_name }}</td>
+                    <td class="truncate-cell" title="{{ item.product_name }}">{{ item.product_name }}</td>
                     <td class="text-right">{{ item.quantity }}</td>
-                    <td>{{ item.notes or '' }}</td>
+                    <td class="truncate-cell" title="{{ item.notes or '' }}">{{ item.notes or '' }}</td>
 
                     {% elif active_tab == 'reception_merchandise' %}
                     <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
-                    <td>{{ item.supplier }}</td>
-                    <td>{{ item.document_ref }}</td>
-                    <td class="json-cell" data-json='{{ item.items_json }}'></td>
+                    <td class="truncate-cell" title="{{ item.supplier }}">{{ item.supplier }}</td>
+                    <td class="truncate-cell" title="{{ item.document_ref }}">{{ item.document_ref }}</td>
+                    <td class="json-cell truncate-cell" data-json='{{ item.items_json }}'></td>
 
                     {% elif active_tab == 'dispatch' %}
                     <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
-                    <td>{{ item.client_destination }}</td>
-                    <td>{{ item.document_ref }}</td>
-                    <td class="json-cell" data-json='{{ item.items_json }}'></td>
+                    <td class="truncate-cell" title="{{ item.client_destination }}">{{ item.client_destination }}</td>
+                    <td class="truncate-cell" title="{{ item.document_ref }}">{{ item.document_ref }}</td>
+                    <td class="json-cell truncate-cell" data-json='{{ item.items_json }}'></td>
 
                     {% elif active_tab == 'inventory' %}
                     <!-- Inventory now returns Headers, not flattened Capture Objects 
@@ -264,10 +289,10 @@
                             {{ item.status }}
                         </span>
                     </td>
-                    <td>{{ item.notes or '-' }}</td>
+                    <td class="truncate-cell" title="{{ item.notes or '-' }}">{{ item.notes or '-' }}</td>
                     <td>
                         <a href="/reports/inventory/print/{{ item.id }}" target="_blank" class="btn-filter"
-                            style="text-decoration: none; display: inline-flex; width: auto;">
+                            style="text-decoration: none; display: inline-flex; width: auto; padding: 0.2rem 0.5rem; font-size: 0.85rem;">
                             🖨️ Imprimir
                         </a>
                     </td>
@@ -297,7 +322,8 @@
                     // Summarize: "3 Items: Item A (10)..."
                     const count = data.length;
                     const preview = data.slice(0, 2).map(i => `${i.item} (${i.qty})`).join(', ');
-                    td.textContent = `${count} Items: ${preview}${count > 2 ? '...' : ''}`;
+                    const text = `${count} Items: ${preview}${count > 2 ? '...' : ''}`;
+                    td.textContent = text;
                     td.title = JSON.stringify(data, null, 2); // Tooltip full details
                 }
             } catch (e) {

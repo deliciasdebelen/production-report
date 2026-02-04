@@ -122,7 +122,7 @@ def get_pending_planning(db: Session = Depends(get_db)):
     # Return formatted list for dropdown
     plans = db.query(models.ProductionPlanning).filter(
         models.ProductionPlanning.status == 'Pending'
-    ).order_by(models.ProductionPlanning.id.desc()).all()
+    ).order_by(models.ProductionPlanning.id.asc()).all()
     
     return [{
         "id": p.id,
@@ -643,5 +643,6 @@ def get_visor_data(db: Session = Depends(get_db)):
         "planning": planning_list,
         "production": production_list
     }
+
 
 

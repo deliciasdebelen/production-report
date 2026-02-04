@@ -97,6 +97,89 @@ async def view_dispatch(request: Request, user: User = Depends(get_current_user)
         "next_guide_number": next_ref
     })
 
+@router.get("/dispatch/{dispatch_id}/print-labels")
+async def view_dispatch_labels(
+    dispatch_id: int, 
+    request: Request, 
+    user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    if not user: return RedirectResponse("/login")
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    log = db.query(LogisticsDispatch).filter(LogisticsDispatch.id == dispatch_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Guía no encontrada")
+        
+    # Parse Items
+    try:
+        items = json.loads(log.items_json)
+    except:
+        items = []
+
+    # Generate Labels
+    labels = []
+    # Extract Guide Ref (remove invoice part if present for cleaner label)
+    # Ref format: "GUIDE | Fact: 123,456"
+    guide_ref = log.document_ref.split(' | ')[0]
+    
+    date_str = log.date.strftime('%d/%m/%Y')
+    
+    for item in items:
+        # Check Total Boxes
+        try:
+            total_boxes = float(item.get('total_cajas', 0))
+            # If 0, skip or maybe just print 1 label if qty > 0?
+            # User request: "imprimir por cada cantidad de cajas 1 etiqueta"
+            # If total_boxes is 0.5? Print 1? 
+            # If total_boxes is 0 (e.g. only units)? 
+            # Let's assume boxes integer logic. round up? 
+            # If 5.5 boxes, usually means 5 boxes + loose. 
+            # Or 6 physical boxes.
+            # Let's use ceil logic or just integer part if breakdown usually says "X CAJ".
+            
+            # Safe approach: Round up to nearest integer for label count
+            import math
+            box_count = int(math.ceil(total_boxes))
+            
+            if box_count == 0 and float(item.get('qty', 0)) > 0:
+                 # Fallback: Print 1 label if there are units but no boxes defined?
+                 # User specific example: "Caja 1 de 10". Implies box tracking.
+                 # If no boxes, maybe no labels needed? Or 1 generic.
+                 # Let's Skip if 0 boxes to be safe, unless user complains.
+                 pass
+
+            factura = item.get('fact', 'N/A')
+            descripcion = item.get('item', 'Item')
+            num_lote = item.get('num_lote', '') # Extract Lote
+
+            # Clean description (remove code if present at end)
+            # Description usually "DESC (CODE)"
+            # Let's keep it full or short? User example: "PIPITA..."
+            
+            for i in range(1, box_count + 1):
+                labels.append({
+                    "factura": factura,
+                    "guia": guide_ref,
+                    "descripcion": descripcion,
+                    "num_lote": num_lote, # Pass to template
+                    "box_current": i,
+                    "box_total": box_count,
+                    "fecha": date_str
+                })
+                
+        except Exception as e:
+            print(f"Error generating label for item: {e}")
+
+    return templates.TemplateResponse("logistics/print_labels.html", {
+        "request": request,
+        "user": user,
+        "labels": labels,
+        "document_ref": log.document_ref,
+        "total_labels": len(labels)
+    })
+
 # --- API Actions ---
 
 @router.get("/api/clients/search")
@@ -257,6 +340,7 @@ async def get_invoice_items(
              co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
              art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
              co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'units']) or "UNI").strip()
+             num_lote = str(get_col(row_map, ['numero_lote', 'num_lote', 'lote', 'nro_lote', 'Lote']) or "").strip()
              
              client_name = str(get_col(row_map, ['Cliente', 'cli_des', 'Nombre Cliente']) or "Cliente Desconocido").strip()
              
@@ -283,13 +367,15 @@ async def get_invoice_items(
 
              if not co_art: continue
 
-             key = co_art
+             # Key by (SKU, Batch) to separate batches in list
+             key = (co_art, num_lote)
              if key not in aggregated:
                  aggregated[key] = {
                      "fact_num": fact_num_row, 
                      "co_art": co_art,
                      "art_des": art_des,
                      "co_uni": co_uni, 
+                     "num_lote": num_lote,
                      "total_articulo": 0.0,
                      "total_cajas": 0.0,
                      "unidad_cajas": "CAJ", # Default or extract
@@ -322,6 +408,155 @@ async def get_invoice_items(
 
     except Exception as e:
         print(f"Error fetching invoice items V2: {e}")
+        return {"error": str(e)}
+
+@router.get("/api/external/delivery_notes/search")
+async def search_delivery_notes(
+    q: str,
+    db: Session = Depends(get_external_db)
+):
+    """
+    Search delivery notes by partial number.
+    Returns list of { doc_num, client }
+    """
+    if not q or len(q) < 2: return []
+    
+    try:
+        # Determine SQL dialect for limit syntax
+        dialect = db.bind.dialect.name
+        
+        if dialect == "mssql":
+            query = text("""
+                SELECT TOP 20 f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                FROM saNotaEntregaVenta f
+                LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                ORDER BY f.doc_num DESC
+            """)
+        else:
+            # Fallback for SQLite/others
+            query = text("""
+                SELECT f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                FROM saNotadentregaventa f
+                LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                ORDER BY f.doc_num DESC
+                LIMIT 20
+            """)
+        
+        results = db.execute(query, {"q": f"%{q}%"}).fetchall()
+        
+        data = []
+        for r in results:
+            data.append({
+                "doc_num": r.doc_num.strip(),
+                "client": r.client_name.strip(),
+                "display": f"{r.doc_num.strip()} - {r.client_name.strip()}"
+            })
+            
+        return data
+    except Exception as e:
+        print(f"Error searching delivery notes: {e}")
+        return []
+
+@router.get("/api/external/delivery_note/{doc_num}/items")
+async def get_delivery_note_items(
+    doc_num: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_external_db),
+    local_db: Session = Depends(get_db)
+):
+    """
+    Get items for a SPECIFIC delivery note.
+    """
+    try:
+        # 1. Check if already dispatched (Optional validation, maybe warn?)
+        # For now, let's skip strict validation or use same logic if needed.
+        
+        # 2. Execute SP
+        sql = text("EXEC SP_CRM_NotasEntregaPendientesPorClienteV2 @doc_num = :d")
+        result_proxy = db.execute(sql, {"d": doc_num})
+        result = result_proxy.fetchall()
+        
+        if not result:
+            return []
+
+        def get_col(row_map, candidates):
+            for c in candidates:
+                if c in row_map: return row_map[c]
+            keys = list(row_map.keys())
+            for c in candidates:
+                for k in keys:
+                    if c.lower() == k.lower(): return row_map[k]
+            for c in candidates:
+                for k in keys:
+                    if c.lower() in k.lower(): return row_map[k]
+            return None
+
+        aggregated = {}
+        total_factura = 0.0 
+        client_name = ""
+
+        for row in result:
+             row_map = row._mapping
+             
+             # Extract Columns
+             # Note: SP might return different column names, but usually consistent.
+             fact_num_row = str(get_col(row_map, ['Número Documento', 'doc_num', 'Numero Documento', 'Número Nota']) or doc_num).strip()
+             
+             co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
+             art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
+             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'units']) or "UNI").strip()
+             num_lote = str(get_col(row_map, ['numero_lote', 'num_lote', 'lote', 'nro_lote', 'Lote']) or "").strip()
+             
+             client_name = str(get_col(row_map, ['Cliente', 'cli_des', 'Nombre Cliente']) or "Cliente Desconocido").strip()
+             
+             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo'])
+             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas'])
+             
+             # Price/Total
+             raw_line_total = get_col(row_map, ['monto_renglon', 'total_renglon', 'precio_total']) 
+             if raw_line_total:
+                 try: total_text = float(raw_line_total)
+                 except: total_text = 0.0
+                 total_factura += total_text
+             
+             try: units = float(raw_units) if raw_units is not None else 1.0
+             except: units = 1.0
+             try: boxes = float(raw_boxes) if raw_boxes is not None else 0.0
+             except: boxes = 0.0
+
+             if not co_art: continue
+
+             # Key by (SKU, Batch)
+             key = (co_art, num_lote)
+             if key not in aggregated:
+                 aggregated[key] = {
+                     "fact_num": fact_num_row, 
+                     "co_art": co_art,
+                     "art_des": art_des,
+                     "co_uni": co_uni, 
+                     "num_lote": num_lote,
+                     "total_articulo": 0.0,
+                     "total_cajas": 0.0,
+                     "unidad_cajas": "CAJ", 
+                     "client_name": client_name,
+                     "weight_base": 0.0
+                 }
+             aggregated[key]['total_articulo'] += units
+             aggregated[key]['total_cajas'] += boxes
+        
+        # Flatten
+        response_list = []
+        for v in aggregated.values():
+            v['total_cajas'] = round(v['total_cajas'], 2)
+            v['invoice_total'] = total_factura 
+            response_list.append(v)
+            
+        return response_list
+
+    except Exception as e:
+        print(f"Error fetching delivery note items: {e}")
         return {"error": str(e)}
 
 @router.get("/api/external/client/{co_cli}/pending-invoices")

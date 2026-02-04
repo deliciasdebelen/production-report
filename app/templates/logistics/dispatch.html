@@ -43,7 +43,13 @@
             <!-- Header Fields -->
             <div class="grid-2" style="gap: 1rem; margin-bottom: 1.5rem; align-items: start;">
                 <div>
-                    <label class="form-label"
+                    <!-- Document Type Toggle -->
+                    <button type="button" id="btnDocToggle" onclick="toggleDocType()"
+                        style="display: block; font-size: 0.75rem; padding: 2px 8px; margin-bottom: 4px; cursor: pointer; border: 1px solid var(--border); background: #f1f5f9; border-radius: 4px; color: var(--text-muted);">
+                        🔄 Cambiar a Nota de Entrega
+                    </button>
+
+                    <label class="form-label" id="lblDocType"
                         style="font-weight: 600; color: #3b82f6; display: block; margin-bottom: 0.25rem;">Número de
                         Factura</label>
                     <div class="input-group" style="display:flex; gap:0.5rem;">
@@ -111,7 +117,7 @@
                             <tr>
                                 <th style="width: 50px;"></th>
                                 <th>Cliente</th>
-                                <th>Facturas</th>
+                                <th>Documento</th>
                                 <th>Artículo</th>
                                 <th style="width: 100px;">Cant.</th>
                                 <th style="width: 100px;">Unidad</th>
@@ -178,11 +184,18 @@
                             log.date.strftime('%d/%m %H:%M') }}</span>
 
                         <!-- Print Button -->
-                        <button onclick="printDispatch('{{ log.id }}')"
-                            style="background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.7; transition: opacity 0.2s; margin-top: 0.25rem;"
-                            title="Imprimir Guía">
-                            🖨️
-                        </button>
+                        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.25rem;">
+                            <button onclick="printDispatchLabels('{{ log.id }}')"
+                                style="background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.8; transition: opacity 0.2s;"
+                                title="Imprimir Etiquetas (Cajas)">
+                                🏷️
+                            </button>
+                            <button onclick="printDispatch('{{ log.id }}')"
+                                style="background: none; border: none; cursor: pointer; font-size: 1.1rem; opacity: 0.7; transition: opacity 0.2s;"
+                                title="Imprimir Guía">
+                                🖨️
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -470,25 +483,40 @@
     }
 
     // --- Invoice Autocomplete & Search Logic ---
+    // --- Invoice Autocomplete & Search Logic ---
     const invoiceInput = document.getElementById('invoiceInput');
     const invoiceList = document.getElementById('invoiceList');
     let invoiceDebounce;
 
+    // State: 'invoice' or 'delivery_note'
+    let currentDocType = 'invoice';
+
+    function toggleDocType() {
+        const btn = document.getElementById('btnDocToggle');
+        const lbl = document.getElementById('lblDocType');
+        const input = document.getElementById('invoiceInput');
+
+        if (currentDocType === 'invoice') {
+            currentDocType = 'delivery_note';
+            btn.innerHTML = '🔄 Cambiar a Factura';
+            lbl.innerText = 'Número de Nota de Entrega';
+            input.placeholder = 'Buscar Nota de Entrega...';
+        } else {
+            currentDocType = 'invoice';
+            btn.innerHTML = '🔄 Cambiar a Nota de Entrega';
+            lbl.innerText = 'Número de Factura';
+            input.placeholder = 'Buscar Factura (Escriba nro o cliente)...';
+        }
+
+        // Clear input logic
+        input.value = '';
+        input.focus();
+    }
+
     invoiceInput.addEventListener('input', (e) => {
         const val = e.target.value;
-
-        // If user selects an option "DOC - CLIENT", extract DOC
-        // Format: "DOC - CLIENT"
         if (val.includes(' - ')) {
-            const parts = val.split(' - ');
-            // If it matches a known format, maybe auto-trigger search?
-            // Let's rely on user pressing Enter or Button for final confirmation to avoid accidental adds.
-            // But we could strip the client part for the value if we want cleaner input.
-            // Let's keep the full string for visibility or strip it?
-            // Users usually prefer seeing what they picked.
-            // But searchInvoice needs the ID.
-            // Let's check if it matches a datalist option exactly?
-            // For now, let's just let them search. searchInvoice needs to parse it.
+            // Optional: Auto-select logic if desired
         }
 
         if (val.length < 2) return;
@@ -496,13 +524,18 @@
         clearTimeout(invoiceDebounce);
         invoiceDebounce = setTimeout(async () => {
             try {
-                const res = await fetch(`/logistics/api/external/invoices/search?q=${encodeURIComponent(val)}`);
+                // Dynamic Endpoint
+                const endpoint = currentDocType === 'invoice'
+                    ? '/logistics/api/external/invoices/search'
+                    : '/logistics/api/external/delivery_notes/search';
+
+                const res = await fetch(`${endpoint}?q=${encodeURIComponent(val)}`);
                 if (res.ok) {
                     const data = await res.json();
                     invoiceList.innerHTML = '';
-                    data.forEach(inv => {
+                    data.forEach(item => {
                         const option = document.createElement('option');
-                        option.value = `${inv.doc_num} - ${inv.client}`; // Display value
+                        option.value = `${item.doc_num} - ${item.client}`;
                         invoiceList.appendChild(option);
                     });
                 }
@@ -523,7 +556,6 @@
         const input = document.getElementById('invoiceInput');
         let val = input.value.trim();
 
-        // Extract Doc Num if "DOC - CLIENT" format
         if (val.includes(' - ')) {
             val = val.split(' - ')[0].trim();
         }
@@ -531,39 +563,44 @@
         const docNum = val;
         if (!docNum) return;
 
-        // Check if already added
         const hiddenInput = document.getElementById('importedInvoices');
         const currentInvoices = hiddenInput.value ? hiddenInput.value.split(',') : [];
-        if (currentInvoices.includes(docNum)) {
-            alert("Esta factura ya está en la lista actual.");
+
+        // Use prefix to uniqueness
+        const prefix = currentDocType === 'invoice' ? 'FACT' : 'NOTA';
+        const storedValue = `${prefix}:${docNum}`;
+
+        if (currentInvoices.includes(storedValue)) {
+            alert(`${currentDocType === 'invoice' ? 'Esta factura' : 'Esta nota'} ya está en la lista actual.`);
             return;
         }
 
-        // Show loading state?
         input.disabled = true;
 
         try {
-            const res = await fetch(`/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`);
+            const endpoint = currentDocType === 'invoice'
+                ? `/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`
+                : `/logistics/api/external/delivery_note/${encodeURIComponent(docNum)}/items`;
+
+            const res = await fetch(endpoint);
             const data = await res.json();
 
             if (data.error) {
-                alert(data.error); // Show validation error from backend
+                alert(data.error);
                 input.disabled = false;
                 return;
             }
             if (!Array.isArray(data) || data.length === 0) {
-                alert("Factura no encontrada o sin ítems pendientes.");
+                alert(`${currentDocType === 'invoice' ? 'Factura no encontrada' : 'Nota de entrega no encontrada'} o sin ítems pendientes.`);
                 input.disabled = false;
                 return;
             }
 
-            // Add Items
-            // Clear empty row if initial
             if (items.length === 1 && !items[0].item && !items[0].qty) {
                 items = [];
             }
 
-            const invoiceTotal = data[0].invoice_total || 0;
+            const totalAmount = data[0].invoice_total || 0;
             const clientName = data[0].client_name || '';
 
             data.forEach(invItem => {
@@ -575,58 +612,81 @@
                     unit: invItem.co_uni || 'Unid',
                     total_cajas: invItem.total_cajas,
                     unidad_cajas: invItem.unidad_cajas,
-                    invoice_total: invoiceTotal // Added this field
+                    num_lote: invItem.num_lote,
+                    invoice_total: totalAmount
                 });
             });
 
-            // Update Badges & Client Field
-            currentInvoices.push(docNum);
+            currentInvoices.push(storedValue);
             hiddenInput.value = currentInvoices.join(',');
 
-            updateBadges(currentInvoices, invoiceTotal);
+            // Pass just the list, updateBadges parses it
+            updateBadges(currentInvoices);
 
-            // Set Client Destination hidden or implicitly? 
-            // The form had a 'client_destination' input being filled. 
-            // We removed it from UI but backend expects it?
-            // Wait, backend logic: "final_client = client_destination # Default to form input"
-            // We should ensure client_destination is sent.
-            // Let's assume we add a hidden input for client or auto-fill it if we keep it visible?
-            // "Display Client Name... in report". 
-            // We should append client name to badge? OR set a main client?
-            // If multiple clients, backend handles it.
-
-            // Just ensuring items rendering is updated
+            // Assume renderItems or similar exists. 
+            // In typical flow we modify 'items' then user might see updates if Vue/React, 
+            // but this is vanilla JS.
+            // I'll ensure I call renderItems() or addItemRow() (if logic adds there).
+            // Actually, based on previous code reading, `items` is just an array, logic needs to re-render table.
             renderItems();
+
             input.value = '';
 
         } catch (e) {
             console.error(e);
-            alert("Error consultando factura");
+            alert("Error consultando documento");
         } finally {
             input.disabled = false;
             input.focus();
         }
     }
 
-    function updateBadges(invoices, lastTotal = 0) {
+    function updateBadges(invoices) {
         const badgeContainer = document.getElementById('invoiceBadges');
         badgeContainer.innerHTML = '';
-        invoices.forEach(ref => {
+        invoices.forEach(val => {
+            let type = 'Fact.';
+            let cleanNum = val;
+
+            if (val.includes(':')) {
+                const parts = val.split(':');
+                if (parts[0] === 'NOTA') type = 'Nota';
+                cleanNum = parts[1];
+            } else {
+                // Determine inferred type if no prefix? (Legacy support)
+                // Assume Fact if raw number.
+            }
+
             const span = document.createElement('span');
             span.style.background = '#e0f2fe';
             span.style.color = '#0369a1';
             span.style.padding = '2px 8px';
             span.style.borderRadius = '4px';
             span.style.fontSize = '0.8rem';
+            span.style.display = 'flex';
+            span.style.alignItems = 'center';
+            span.style.gap = '4px';
 
-            // Format total if provided? We only have the last one easily.
-            // Ideally we store per-invoice data. 
-            // For now, simpler: Just Badge. 
-            // User asked "el nombre cliente en el reporte... al lado del numero factura".
+            // Pass 'val' (prefixed) to removeInvoice
+            span.innerHTML = `<strong>${type}</strong> ${cleanNum} <span onclick="removeInvoice('${val}')" style="cursor:pointer; font-weight:bold; color: #0284c7; margin-left: 4px;">&times;</span>`;
 
-            span.textContent = `Fact. ${ref}`;
             badgeContainer.appendChild(span);
         });
+    }
+
+    function removeInvoice(val) {
+        const hiddenInput = document.getElementById('importedInvoices');
+        let list = hiddenInput.value ? hiddenInput.value.split(',') : [];
+        list = list.filter(i => i !== val);
+        hiddenInput.value = list.join(',');
+
+        let cleanNum = val;
+        if (val.includes(':')) cleanNum = val.split(':')[1];
+
+        // Remove items
+        items = items.filter(i => i.fact !== cleanNum);
+        renderItems();
+        updateBadges(list);
     }
 
     // --- Legacy Functions Removed (checkPendingInvoices, importSpecificInvoice, importSelectedInvoices) ---
@@ -845,6 +905,19 @@
         window.open(
             `/logistics/dispatch/${id}/print`,
             'PrintDispatch',
+            `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
+        );
+    }
+
+    function printDispatchLabels(id) {
+        const width = 800;
+        const height = 600;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+
+        window.open(
+            `/logistics/dispatch/${id}/print-labels`,
+            'Print',
             `width=${width},height=${height},top=${top},left=${left},resizable=yes,scrollbars=yes`
         );
     }

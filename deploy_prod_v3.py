@@ -27,6 +27,8 @@ def create_tarball(output_filename):
             return tarinfo
 
         tar.add("app", arcname="app", filter=filter_func)
+        tar.add("scripts", arcname="scripts", filter=filter_func)
+        tar.add("docs", arcname="docs", filter=filter_func)
         tar.add("docker-compose.yml", arcname="docker-compose.yml")
         tar.add("Dockerfile", arcname="Dockerfile")
         tar.add("requirements.txt", arcname="requirements.txt")

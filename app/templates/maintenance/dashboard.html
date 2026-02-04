@@ -235,6 +235,11 @@
 
                 <!-- Full Width Actions -->
                 <div class="col-span-4" style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 1rem;">
+                    <button onclick="deleteSelected('logistics')" class="btn-danger"
+                        style="background: white; color: var(--danger); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        🗑️ Eliminar Seleccionados
+                    </button>
+
                     <form action="/maintenance/data/delete" method="post"
                         onsubmit="return confirm('ATENCION: Se borrarán los registros seleccionados.');">
                         <input type="hidden" name="table" id="formLogTable">
@@ -242,7 +247,7 @@
                         <input type="hidden" name="start_date" id="formLogStart">
                         <input type="hidden" name="end_date" id="formLogEnd">
                         <button type="submit" onclick="syncLogForms()" class="btn-danger"
-                            style="background: white; color: var(--danger); border: 1px solid var(--danger); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">🗑️
+                            style="background: white; color: var(--danger); border: 1px solid var(--danger); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600;">⚠️
                             ELIMINAR TODO EN RANGO</button>
                     </form>
                 </div>
@@ -411,12 +416,18 @@
         if (data.length === 0) {
             html += '<td style="padding:1rem;">No se encontraron datos.</td></tr></table>';
         } else {
+            // Checkbox Header
+            html += '<th style="padding:0.5rem; width: 40px;"><input type="checkbox" onclick="toggleAll(this)"></th>';
+
             const keys = Object.keys(data[0]).filter(k => !['items_json', 'notes', '_sa_instance_state'].includes(k));
             keys.forEach(k => html += `<th style="padding:0.5rem; text-align:left;">${k}</th>`);
             html += '<th style="padding:0.5rem;">Acción</th></tr></thead><tbody>';
 
             data.forEach(row => {
                 html += '<tr style="border-bottom:1px solid #eee;">';
+                // Checkbox Cell
+                html += `<td style="padding:0.5rem; text-align:center;"><input type="checkbox" class="row-selector" value="${row.id}"></td>`;
+
                 keys.forEach(k => html += `<td style="padding:0.5rem;">${row[k] === null ? '-' : row[k]}</td>`);
                 html += `<td style="padding:0.5rem;">
                             <button onclick="deleteOne('${tableType}', '${row.id}')" style="color:var(--danger); border:none; background:none; cursor:pointer;">&times; Eliminar</button>
@@ -425,6 +436,46 @@
             html += '</tbody></table>';
         }
         document.getElementById(containerId).innerHTML = html;
+    }
+
+    function toggleAll(source) {
+        document.querySelectorAll('.row-selector').forEach(cb => cb.checked = source.checked);
+    }
+
+    async function deleteSelected(scope) {
+        // scope used to know which table is active if needed, but here we assume 'logistics' tab mainly uses this
+        // or check which tab is visible
+        let table = '';
+        if (scope === 'logistics') {
+            table = document.getElementById('logTable').value;
+        } else {
+            // Fallback or others
+            return;
+        }
+
+        const checkboxes = document.querySelectorAll('.row-selector:checked');
+        if (checkboxes.length === 0) {
+            alert("Selecciona al menos un registro para eliminar.");
+            return;
+        }
+
+        if (!confirm(`¿Eliminar ${checkboxes.length} registros seleccionados?`)) return;
+
+        const ids = Array.from(checkboxes).map(cb => cb.value).join(',');
+
+        const fd = new FormData();
+        fd.append('table', table);
+        fd.append('action', 'many');
+        fd.append('id', ids);
+
+        try {
+            await fetch('/maintenance/data/delete', { method: 'POST', body: fd });
+            // Refresh
+            if (scope === 'logistics') previewLogistics();
+            else alert("Actualiza la vista para ver cambios.");
+        } catch (e) {
+            alert("Error al eliminar");
+        }
     }
 
     async function previewData(table) {
@@ -451,12 +502,19 @@
     async function deleteOne(table, id) {
         if (!confirm(`¿Eliminar registro ID ${id}?`)) return;
         const fd = new FormData();
+        // If tableType passed from renderTable was 'previewLogistics', we need actual table name
+        // Quick fix: renderTable receives the actual table name (e.g., 'inventory') or logic mapping
+        // In previous renderTable call: renderTable(data, 'previewLogistics', table); -> third arg IS table name
+
         fd.append('table', table);
         fd.append('action', 'one');
         fd.append('id', id);
 
         await fetch('/maintenance/data/delete', { method: 'POST', body: fd });
-        previewData(table); // Refresh
+
+        // Refresh based on table type (naive refresh of active tab)
+        if (['planning', 'production'].includes(table)) previewData(table);
+        else previewLogistics();
     }
 </script>
 {% endblock %}

@@ -6,7 +6,7 @@ from ..dependencies import get_db, templates, get_current_user
 from ..models import (
     User, ProductionReport, ProductionPlanning, 
     LogisticsReceptionMerchandise, LogisticsReceptionProduction, 
-    LogisticsDispatch, InventoryCapture, LogisticsRoute, NotificationSubscriber
+    LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine
 )
 from .. import auth_utils
 import datetime
@@ -24,15 +24,11 @@ async def view_maintenance_dashboard(request: Request, db: Session = Depends(get
         raise HTTPException(status_code=403, detail="Not authorized")
         
     users = db.query(User).all()
-    routes = db.query(LogisticsRoute).order_by(LogisticsRoute.name).all()
-    subscribers = db.query(NotificationSubscriber).all()
     
     return templates.TemplateResponse("maintenance/dashboard.html", {
         "request": request,
         "user": user,
-        "users": users,
-        "routes": routes, 
-        "subscribers": subscribers,
+        "users": users, 
         "title": "Mantenimiento - Panel de Control"
     })
 
@@ -89,33 +85,39 @@ async def preview_data(
         model = LogisticsDispatch
         date_field = LogisticsDispatch.date
     elif table == 'inventory':
-        model = InventoryCapture
-        date_field = InventoryCapture.capture_date # String YYYY-MM-DD
+        model = InventoryCaptureHeader
+        date_field = InventoryCaptureHeader.date
     
-    if not model: return {"error": "Invalid table"}
+    if not model: return [{"error": f"Invalid table: {table}"}]
 
     query = db.query(model)
 
     # Date Filtering
     if start_date:
-        if table in ['planning', 'inventory']:
-            query = query.filter(date_field >= start_date)
-        else: 
-             # Datetime fields need casting or precise comparison. 
-             # Safe fallback for sqlite/general: Use variable
-             sd = datetime.datetime.strptime(start_date, "%Y-%m-%d")
-             query = query.filter(date_field >= sd)
+        if table == 'planning': # String
+             query = query.filter(date_field >= start_date)
+        else: # DateTime fields including InventoryCaptureHeader
+             # Safe fallback
+             try:
+                sd = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(date_field >= sd)
+             except:
+                query = query.filter(date_field >= start_date) # Fallback
 
     if end_date:
-        if table in ['planning', 'inventory']:
+        if table == 'planning':
              query = query.filter(date_field <= end_date)
         else:
-             ed = datetime.datetime.strptime(end_date, "%Y-%m-%d")
-             ed_end = datetime.datetime.combine(ed, datetime.time.max)
-             query = query.filter(date_field <= ed_end)
+             try:
+                ed = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+                ed_end = datetime.datetime.combine(ed, datetime.time.max)
+                query = query.filter(date_field <= ed_end)
+             except:
+                query = query.filter(date_field <= end_date)
 
     # Limit for preview
     data = query.order_by(desc(date_field if date_field is not None else model.id)).limit(50).all()
+        
     return data
 
 @router.post("/data/delete")
@@ -138,7 +140,7 @@ async def delete_data(
     elif table == 'logistics_reception_mp': model = LogisticsReceptionMerchandise; date_field = LogisticsReceptionMerchandise.date
     elif table == 'logistics_reception_pt': model = LogisticsReceptionProduction; date_field = LogisticsReceptionProduction.date
     elif table == 'logistics_dispatch': model = LogisticsDispatch; date_field = LogisticsDispatch.date
-    elif table == 'inventory': model = InventoryCapture; date_field = InventoryCapture.capture_date
+    elif table == 'inventory': model = InventoryCaptureHeader; date_field = InventoryCaptureHeader.date
     
     if not model: return RedirectResponse("/maintenance?error=Invalid table", status_code=303)
 
@@ -148,11 +150,11 @@ async def delete_data(
     if action == 'all':
         # Apply filters if present (Critical Safety)
         if start_date:
-            if table in ['planning', 'inventory']: query = query.filter(date_field >= start_date)
+            if table == 'planning': query = query.filter(date_field >= start_date)
             else: query = query.filter(date_field >= datetime.datetime.strptime(start_date, "%Y-%m-%d"))
         
         if end_date:
-            if table in ['planning', 'inventory']: query = query.filter(date_field <= end_date)
+            if table == 'planning': query = query.filter(date_field <= end_date)
             else: query = query.filter(date_field <= datetime.datetime.combine(datetime.datetime.strptime(end_date, "%Y-%m-%d"), datetime.time.max))
         
         # Check count before delete
@@ -160,15 +162,26 @@ async def delete_data(
         if count == 0:
              return RedirectResponse("/maintenance?message=No hay datos para eliminar", status_code=303)
         
+        # Logic for Inventory: Delete lines first
+        if table == 'inventory':
+            # Get IDs to delete
+            headers = query.all()
+            header_ids = [h.id for h in headers]
+            if header_ids:
+                db.query(InventoryCaptureLine).filter(InventoryCaptureLine.header_id.in_(header_ids)).delete(synchronize_session=False)
+
         deleted_count = query.delete(synchronize_session=False)
 
     elif action == 'one' and id:
-        query = query.filter(model.id == id) # ID mostly integer, but ProductionReport is String. SqlAlchemy handles usually.
-        # But wait, Inventory/Planning/Logistics use Integer ID. ProductionReport uses String UUID.
-        # Ensure ID type compat?
-        # Python args are string. SQLAlchemy should adapt for Integer columns automatically if string is numeric.
+        query = query.filter(model.id == id)
+        
         if query.count() == 0:
              return RedirectResponse("/maintenance?message=Registro no encontrado", status_code=303)
+             
+        # Logic for Inventory: Delete lines first
+        if table == 'inventory':
+             db.query(InventoryCaptureLine).filter(InventoryCaptureLine.header_id == id).delete(synchronize_session=False)
+             
         deleted_count = query.delete(synchronize_session=False)
         
     db.commit()
@@ -215,98 +228,3 @@ async def print_report_maintenance(
         "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "date_range": "Generado desde Mantenimiento"
     })
-
-# --- ROUTES MANAGEMENT ---
-@router.post("/routes/add")
-async def add_route(
-    name: str = Form(...), 
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    try:
-        name = name.strip()
-        existing = db.query(LogisticsRoute).filter(LogisticsRoute.name == name).first()
-        if existing:
-            if not existing.active:
-                existing.active = True
-                db.commit()
-                return RedirectResponse("/maintenance?message=Ruta reactivada exitosamente", status_code=303)
-            else:
-                return RedirectResponse("/maintenance?error=La ruta ya existe", status_code=303)
-        
-        new_route = LogisticsRoute(name=name, active=True)
-        db.add(new_route)
-        db.commit()
-        return RedirectResponse("/maintenance?message=Ruta creada exitosamente", status_code=303)
-    except Exception as e:
-         return RedirectResponse(f"/maintenance?error=Error al crear ruta: {e}", status_code=303)
-
-@router.post("/routes/toggle")
-async def toggle_route(
-    route_id: int = Form(...), 
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    route = db.query(LogisticsRoute).filter(LogisticsRoute.id == route_id).first()
-    if route:
-        route.active = not route.active
-        db.commit()
-        clean_status = "activada" if route.active else "desactivada"
-        return RedirectResponse(f"/maintenance?message=Ruta {clean_status}", status_code=303)
-    return RedirectResponse("/maintenance?error=Ruta no encontrada", status_code=303)
-
-@router.post("/routes/delete")
-async def delete_route(
-    route_id: int = Form(...), 
-    db: Session = Depends(get_db), 
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    # Check if used in Dispatch? 
-    # Usually soft delete (toggle) is preferred, but user might want hard delete for mistakes.
-    # Check constraints
-    used = db.query(LogisticsDispatch).filter(LogisticsDispatch.route_id == route_id).count()
-    if used > 0:
-        return RedirectResponse(f"/maintenance?error=No se puede eliminar: Esta ruta se usó en {used} despachos. Desactívela en su lugar.", status_code=303)
-
-    route = db.query(LogisticsRoute).filter(LogisticsRoute.id == route_id).first()
-    if route:
-        db.delete(route)
-        db.commit()
-        return RedirectResponse("/maintenance?message=Ruta eliminada", status_code=303)
-    return RedirectResponse("/maintenance?error=Ruta no encontrada", status_code=303)
-
-# --- NOTIFICATION SUBSCRIBERS ---
-@router.post("/subscribers/add")
-async def add_subscriber(
-    name: str = Form(...),
-    email: str = Form(...),
-    report_type: str = Form(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    new_sub = NotificationSubscriber(name=name, email=email, report_type=report_type, is_active=True)
-    db.add(new_sub)
-    db.commit()
-    return RedirectResponse("/maintenance?message=Suscriptor agregado", status_code=303)
-
-@router.post("/subscribers/delete")
-async def delete_subscriber(
-    sub_id: int = Form(...),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    if current_user.role != 4: raise HTTPException(403)
-    
-    sub = db.query(NotificationSubscriber).filter(NotificationSubscriber.id == sub_id).first()
-    if sub:
-        db.delete(sub)
-        db.commit()
-    return RedirectResponse("/maintenance?message=Suscriptor eliminado", status_code=303)
