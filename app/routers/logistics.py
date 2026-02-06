@@ -1331,20 +1331,49 @@ def calculate_consolidated_data(results, external_db: Session = None):
                 # Use parameterized query with IN clause or multiple queries?
                 # SQLAlchemy text handling of list: 'WHERE doc_num IN :nums'
                 
-                query = text("""
-                    SELECT doc_num, total_neto 
-                    FROM saFacturaVenta 
-                    WHERE doc_num IN :nums
-                """)
-                # Tuple is required for IN clause in some drivers, list in others.
-                res = external_db.execute(query, {"nums": tuple(invoices_list)}).fetchall()
+                # Manually expand parameters to avoid MSSQL ODBC 'IN' clause issues with list/tuples
+                # 1. Check Invoices
+                inv_keys = [f"inv{i}" for i in range(len(invoices_list))]
+                inv_params = {k: v for k, v in zip(inv_keys, invoices_list)}
                 
-                for r in res:
-                    try:
-                        invoice_totals_map[r.doc_num.strip()] = float(r.total_neto or 0.0)
-                    except: pass
+                if inv_params:
+                    query = text(f"""
+                        SELECT doc_num, total_neto 
+                        FROM saFacturaVenta 
+                        WHERE doc_num IN ({', '.join([':' + k for k in inv_keys])})
+                    """)
+                    res = external_db.execute(query, inv_params).fetchall()
+                    
+                    for r in res:
+                        try:
+                            invoice_totals_map[r.doc_num.strip()] = float(r.total_neto or 0.0)
+                        except: pass
+                    
+                    # 2b. Check Delivery Notes for remaining
+                    found_docs = set([r.doc_num.strip() for r in res])
+                else:
+                    found_docs = set()
+                
+                still_missing_list = [i for i in invoices_list if i not in found_docs]
+                
+                if still_missing_list:
+                    ne_keys = [f"ne{i}" for i in range(len(still_missing_list))]
+                    ne_params = {k: v for k, v in zip(ne_keys, still_missing_list)}
+                    
+                    query_ne = text(f"""
+                        SELECT doc_num, total_neto 
+                        FROM saNotaEntregaVenta 
+                        WHERE doc_num IN ({', '.join([':' + k for k in ne_keys])})
+                    """)
+                    res_ne = external_db.execute(query_ne, ne_params).fetchall()
+                    
+                    for r in res_ne:
+                        try:
+                            invoice_totals_map[r.doc_num.strip()] = float(r.total_neto or 0.0)
+                        except: pass
+                        
         except Exception as e:
-            print(f"Error backfilling invoice totals: {e}")
+            print(f"Error backfilling invoice/note totals: {e}")
 
     # 3. Calculate Grand Total
     grand_total_amount = sum(invoice_totals_map.values())
