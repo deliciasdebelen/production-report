@@ -37,6 +37,9 @@ app.include_router(reports.router)
 app.include_router(maintenance.router)
 app.include_router(discuss.router)
 
+from .routers import export
+app.include_router(export.router)
+
 from app.utils_id import get_next_order_number
 
 @app.get("/api/next-id/{model_name}")

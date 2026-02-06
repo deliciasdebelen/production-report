@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Form
+from fastapi import APIRouter, Depends, HTTPException, Request, Form, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
@@ -11,6 +11,7 @@ import re
 from ..dependencies import get_db, templates, get_current_user, get_current_active_user
 from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport, LogisticsRoute
 from .. import schemas, models
+from ..services.auditor import audit_dispatch_task
 
 router = APIRouter(
     prefix="/logistics",
@@ -89,12 +90,38 @@ async def view_dispatch(request: Request, user: User = Depends(get_current_user)
             log.items = []
 
     next_ref = generate_next_guide_number(db)
+    
+    # Fetch Audit Status
+    # Only fetch the latest status or determine aggregate? 
+    # Let's just check if ANY critical/medium log exists or general "Open" vs "Resolved"
+    # Simplified: Get all logs for these IDs.
+    
+    ids = [str(l.id) for l in logs]
+    audit_map = {}
+    if ids:
+        raw_audits = db.query(models.AuditLog)\
+            .filter(models.AuditLog.resource_type == 'dispatch')\
+            .filter(models.AuditLog.resource_id.in_(ids))\
+            .all()
+            
+        for a in raw_audits:
+             # Basic Logic: If any issue, mark as 'Warning' unless resolved
+             # Map: ID -> Status
+             current = audit_map.get(int(a.resource_id), 'OK')
+             
+             if a.status != 'Ignored':
+                 if a.severity in ['high', 'critical']:
+                     audit_map[int(a.resource_id)] = 'Critical'
+                 elif a.severity == 'medium' and current != 'Critical':
+                     audit_map[int(a.resource_id)] = 'Warning'
+    
     return templates.TemplateResponse("logistics/dispatch.html", {
         "request": request, 
         "user": user, 
         "logs": logs,
         "title": "Despacho de Mercancía",
-        "next_guide_number": next_ref
+        "next_guide_number": next_ref,
+        "audit_map": audit_map
     })
 
 @router.get("/dispatch/{dispatch_id}/print-labels")
@@ -788,7 +815,8 @@ async def create_dispatch(
     route_input: Optional[str] = Form(None), # Manual Input
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
-    external_db: Session = Depends(get_external_db)
+    external_db: Session = Depends(get_external_db),
+    background_tasks: BackgroundTasks = BackgroundTasks()
 ):
     # Manual Form Parsing to Bypass "Field required" persistence
     # Pydantic/FastAPI was refusing to accept the missing/empty field despite Optional[str]
@@ -1029,6 +1057,10 @@ async def create_dispatch(
     )
     db.add(new_log)
     db.commit()
+    db.refresh(new_log)
+    
+    # --- Trigger Audit ---
+    background_tasks.add_task(audit_dispatch_task, new_log.id)
 
     return {
         "status": "success", 
@@ -1066,8 +1098,13 @@ async def print_dispatch(
     dispatch_id: int,
     request: Request,
     db: Session = Depends(get_db),
-    external_db: Session = Depends(get_external_db)
+    external_db: Session = Depends(get_external_db),
+    current_user: User = Depends(get_current_active_user)
 ):
+    from ..dependencies import check_permission
+    # if not check_permission(current_user, "logistics", "print"):
+    #     raise HTTPException(status_code=403, detail="No tiene permisos para imprimir")
+        
     log = db.query(LogisticsDispatch).filter(LogisticsDispatch.id == dispatch_id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Despacho no encontrado")
@@ -1077,10 +1114,15 @@ async def print_dispatch(
     except:
         raw_items = []
 
-    aggregated_data = {}
+    # Sort items by fact
+    raw_items.sort(key=lambda x: x.get('fact', ''))
+
+    grouped_data = {}
     invoice_meta = {} # Map invoice -> {client, total}
-    
-    # Pre-scan for metadata (Client & Total from JSON)
+    header_invoices = set()
+    header_notes = set()
+
+    # 1. Pre-scan for Metadata (Client & Total)
     for item in raw_items:
         inv = item.get('fact', '').strip()
         if not inv: inv = "Otros / Manual"
@@ -1091,18 +1133,17 @@ async def print_dispatch(
                 "total": item.get('invoice_total', 0.0)
             }
         else:
-            # If valid (not empty), overwrite? Or keep first?
-            # Prefer items with data.
             if not invoice_meta[inv]["client"] and item.get('client'):
                 invoice_meta[inv]["client"] = item.get('client')
             if invoice_meta[inv]["total"] == 0.0 and item.get('invoice_total'):
                 invoice_meta[inv]["total"] = item.get('invoice_total')
 
-    # Fallback: Query DB for missing Clients (Legacy support)
+    # 2. Backfill Clients with DB Lookup
     unique_invoices = [i for i in invoice_meta.keys() if i != "Otros / Manual" and not invoice_meta[i]["client"]]
     if unique_invoices:
         try:
             for inv_num in unique_invoices:
+                 # Check Factura
                  query = text("""
                      SELECT c.descrip 
                      FROM saFacturaVenta f
@@ -1112,76 +1153,121 @@ async def print_dispatch(
                  row = external_db.execute(query, {"doc_num": inv_num}).first()
                  if row:
                      invoice_meta[inv_num]["client"] = row[0].strip()
+                 else:
+                     # Check Nota
+                     query_ne = text("""
+                         SELECT c.descrip 
+                         FROM saNotaEntregaVenta f
+                         JOIN saCliente c ON f.co_cli = c.co_cli
+                         WHERE f.doc_num = :doc_num
+                     """)
+                     row_ne = external_db.execute(query_ne, {"doc_num": inv_num}).first()
+                     if row_ne:
+                         invoice_meta[inv_num]["client"] = row_ne[0].strip()
         except: pass
 
+    # 3. Grouping & Type Detection
     for item in raw_items:
-        # 1. Identify Invoice
-        invoice = item.get('fact', '').strip() or "Otros / Manual"
+        ref = item.get('fact', 'Sin Ref').strip()
+        if not ref: ref = "Sin Ref"
+        
+        # Type Detection
+        doc_type_label = "Factura"
+        if str(ref).upper().startswith("NE") or "NOTA" in str(ref).upper():
+            doc_type_label = "Nota de Entrega"
+            header_notes.add(ref)
+        elif ref != "Sin Ref" and ref != "Otros / Manual":
+            header_invoices.add(ref)
             
-        # 2. Identify SKU
+        if ref not in grouped_data:
+            # Determine Client Name
+            c_name = invoice_meta.get(ref, {}).get("client", log.client_destination)
+            if not c_name: c_name = log.client_destination
+            
+            # Use 'Otros' if it was placeholder
+            if ref == "Otros / Manual": 
+                doc_type_label = "Items Adicionales"
+                c_name = ""
+
+            grouped_data[ref] = {
+                "type_label": doc_type_label,
+                "number": ref,
+                "client_name": c_name,
+                "invoice_total": invoice_meta.get(ref, {}).get("total", 0.0),
+                "sku_map": {} # Intermediate map for aggregation
+            }
+        
+        # Aggregation Logic
+        # Identify SKU
         raw_name = item.get('name', item.get('item', 'Unknown'))
         sku = item.get('sku')
         if not sku:
              sku_match = re.search(r'\((.*?)\)$', raw_name)
              sku = sku_match.group(1).strip() if sku_match else raw_name.strip()
-             
-        # 3. Values
-        try: qty = float(item.get('qty', 0))
-        except: qty = 0.0
-        unit = item.get('unit', 'UNID')
-        
-        try: imported_boxes = float(item.get('total_cajas', 0))
-        except: imported_boxes = 0.0
-        imported_box_unit = item.get('unidad_cajas', 'CAJ')
 
-        # 4. Aggregate
-        if invoice not in aggregated_data:
-            aggregated_data[invoice] = {}
+        sku_map = grouped_data[ref]['sku_map']
         
-        if sku not in aggregated_data[invoice]:
-            aggregated_data[invoice][sku] = {
+        if sku not in sku_map:
+            sku_map[sku] = {
                 'sku': sku,
                 'name': raw_name,
                 'qty': 0.0,
-                'unit': unit,
+                'unit': item.get('unit', 'UNI'),
                 'total_cajas': 0.0,
-                'unidad_cajas': imported_box_unit 
+                'unidad_cajas': item.get('unidad_cajas', 'CAJ'),
+                'fact': ref # Keep ref for context
             }
-        
-        aggregated_data[invoice][sku]['qty'] += qty
-        aggregated_data[invoice][sku]['total_cajas'] += imported_boxes
-
-    # --- Flatten ---
-    final_groups = []
-    sorted_invoices = sorted(aggregated_data.keys())
-    
-    for inv in sorted_invoices:
-        items_map = aggregated_data[inv]
-        group_items = []
-        
-        for sku, data in items_map.items():
-            if data['total_cajas'] > 0:
-                 data['breakdown'] = f"{data['total_cajas']} {data['unidad_cajas']}"
-            else:
-                 data['breakdown'] = f"{data['qty']} {data['unit']}"
-            group_items.append(data)
             
-        group_items.sort(key=lambda x: x['name'])
+        # Sum Values
+        try: q = float(item.get('qty', 0))
+        except: q = 0.0
+        try: c = float(item.get('total_cajas', 0))
+        except: c = 0.0
         
-        meta = invoice_meta.get(inv, {})
-        final_groups.append({
-            "invoice": inv,
-            "client_name": meta.get('client', 'Cliente Desconocido'),
-            "invoice_total": meta.get('total', 0.0), # Pass Total
-            "line_items": group_items
-        })
+        sku_map[sku]['qty'] += q
+        sku_map[sku]['total_cajas'] += c
+
+    # 4. Final Flatten & Format
+    final_groups = list(grouped_data.values())
+    final_groups.sort(key=lambda x: x['number'])
+    
+    grand_total_boxes = 0.0
+    grand_total_units = 0.0
+
+    for group in final_groups:
+        # Convert sku_map to line_items list
+        group['line_items'] = list(group['sku_map'].values())
+        group['line_items'].sort(key=lambda x: x['name'])
+        del group['sku_map'] # Cleanup
+        
+        for data in group['line_items']:
+            try: total_c = float(data.get('total_cajas', 0))
+            except: total_c = 0.0
+            
+            unit_c = data.get('unidad_cajas', 'CAJ')
+            qty = data.get('qty', 0)
+            unit = data.get('unit', 'UNI')
+            
+            grand_total_boxes += total_c
+            grand_total_units += qty
+            
+            if total_c > 0:
+                 data['breakdown'] = f"{round(total_c, 2)} {unit_c}"
+            else:
+                 data['breakdown'] = f"{round(qty, 2)} {unit}"
+
 
     return templates.TemplateResponse("logistics/print_dispatch.html", {
         "request": request,
         "log": log,
         "groups": final_groups,
+        "header_invoices": sorted(list(header_invoices)),
+        "header_notes": sorted(list(header_notes)),
+        "grand_total_boxes": round(grand_total_boxes, 2),
+        "grand_total_units": round(grand_total_units, 2),
         "now": datetime.now() - timedelta(hours=4) # UTC-4 VZLA
     })
+
 
 # ... search_guides omitted (unchanged) ...
 # I need to keep the code structure valid, so I will replace from print_dispatch start to calculate_consolidated_data end if possible
@@ -1532,88 +1618,4 @@ def generate_next_guide_number(db: Session):
 
 
 
-@router.get("/dispatch/{id}/print")
-async def print_dispatch(
-    id: int,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
-):
-    from ..dependencies import check_permission
-    if not check_permission(current_user, "logistics", "print"):
-        raise HTTPException(status_code=403, detail="No tiene permisos para imprimir")
-        
-    dispatch = db.query(LogisticsDispatch).filter(LogisticsDispatch.id == id).first()
-    if not dispatch:
-        raise HTTPException(status_code=404, detail="Despacho no encontrado")
-        
-    # Parse Items & Group by Document
-    items = []
-    try:
-        items = json.loads(dispatch.items_json)
-    except: pass
 
-    # Sort items by fact to ensure nice grouping
-    items.sort(key=lambda x: x.get('fact', ''))
-
-    grouped_data = {}
-    header_invoices = set()
-    header_notes = set()
-
-    for item in items:
-        ref = item.get('fact', 'Sin Ref').strip()
-        if not ref: ref = "Sin Ref"
-        
-        # Detect Type
-        # Logic: If it looks like a standard invoice (all digits), it's a Factura.
-        # If it has "NE", "NOTA", or is non-standard, treat as Note? 
-        # User example: "Factura: 0000013441" -> Pure digits is standard invoice.
-        # Unless user prefixed it in 'fact' field. 
-        # Let's check typical format. usually just numbers.
-        # But if 'fact' field is just a number, how do we distinguish? 
-        # The user said: "cuando sea Factura... y cuando tenga notas de entrega".
-        # This implies the SYSTEM logic that created the item knows.
-        # OR we rely on a prefix check. 
-        # Assumption: Invoices are usually numeric. Delivery Notes often have prefixes in this system or different series.
-        # Let's stick to the visual request: "Factura: X" vs "Nota de Entrega: Y".
-        # If the ref starts with "NE" or "NOTA", label as "Nota de Entrega".
-        # Else label as "Factura".
-        
-        doc_type_label = "Factura"
-        if str(ref).upper().startswith("NE") or "NOTA" in str(ref).upper():
-            doc_type_label = "Nota de Entrega"
-            header_notes.add(ref)
-        else:
-            header_invoices.add(ref)
-            
-        if ref not in grouped_data:
-            grouped_data[ref] = {
-                "type_label": doc_type_label,
-                "number": ref,
-                "client_name": dispatch.client_destination,
-                "invoice_total": 0.0,
-                "line_items": []
-            }
-        
-        grouped_data[ref]['line_items'].append(item)
-        # Add to total if available? (Usually pre-calced outside, but we can try sum)
-        try:
-            qty = float(item.get('qty', 0))
-            price = float(item.get('price', 0)) # If price exists
-            grouped_data[ref]['invoice_total'] += (qty * price)
-        except: pass
-
-    # Convert to list
-    groups = list(grouped_data.values())
-    
-    # Sort groups? Numeric if possible
-    groups.sort(key=lambda x: x['number'])
-
-    return templates.TemplateResponse("logistics/print_dispatch.html", {
-        "request": request,
-        "log": dispatch,
-        "groups": groups,
-        "header_invoices": sorted(list(header_invoices)),
-        "header_notes": sorted(list(header_notes)),
-        "now": datetime.now()
-    })

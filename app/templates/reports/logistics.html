@@ -205,7 +205,26 @@
             {% if start_date or end_date %}
             <a href="/reports/logistics?active_tab={{ active_tab }}" class="btn-clear">Limpiar</a>
             {% endif %}
+
+            <button type="button" onclick="exportLogisticsExcel()" class="btn-filter"
+                style="background: #107c41; margin-left: auto;">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+                    <path d="M5.5 10.5A.5.5 0 0 1 6 10h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5z" />
+                </svg>
+                Excel
+            </button>
         </form>
+
+        <script>
+            function exportLogisticsExcel() {
+                const tab = document.querySelector('input[name="active_tab"]').value;
+                const start = document.querySelector('input[name="start_date"]').value;
+                const end = document.querySelector('input[name="end_date"]').value;
+                window.location.href = `/reports/export/${tab}?start_date=${start}&end_date=${end}`;
+            }
+        </script>
     </div>
 
     <!-- Tabs -->

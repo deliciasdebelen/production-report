@@ -216,3 +216,36 @@ class NotificationSubscriber(Base):
     report_type = Column(String, default='Inventory') # Inventory, etc.
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- INTELLIGENCE / AUDIT MODELS ---
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    resource_type = Column(String, index=True) # e.g., "dispatch", "production"
+    resource_id = Column(String, index=True)   # ID of the record
+    discrepancy_type = Column(String)          # e.g., "weight_mismatch", "box_count_mismatch"
+    severity = Column(String)                  # "low", "medium", "high", "critical"
+    description = Column(Text)                 # Human readable detail
+    
+    source_value = Column(String, nullable=True) # Value from Source (Profit Plus)
+    target_value = Column(String, nullable=True) # Value from Target (App)
+    
+    status = Column(String, default="Open")    # Open, Investigate, Resolved, Ignored
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class SystemInsight(Base):
+    __tablename__ = "system_insights"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, index=True) # "optimization", "pattern", "anomaly"
+    insight_key = Column(String, unique=True, index=True) # unique identifier for the insight
+    description = Column(Text)
+    
+    # Validation Data
+    occurrence_count = Column(Integer, default=1)
+    confidence_score = Column(Float, default=0.0) # 0.0 to 1.0 (AI confidence)
+    
+    last_detected = Column(DateTime(timezone=True), server_default=func.now())
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

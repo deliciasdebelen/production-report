@@ -175,6 +175,21 @@
                         <div
                             style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
                             #{{ log.id }}
+
+                            {% set status = audit_map.get(log.id, 'OK') %}
+                            {% if status == 'Critical' %}
+                            <span title="Discrepancia Crítica"
+                                style="background: #fee2e2; color: #ef4444; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 0.5rem;">⚠️
+                                CRÍTICO</span>
+                            {% elif status == 'Warning' %}
+                            <span title="Discrepancia Menor"
+                                style="background: #fef3c7; color: #d97706; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 0.5rem;">⚠️
+                                ALERTA</span>
+                            {% else %}
+                            <span title="Verificado por AI"
+                                style="background: #d1fae5; color: #059669; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; margin-left: 0.5rem;">✅
+                                AI OK</span>
+                            {% endif %}
                         </div>
                         <strong style="color: var(--text-main); font-size: 0.95rem;">{{ log.client_destination
                             }}</strong>

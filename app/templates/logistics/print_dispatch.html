@@ -178,7 +178,7 @@
                     {% endif %}
                 </span>
                 {% if group.invoice_total %}
-                <span style="color: #047857;">ToT: {{ "{:,.2f}".format(group.invoice_total) }}</span>
+                <span style="color: #047857;">Total Factura: {{ "{:,.2f}".format(group.invoice_total) }}</span>
                 {% endif %}
         </h3>
         <table>
@@ -218,6 +218,12 @@
         </table>
     </div>
     {% endfor %}
+
+    <div
+        style="border-top: 2px solid #333; margin-top: 10px; padding-top: 10px; display: flex; justify-content: flex-end; gap: 40px; font-weight: bold; font-size: 16px;">
+        <span style="color: #475569;">Total Unidades: <span style="color: #000;">{{ grand_total_units }}</span></span>
+        <span style="color: #0369a1;">Total Cajas: <span>{{ grand_total_boxes }}</span></span>
+    </div>
 
     <div style="margin-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
         Generado el {{ now.strftime('%d/%m/%Y %H:%M:%S') }}

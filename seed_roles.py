@@ -14,7 +14,7 @@ roles_data = [
     (4, "Admin", {"all": ["*"]}), # Admin 4 logic bypasses this anyway, but good for completeness
     (5, "Almacen", {"logistics": ["view", "create", "edit", "print"]}),
     (6, "Inventario", {"inventory": ["view", "create", "edit"], "logistics": ["view"]}),
-    (7, "Patrimonial", {"logistics": ["view", "print"]})
+    (7, "Reportes", {"production": ["view"], "planning": ["view"], "logistics": ["view", "print"]})
 ]
 
 print("--- Seeding Roles ---")
@@ -27,6 +27,7 @@ for r_id, name, perms in roles_data:
     else:
         print(f"Role {r_id} exists. Updating perms.")
         existing.permissions = json.dumps(perms)
+        existing.name = name
         
 db.commit()
 print("Seeding Complete.")
