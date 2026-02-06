@@ -63,9 +63,75 @@
 <div style="margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
     <button onclick="showTab('users', this)" class="tab-btn active">Usuarios</button>
     <button onclick="showTab('data', this)" class="tab-btn">Base de Datos</button>
+    <button onclick="showTab('routes', this)" class="tab-btn">Rutas</button>
+    <button onclick="showTab('validations', this)" class="tab-btn">Validaciones</button>
+    <button onclick="showTab('notifications', this)" class="tab-btn">Notificaciones</button>
 </div>
 
 <!-- Users Tab -->
+<div id="notifications" class="tab-content" style="display:none;">
+    <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Agregar Suscriptor</h3>
+        <form action="/maintenance/subscribers/add" method="post">
+            <div class="form-grid">
+                <div class="form-group col-span-4">
+                    <label>Nombre</label>
+                    <input type="text" name="name" required placeholder="Ej: Gerente Planta">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Email</label>
+                    <input type="email" name="email" required placeholder="nombre@empresa.com">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Reporte</label>
+                    <select name="report_type">
+                        <option value="Inventory">Inventario</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn"
+                    style="background-color: var(--primary); color: white;">Agregar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- List -->
+    <div class="card">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem;">Suscriptores Activos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Reporte</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscribers %}
+                <tr>
+                    <td>{{ sub.name }}</td>
+                    <td>{{ sub.email }}</td>
+                    <td><span class="badge badge-info">{{ sub.report_type }}</span></td>
+                    <td>
+                        <form action="/maintenance/subscribers/delete" method="post"
+                            onsubmit="return confirm('¿Eliminar?');">
+                            <input type="hidden" name="sub_id" value="{{ sub.id }}">
+                            <button type="submit" class="btn-icon danger">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No hay suscriptores.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <div id="users" class="tab-content">
     <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
         <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Crear Nuevo Usuario</h3>
@@ -86,6 +152,8 @@
                         <option value="2">2 - Producción</option>
                         <option value="3">3 - Planificación</option>
                         <option value="4">4 - Admin (Todo)</option>
+                        <option value="5">5 - Almacén General</option>
+                        <option value="6">6 - Inventario</option>
                     </select>
                 </div>
             </div>
@@ -122,6 +190,8 @@
                         {% elif u.role == 2 %} Producción
                         {% elif u.role == 3 %} Planificación
                         {% elif u.role == 4 %} Admin
+                        {% elif u.role == 5 %} Almacén Gen.
+                        {% elif u.role == 6 %} Inventario
                         {% endif %}
                     </td>
                     <td style="padding: 0.5rem;">
@@ -216,6 +286,11 @@
                         onclick="printReport('planning')">
                         <span>🖨️</span> Imprimir
                     </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('planning')">
+                        <span>🔄</span> Restablecer
+                    </button>
                     <div style="flex-grow: 1;"></div>
                     <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
                         style="margin: 0;">
@@ -263,6 +338,11 @@
                         style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
                         onclick="printReport('production')">
                         <span>🖨️</span> Imprimir
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('production')">
+                        <span>🔄</span> Restablecer
                     </button>
                     <div style="flex-grow: 1;"></div>
                     <form action="/maintenance/data/delete" method="post"
@@ -319,6 +399,19 @@
         if (prs) prs.value = today;
         if (pre) pre.value = today;
     });
+
+
+
+    function resetFilters(table) {
+        const today = new Date().toISOString().split('T')[0];
+        if (table === 'planning') {
+            document.getElementById('planStart').value = today;
+            document.getElementById('planEnd').value = today;
+        } else if (table === 'production') {
+            document.getElementById('prodStart').value = today;
+            document.getElementById('prodEnd').value = today;
+        }
+    }
 
     function printReport(table) {
         let url = `/maintenance/report/print?type=${table}`;

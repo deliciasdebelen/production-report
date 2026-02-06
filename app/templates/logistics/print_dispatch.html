@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Despacho #{{ log.id }} - {{ log.client_destination }}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 20px;
+            color: #1f2937;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .company-info h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .company-info p {
+            margin: 5px 0 0;
+            color: #666;
+        }
+
+        .dispatch-info {
+            text-align: right;
+        }
+
+        .dispatch-info h2 {
+            margin: 0;
+            font-size: 18px;
+            color: #0369a1;
+        }
+
+        .dispatch-info .meta {
+            margin-top: 5px;
+            font-size: 14px;
+        }
+
+        .client-section {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+        }
+
+        .client-section strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #64748b;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+
+        .client-section h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        table th {
+            text-align: left;
+            background: #f1f5f9;
+            padding: 10px;
+            border-bottom: 2px solid #cbd5e1;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #475569;
+        }
+
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .breakdown {
+            font-weight: bold;
+            color: #0369a1;
+        }
+
+        .footer-signatures {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 50px;
+            padding-top: 20px;
+        }
+
+        .signature-box {
+            width: 45%;
+            border-top: 1px solid #333;
+            text-align: center;
+            padding-top: 10px;
+        }
+
+        @media print {
+            body {
+                padding: 0;
+                font-size: 12px;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body onload="window.print()">
+
+    <div class="header">
+        <div class="company-info">
+            <h1>Delicias de Belén</h1>
+            <p>Reporte de Salida de Almacén</p>
+        </div>
+        <div class="dispatch-info">
+            <h2>Guía #{{ log.document_ref.split('|')[0].strip() }}</h2>
+            <div class="meta">
+                Control Interno: #{{ log.id }}<br>
+                Fecha: {{ log.date.strftime('%d/%m/%Y %H:%M') }}
+            </div>
+        </div>
+    </div>
+
+    <div class="client-section">
+        <strong>Cliente / Destino</strong>
+        <h3>{{ log.client_destination }}</h3>
+
+        {% if log.route %}
+        <div style="margin-top: 5px; font-size: 14px; font-weight: 600; color: #047857;">
+            Ruta: {{ log.route.name }}
+        </div>
+        {% endif %}
+
+        {% if '| Fact:' in log.document_ref %}
+        <div style="margin-top: 10px; font-size: 13px; color: #64748b;">
+            Ref. Adicional: {{ log.document_ref.split('|')[1] }}
+        </div>
+        {% endif %}
+    </div>
+
+    {% for group in groups %}
+    <div style="margin-bottom: 25px;">
+        <h3
+            style="border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; color: #334155; display: flex; justify-content: space-between;">
+            <span>
+                Factura: {{ group.invoice }}
+                {% if group.client_name %}
+                <span style="font-weight: 400; color: #64748b; font-size: 0.9em; margin-left: 10px;">
+                    ({{ group.client_name }})
+                </span>
+                {% endif %}
+            </span>
+            {% if group.invoice_total %}
+            <span style="color: #047857;">ToT: {{ "{:,.2f}".format(group.invoice_total) }}</span>
+            {% endif %}
+        </h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 50px;">#</th>
+                    <th>Producto / Item</th>
+                    <th style="width: 100px; text-align: center;">Cantidad</th>
+                    <th style="width: 80px;">Unidad</th>
+                    <th style="width: 200px; text-align: right; color: #0369a1; font-weight: 700;">Consolidado Físico
+                        por
+                        Cajas</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in group.line_items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>
+                        <b>{{ item.name|default(item.item) }}</b>
+                        {% if item.sku %}
+                        <br><span style="color: #64748b; font-size: 12px;">SKU: {{ item.sku }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">{{ item.qty }}</td>
+                    <td>{{ item.unit }}</td>
+                    <td style="text-align: right;">
+                        {% if item.breakdown %}
+                        <span class="breakdown">{{ item.breakdown }}</span>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+    <div style="margin-top: 20px; font-size: 12px; color: #94a3b8; text-align: center;">
+        Generado el {{ now.strftime('%d/%m/%Y %H:%M:%S') }}
+    </div>
+
+    <div class="footer-signatures">
+        <div class="signature-box">
+            <p>Entregado Por (Almacén)</p>
+        </div>
+        <div class="signature-box">
+            <p>Recibido Conforme (Cliente/Transporte)</p>
+        </div>
+    </div>
+
+</body>
+
+</html>

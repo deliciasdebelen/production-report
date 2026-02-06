@@ -27,11 +27,9 @@ def add_columns():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Get existing columns
-    cursor.execute("PRAGMA table_info(production_reports)")
-    existing_cols = [c[1] for c in cursor.fetchall()]
-
-    new_cols = [
+    # Migrate Production Reports
+    print("--- Checking production_reports ---")
+    migrate_table(cursor, "production_reports", [
         ('mp_waste_kg', 'FLOAT DEFAULT 0.0'),
         ('mp_waste_image', 'VARCHAR DEFAULT NULL'),
         ('order_number', 'VARCHAR DEFAULT NULL'),
@@ -41,21 +39,54 @@ def add_columns():
         ('cons_count', 'FLOAT DEFAULT 0.0'),
         ('cons_unit_weight', 'FLOAT DEFAULT 0.0'),
         ('cons_qty', 'FLOAT DEFAULT 0.0')
-    ]
+    ])
 
-    for col_name, col_def in new_cols:
-        if col_name not in existing_cols:
-            try:
-                print(f"Adding column {col_name}...")
-                cursor.execute(f"ALTER TABLE production_reports ADD COLUMN {col_name} {col_def}")
-                print(f"Successfully added {col_name}.")
-            except Exception as e:
-                print(f"Error adding {col_name}: {e}")
-        else:
-            print(f"Column {col_name} already exists.")
+    # Migrate Production Planning
+    print("--- Checking production_planning ---")
+    migrate_table(cursor, "production_planning", [
+        ('waste_percentage', 'FLOAT DEFAULT 0.0')
+    ])
+
+    # Migrate Inventory
+    print("--- Checking inventory_captures ---")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS inventory_captures (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            capture_type VARCHAR NOT NULL,
+            article_code VARCHAR NOT NULL,
+            article_description VARCHAR NOT NULL,
+            batch VARCHAR NOT NULL,
+            quantity FLOAT NOT NULL,
+            capture_date VARCHAR NOT NULL,
+            capture_time VARCHAR NOT NULL,
+            out_of_range BOOLEAN DEFAULT 0,
+            user_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+    print("Checked inventory_captures.")
         
     conn.commit()
     conn.close()
+
+def migrate_table(cursor, table_name, new_cols):
+    try:
+        cursor.execute(f"PRAGMA table_info({table_name})")
+        existing_cols = [c[1] for c in cursor.fetchall()]
+
+        for col_name, col_def in new_cols:
+            if col_name not in existing_cols:
+                try:
+                    print(f"Adding column {col_name} to {table_name}...")
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_def}")
+                    print(f"Successfully added {col_name}.")
+                except Exception as e:
+                    print(f"Error adding {col_name}: {e}")
+            else:
+                print(f"Column {col_name} already exists in {table_name}.")
+    except Exception as e:
+        print(f"Error migrating table {table_name}: {e}")
 
 if __name__ == "__main__":
     add_columns()

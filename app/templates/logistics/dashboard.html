@@ -3,7 +3,16 @@
 {% block content %}
 <h1>Logística y Almacén</h1>
 
-<div class="grid-3" style="margin-top: 2rem;">
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+</style>
+
+<div class="dashboard-grid">
     <!-- Recepción Producción -->
     <a href="/logistics/reception/production" style="text-decoration: none;">
         <div class="card stat-card" style="border-top-color: var(--primary);">
@@ -30,6 +39,16 @@
             <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚚</div>
             <h3 style="font-size: 1.1rem; color: var(--text-main);">Despacho de Mercancía</h3>
             <p style="color: var(--text-muted); font-size: 0.9rem;">Salida de productos a clientes y distribuidores.</p>
+        </div>
+    </a>
+
+    <!-- Control de Inventario (Nuevo) -->
+    <a href="/logistics/inventory" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #8b5cf6;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Control de Inventario</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Captura de inventarios, inicio y cierre de
+                operaciones.</p>
         </div>
     </a>
 </div>

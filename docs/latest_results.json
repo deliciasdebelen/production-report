@@ -1,0 +1,1420 @@
+{
+    "timestamp": "2026-02-02 16:34:17",
+    "audit_data": [
+        {
+            "co_art": "ME01N00X002                   ",
+            "art_des": "ENVASE GALON PEAD (3,520 ML) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 30061.68,
+            "descuadre": -30061.68
+        },
+        {
+            "co_art": "ME01N00X004                   ",
+            "art_des": "ENVASE 900 G. PET MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 36517.5,
+            "descuadre": -36517.5
+        },
+        {
+            "co_art": "ME01N00X007                   ",
+            "art_des": "ENVASE 500 G. PET MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2009.0,
+            "descuadre": -2009.0
+        },
+        {
+            "co_art": "ME01N00X008                   ",
+            "art_des": "ENVASE 500 G. PEAD MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 4684.0,
+            "descuadre": -4684.0
+        },
+        {
+            "co_art": "ME01N00X010                   ",
+            "art_des": "ENVASE 200 G. PET MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 1601.0,
+            "descuadre": -1601.0
+        },
+        {
+            "co_art": "ME01N00X011                   ",
+            "art_des": "ENVASE 200 G. PEAD MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 7130.0,
+            "descuadre": -7130.0
+        },
+        {
+            "co_art": "ME01N00X018                   ",
+            "art_des": "ENVASE KETCHUP 397 G. VIDRIO UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 18874.0,
+            "descuadre": -18874.0
+        },
+        {
+            "co_art": "ME01N00X021                   ",
+            "art_des": "ENVASE KETCHUP 198 G. VIDRIO UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 79332.0,
+            "descuadre": -79332.0
+        },
+        {
+            "co_art": "ME01N00X026                   ",
+            "art_des": "ENVASE 200 G. VIDRIO MERMELADAS UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 49553.08,
+            "descuadre": -49553.08
+        },
+        {
+            "co_art": "ME01N00X027                   ",
+            "art_des": "ENVASE PET 200 G. PARA SQUEEZE UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 723.0,
+            "descuadre": -723.0
+        },
+        {
+            "co_art": "ME01N00X031                   ",
+            "art_des": "ENVASE BOTELLA 204 CC CRISTAL DN BOLSA X 190",
+            "stock_min": 0.0,
+            "total_lotes": 56100.0,
+            "descuadre": -56100.0
+        },
+        {
+            "co_art": "ME01N00X036                   ",
+            "art_des": "ENVASE GENERICO 445 CC PE NAT RECT",
+            "stock_min": 0.0,
+            "total_lotes": 129350.948,
+            "descuadre": -129350.948
+        },
+        {
+            "co_art": "ME01N00X039                   ",
+            "art_des": "ENVASE PEAD 200 G. PARA SQUEEZE UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 166264.1,
+            "descuadre": -166264.1
+        },
+        {
+            "co_art": "ME01N00X042                   ",
+            "art_des": "CAJA MAYONESA  SASCHET 200 GR",
+            "stock_min": 0.0,
+            "total_lotes": 691.00467,
+            "descuadre": -691.00467
+        },
+        {
+            "co_art": "ME01N00X043                   ",
+            "art_des": "ENVASE 196 G. PEAD MAYONESA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 135291.8,
+            "descuadre": -135291.8
+        },
+        {
+            "co_art": "ME01N00X044                   ",
+            "art_des": "ENVASE PET 520 CC MAYONESA BOLSA X 161",
+            "stock_min": 0.0,
+            "total_lotes": 433.0,
+            "descuadre": -433.0
+        },
+        {
+            "co_art": "ME01N00X045                   ",
+            "art_des": "ENVASE BOTELLA 508 ML PET",
+            "stock_min": 0.0,
+            "total_lotes": 89796.8,
+            "descuadre": -89796.8
+        },
+        {
+            "co_art": "ME01N00X046                   ",
+            "art_des": "ENVASE BOTELLA 210ML PET",
+            "stock_min": 0.0,
+            "total_lotes": 68178.0,
+            "descuadre": -68178.0
+        },
+        {
+            "co_art": "ME02N00X001                   ",
+            "art_des": "TAPA ENVASE 110 MM GALON UNID. (AZUL)",
+            "stock_min": 0.0,
+            "total_lotes": 18448.5,
+            "descuadre": -18448.5
+        },
+        {
+            "co_art": "ME02N00X002                   ",
+            "art_des": "TAPA ENVASE 70 MM METALICA MERMELADA Y DESHIDRATADOS (NEGRA) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 96201.8,
+            "descuadre": -96201.8
+        },
+        {
+            "co_art": "ME02N00X006                   ",
+            "art_des": "TAPA ENVASE 200 / 500 DE 53 MM FLAT CON LINER UNID. (AZUL PIPITA)",
+            "stock_min": 0.0,
+            "total_lotes": 404652.748,
+            "descuadre": -404652.748
+        },
+        {
+            "co_art": "ME02N00X007                   ",
+            "art_des": "TAPA SALSAS FLIT TOP 38 MM CON LINER PEAD UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2500.0,
+            "descuadre": -2500.0
+        },
+        {
+            "co_art": "ME02N00X009                   ",
+            "art_des": "TAPA ENVASE VIDRIO KETCHUP 30 MM UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 12900.0,
+            "descuadre": -12900.0
+        },
+        {
+            "co_art": "ME02N00X010                   ",
+            "art_des": "TAPA FLIPTOP SQUEEZE 200 G 33 MM (AZUL PIPITA) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 113068.4,
+            "descuadre": -113068.4
+        },
+        {
+            "co_art": "ME02N00X012                   ",
+            "art_des": "TAPA 63 MM FLAT CON LINER (NEGRA DDB)",
+            "stock_min": 0.0,
+            "total_lotes": 271108.4,
+            "descuadre": -271108.4
+        },
+        {
+            "co_art": "ME02N00X014                   ",
+            "art_des": "TAPA ENVASE 110 MM GALON UNID.(DDB NEGRA)",
+            "stock_min": 0.0,
+            "total_lotes": 25078.9,
+            "descuadre": -25078.9
+        },
+        {
+            "co_art": "ME02N00X015                   ",
+            "art_des": "TAPA ENVASE 200 DE 53 MM FLAT CON LINER UNID. (DDB NEGRA)",
+            "stock_min": 0.0,
+            "total_lotes": 248203.8,
+            "descuadre": -248203.8
+        },
+        {
+            "co_art": "ME02N00X016                   ",
+            "art_des": "TAPA FLIPTOP SQUEEZE 200 G 33 MM (NEGRA DDB) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2500.0,
+            "descuadre": -2500.0
+        },
+        {
+            "co_art": "ME02N00X017                   ",
+            "art_des": "TAPA ENVASE 70 MM METALICA MERMELADA Y DESHIDRATADOS CERO (BLANCO) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 64000.0,
+            "descuadre": -64000.0
+        },
+        {
+            "co_art": "ME02N00X018                   ",
+            "art_des": "PRECINTO TAPA MERMELADA",
+            "stock_min": 0.0,
+            "total_lotes": 32253.7,
+            "descuadre": -32253.7
+        },
+        {
+            "co_art": "ME02N00X019                   ",
+            "art_des": "TAPA ENVASE 70 MM METALICA MERMELADA (DORADA) UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 1000.0,
+            "descuadre": -1000.0
+        },
+        {
+            "co_art": "ME02N00X020                   ",
+            "art_des": "PRECINTO 53mm TAPA MAYONESA DDB",
+            "stock_min": 0.0,
+            "total_lotes": 107500.0,
+            "descuadre": -107500.0
+        },
+        {
+            "co_art": "ME02N00X021                   ",
+            "art_des": "PRECINTO 63MM TAPA MAYONESA DDB",
+            "stock_min": 0.0,
+            "total_lotes": 96000.0,
+            "descuadre": -96000.0
+        },
+        {
+            "co_art": "ME02N00X022                   ",
+            "art_des": "TAPA ENVASE MED TWIST OFF BOTON 30 MM/NEGRO KETCHUP 397 / 198grs",
+            "stock_min": 0.0,
+            "total_lotes": 350995.0,
+            "descuadre": -350995.0
+        },
+        {
+            "co_art": "ME03D01X001                   ",
+            "art_des": "ETIQUETA MAYONESA PREMIUM GALON MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 34102.0,
+            "descuadre": -34102.0
+        },
+        {
+            "co_art": "ME03D01X002                   ",
+            "art_des": "ETIQUETA MAYONESA PREMIUM 900 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 47738.8,
+            "descuadre": -47738.8
+        },
+        {
+            "co_art": "ME03D01X003                   ",
+            "art_des": "ETIQUETA MAYONESA PREMIUM 500 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 165934.8,
+            "descuadre": -165934.8
+        },
+        {
+            "co_art": "ME03D01X005                   ",
+            "art_des": "ETIQUETA MAYONESA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 127067.0,
+            "descuadre": -127067.0
+        },
+        {
+            "co_art": "ME03D01X006                   ",
+            "art_des": "ETIQUETA SALSA A BASE DE TOMATE  PRESENTACION 3.85 KG GALON  MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 25170.0,
+            "descuadre": -25170.0
+        },
+        {
+            "co_art": "ME03D01X007                   ",
+            "art_des": "ETIQUETA KETCHUP PRESENTACION 397 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 61648.0,
+            "descuadre": -61648.0
+        },
+        {
+            "co_art": "ME03D01X009                   ",
+            "art_des": "ETIQUETA KETCHUP PRESENTACION 198 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 58416.0,
+            "descuadre": -58416.0
+        },
+        {
+            "co_art": "ME03D01X011                   ",
+            "art_des": "ETIQUETA CUELLOS  KETCHUP PRESENTACION 198 GR. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 56266.0,
+            "descuadre": -56266.0
+        },
+        {
+            "co_art": "ME03D01X017                   ",
+            "art_des": "ETIQUETA CUELLOS  KETCHUP PRESENTACION 397 GR. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 60500.0,
+            "descuadre": -60500.0
+        },
+        {
+            "co_art": "ME03D10X001                   ",
+            "art_des": "ETIQUETA MERMELADA LECHOSA Y PI\u00d1A PREMIUM  200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 619.0,
+            "descuadre": -619.0
+        },
+        {
+            "co_art": "ME03D10X002                   ",
+            "art_des": "ETIQUETA MERMELADA LECHOSA Y PI\u00d1A PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2503.0,
+            "descuadre": -2503.0
+        },
+        {
+            "co_art": "ME03D11X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE CEBOLLA Y UVAS PASAS PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 1499.0,
+            "descuadre": -1499.0
+        },
+        {
+            "co_art": "ME03D13X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE AUYAMA Y NARANJA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 784.0,
+            "descuadre": -784.0
+        },
+        {
+            "co_art": "ME03D14X001                   ",
+            "art_des": "ETIQUETA MERMELADA DE PI\u00d1A RAYADA PICANTE PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 112.0,
+            "descuadre": -112.0
+        },
+        {
+            "co_art": "ME03D14X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE PI\u00d1A RAYADA PICANTE PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2475.0,
+            "descuadre": -2475.0
+        },
+        {
+            "co_art": "ME03D15X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE PIMENTON PICANTE PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 3526.0,
+            "descuadre": -3526.0
+        },
+        {
+            "co_art": "ME03D16X001                   ",
+            "art_des": "ETIQUETA MERMELADA DE FRESA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 151.0,
+            "descuadre": -151.0
+        },
+        {
+            "co_art": "ME03D16X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE FRESA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 20905.6,
+            "descuadre": -20905.6
+        },
+        {
+            "co_art": "ME03D17X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE PI\u00d1A PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2596.0,
+            "descuadre": -2596.0
+        },
+        {
+            "co_art": "ME03D18X001                   ",
+            "art_des": "ETIQUETA MERMELADA DE GUAYABA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 575.0,
+            "descuadre": -575.0
+        },
+        {
+            "co_art": "ME03D18X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE GUAYABA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 18106.2,
+            "descuadre": -18106.2
+        },
+        {
+            "co_art": "ME03D19X001                   ",
+            "art_des": "ETIQUETA MERMELADA DE AUYAMA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 48.0,
+            "descuadre": -48.0
+        },
+        {
+            "co_art": "ME03D20X001                   ",
+            "art_des": "ETIQUETA MERMELADA DE MORA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 420.0,
+            "descuadre": -420.0
+        },
+        {
+            "co_art": "ME03D20X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE MORA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 6525.8,
+            "descuadre": -6525.8
+        },
+        {
+            "co_art": "ME03D21X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE PARCHITA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 7376.8,
+            "descuadre": -7376.8
+        },
+        {
+            "co_art": "ME03D22X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE MANGO PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 466.0,
+            "descuadre": -466.0
+        },
+        {
+            "co_art": "ME03D23X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE NARANJA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2645.66,
+            "descuadre": -2645.66
+        },
+        {
+            "co_art": "ME03D24X002                   ",
+            "art_des": "ETIQUETA MERMELADA DE PIMENTON PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 2009.6,
+            "descuadre": -2009.6
+        },
+        {
+            "co_art": "ME03D24X003                   ",
+            "art_des": "ETIQUETA MERMELADA DE DURAZNO PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 3472.16,
+            "descuadre": -3472.16
+        },
+        {
+            "co_art": "ME03P01X001                   ",
+            "art_des": "ETIQUETA MAYONESA ECONOMICA GALON MARCA PIPITA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 36522.88,
+            "descuadre": -36522.88
+        },
+        {
+            "co_art": "ME03P01X003                   ",
+            "art_des": "ETIQUETA MAYONESA ECONOMICA 500 G. MARCA PIPITA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 187000.8,
+            "descuadre": -187000.8
+        },
+        {
+            "co_art": "ME03P01X005                   ",
+            "art_des": "ETIQUETA MAYONESA ECONOMICA 175 G. MARCA PIPITA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 158827.4,
+            "descuadre": -158827.4
+        },
+        {
+            "co_art": "ME03P01X006                   ",
+            "art_des": "ETIQUETA MAYONESA SQUEEZE 200 G. (TIRO)  MARCA PIPITA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 93110.4,
+            "descuadre": -93110.4
+        },
+        {
+            "co_art": "ME03P01X007                   ",
+            "art_des": "ETIQUETA MAYONESA SQUEEZE 200 G. (RETIRO)  MARCA PIPITA UNID.",
+            "stock_min": 0.0,
+            "total_lotes": 88995.7,
+            "descuadre": -88995.7
+        },
+        {
+            "co_art": "ME04N00X001                   ",
+            "art_des": "BOBINA PLASTICO TEROENCOGIBLE 90 MICRAS GRANEL  1 KG",
+            "stock_min": 0.0,
+            "total_lotes": 4597.35075,
+            "descuadre": -4597.35075
+        },
+        {
+            "co_art": "ME04N00X012                   ",
+            "art_des": "BOBINA BILAMINADA SACHET 200 G. PIPITA",
+            "stock_min": 0.0,
+            "total_lotes": 253.21788,
+            "descuadre": -253.21788
+        },
+        {
+            "co_art": "ME04N00X015                   ",
+            "art_des": "BOBINA PLASTICO TERMOENCOGIBLE 120 MICRAS GRANEL  1 KG",
+            "stock_min": 0.0,
+            "total_lotes": 5712.63201,
+            "descuadre": -5712.63201
+        },
+        {
+            "co_art": "ME04N00X018                   ",
+            "art_des": "BOBINA TEROENCOGIBLE 100 MICRAS 60CM",
+            "stock_min": 0.0,
+            "total_lotes": 2040.0,
+            "descuadre": -2040.0
+        },
+        {
+            "co_art": "ME04N00X019                   ",
+            "art_des": "BOBINA TEROENCOGIBLE 100 MICRAS 50CM",
+            "stock_min": 0.0,
+            "total_lotes": 1429.4,
+            "descuadre": -1429.4
+        },
+        {
+            "co_art": "ME05N00X004                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA SQUEEZE 200G",
+            "stock_min": 0.0,
+            "total_lotes": 14876.77336,
+            "descuadre": -14876.77336
+        },
+        {
+            "co_art": "ME05N00X005                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA 445G",
+            "stock_min": 0.0,
+            "total_lotes": 11548.36555,
+            "descuadre": -11548.36555
+        },
+        {
+            "co_art": "ME05N00X006                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA 175G",
+            "stock_min": 0.0,
+            "total_lotes": 7824.70175,
+            "descuadre": -7824.70175
+        },
+        {
+            "co_art": "ME05N00X007                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA 3.3 KG",
+            "stock_min": 0.0,
+            "total_lotes": 6532.69691,
+            "descuadre": -6532.69691
+        },
+        {
+            "co_art": "ME05N00X008                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MERMELADA",
+            "stock_min": 0.0,
+            "total_lotes": 13242.665,
+            "descuadre": -13242.665
+        },
+        {
+            "co_art": "ME05N00X009                   ",
+            "art_des": "SEPARADOR DE CARTON PARA BANDEJA ARMABLE MERMELADA",
+            "stock_min": 0.0,
+            "total_lotes": 12763.485,
+            "descuadre": -12763.485
+        },
+        {
+            "co_art": "ME05N00X010                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA ENVASE CILINDRICO 445G DELICIAS DE BELEN",
+            "stock_min": 0.0,
+            "total_lotes": 2894.87002,
+            "descuadre": -2894.87002
+        },
+        {
+            "co_art": "ME05N00X011                   ",
+            "art_des": "BANDEJA CARTON ARMABLE MAYONESA ENVASE CILINDRICO 910G DELICIAS DE BELEN",
+            "stock_min": 0.0,
+            "total_lotes": 8016.86431,
+            "descuadre": -8016.86431
+        },
+        {
+            "co_art": "ME05N00X012                   ",
+            "art_des": "CARTUCHO DE TINTA",
+            "stock_min": 0.0,
+            "total_lotes": 16.0,
+            "descuadre": -16.0
+        },
+        {
+            "co_art": "ME05N00X013                   ",
+            "art_des": "BANDEJA KETCHUP 397 G",
+            "stock_min": 0.0,
+            "total_lotes": 4370.0,
+            "descuadre": -4370.0
+        },
+        {
+            "co_art": "ME05N00X014                   ",
+            "art_des": "BANDEJA KETCHUP 198 G",
+            "stock_min": 0.0,
+            "total_lotes": 6167.0,
+            "descuadre": -6167.0
+        },
+        {
+            "co_art": "ME05N00X015                   ",
+            "art_des": "BANDEJA ARMABLE SQUEEZE 240 G",
+            "stock_min": 0.0,
+            "total_lotes": 7387.0,
+            "descuadre": -7387.0
+        },
+        {
+            "co_art": "ME06N00X001                   ",
+            "art_des": "CINTA DE EMBALAR",
+            "stock_min": 0.0,
+            "total_lotes": 74.71707,
+            "descuadre": -74.71707
+        },
+        {
+            "co_art": "MP01D01X01                    ",
+            "art_des": "Compuesto 01",
+            "stock_min": 0.0,
+            "total_lotes": 4.0,
+            "descuadre": -4.0
+        },
+        {
+            "co_art": "MP01D01X02                    ",
+            "art_des": "Compuesto 02",
+            "stock_min": 0.0,
+            "total_lotes": 45.0,
+            "descuadre": -45.0
+        },
+        {
+            "co_art": "MP01D01X20                    ",
+            "art_des": "Compuesto 20",
+            "stock_min": 0.0,
+            "total_lotes": 12.0,
+            "descuadre": -12.0
+        },
+        {
+            "co_art": "MP01D14X11                    ",
+            "art_des": "Compuesto 15",
+            "stock_min": 0.0,
+            "total_lotes": 1.631,
+            "descuadre": -1.631
+        },
+        {
+            "co_art": "MP01D15X08                    ",
+            "art_des": "Compuesto 12",
+            "stock_min": 0.0,
+            "total_lotes": 1.0,
+            "descuadre": -1.0
+        },
+        {
+            "co_art": "MP01D16X01                    ",
+            "art_des": "Compuesto 05",
+            "stock_min": 0.0,
+            "total_lotes": 6.30085,
+            "descuadre": -6.30085
+        },
+        {
+            "co_art": "MP01D17X12                    ",
+            "art_des": "Compuesto 16",
+            "stock_min": 0.0,
+            "total_lotes": 5.458,
+            "descuadre": -5.458
+        },
+        {
+            "co_art": "MP01D18X03                    ",
+            "art_des": "Compuesto 07",
+            "stock_min": 0.0,
+            "total_lotes": 2.51,
+            "descuadre": -2.51
+        },
+        {
+            "co_art": "MP01D20X02                    ",
+            "art_des": "Compuesto 06",
+            "stock_min": 0.0,
+            "total_lotes": 3.405,
+            "descuadre": -3.405
+        },
+        {
+            "co_art": "MP01D21X06                    ",
+            "art_des": "Compuesto 10",
+            "stock_min": 0.0,
+            "total_lotes": 3.226,
+            "descuadre": -3.226
+        },
+        {
+            "co_art": "MP01D23X09                    ",
+            "art_des": "Compuesto 13",
+            "stock_min": 0.0,
+            "total_lotes": 0.012,
+            "descuadre": -0.012
+        },
+        {
+            "co_art": "MP01D43X07                    ",
+            "art_des": "Compuesto 11",
+            "stock_min": 0.0,
+            "total_lotes": 1.0,
+            "descuadre": -1.0
+        },
+        {
+            "co_art": "MP01D45X13                    ",
+            "art_des": "Compuesto 17",
+            "stock_min": 0.0,
+            "total_lotes": 4.805,
+            "descuadre": -4.805
+        },
+        {
+            "co_art": "MP01N00X003                   ",
+            "art_des": "CHAMPI\u00d1ONES  KG",
+            "stock_min": 0.0,
+            "total_lotes": 2.0,
+            "descuadre": -2.0
+        },
+        {
+            "co_art": "MP01N00X030                   ",
+            "art_des": "PI\u00d1A ENTERA  KG",
+            "stock_min": 0.0,
+            "total_lotes": 759.60051,
+            "descuadre": -759.60051
+        },
+        {
+            "co_art": "MP01N00X033                   ",
+            "art_des": "DURAZNO KG",
+            "stock_min": 0.0,
+            "total_lotes": 0.81,
+            "descuadre": -0.81
+        },
+        {
+            "co_art": "MP01N00X036                   ",
+            "art_des": "FRESA KG",
+            "stock_min": 0.0,
+            "total_lotes": 934.3,
+            "descuadre": -934.3
+        },
+        {
+            "co_art": "MP01N00X042                   ",
+            "art_des": "PARCHITA KG",
+            "stock_min": 0.0,
+            "total_lotes": 1291.20085,
+            "descuadre": -1291.20085
+        },
+        {
+            "co_art": "MP01N00X048                   ",
+            "art_des": "NARANJA  KG",
+            "stock_min": 0.0,
+            "total_lotes": 440.38143,
+            "descuadre": -440.38143
+        },
+        {
+            "co_art": "MP01N00X060                   ",
+            "art_des": "AUYAMA KG",
+            "stock_min": 0.0,
+            "total_lotes": 29.0,
+            "descuadre": -29.0
+        },
+        {
+            "co_art": "MP01N00X066                   ",
+            "art_des": "AJI PICANTE KG",
+            "stock_min": 0.0,
+            "total_lotes": 20.8,
+            "descuadre": -20.8
+        },
+        {
+            "co_art": "MP01N00X069                   ",
+            "art_des": "JENGIBRE  GRANEL 1 KG",
+            "stock_min": 0.0,
+            "total_lotes": 29.06,
+            "descuadre": -29.06
+        },
+        {
+            "co_art": "MP01N00X072                   ",
+            "art_des": "CEBOLLA  KG",
+            "stock_min": 0.0,
+            "total_lotes": 4.0,
+            "descuadre": -4.0
+        },
+        {
+            "co_art": "MP01N00X084                   ",
+            "art_des": "CONCHAS DE NARANJA MACERADAS",
+            "stock_min": 0.0,
+            "total_lotes": 101.67512,
+            "descuadre": -101.67512
+        },
+        {
+            "co_art": "MP01N00X085                   ",
+            "art_des": "CONCHA DE NARANJA EN JULIANAS",
+            "stock_min": 0.0,
+            "total_lotes": 27.8,
+            "descuadre": -27.8
+        },
+        {
+            "co_art": "MP01N00X087                   ",
+            "art_des": "PULPA DE DURAZNO 9-10 \u00b0BRIX  KG",
+            "stock_min": 0.0,
+            "total_lotes": 604.7,
+            "descuadre": -604.7
+        },
+        {
+            "co_art": "MP01N00X090                   ",
+            "art_des": "PULPA DE FRESA CON SEMILLAS 5-8 \u00b0BRIX  KG",
+            "stock_min": 0.0,
+            "total_lotes": 658.4213,
+            "descuadre": -658.4213
+        },
+        {
+            "co_art": "MP01N00X093                   ",
+            "art_des": "PULPA DE GUAYABA 7-9 \u00b0BRIX  KG",
+            "stock_min": 0.0,
+            "total_lotes": 1804.685,
+            "descuadre": -1804.685
+        },
+        {
+            "co_art": "MP01N00X096                   ",
+            "art_des": "PULPA DE PARCHITA SIN SEMILLA  KG",
+            "stock_min": 0.0,
+            "total_lotes": 68.69,
+            "descuadre": -68.69
+        },
+        {
+            "co_art": "MP01N00X099                   ",
+            "art_des": "PULPA DE PARCHITA CON SEMILLA KG",
+            "stock_min": 0.0,
+            "total_lotes": 111.9325,
+            "descuadre": -111.9325
+        },
+        {
+            "co_art": "MP01N00X102                   ",
+            "art_des": "PULPA DE MANGO  KG",
+            "stock_min": 0.0,
+            "total_lotes": 2451.42,
+            "descuadre": -2451.42
+        },
+        {
+            "co_art": "MP01N00X108                   ",
+            "art_des": "JUGO DE NARANJA KG",
+            "stock_min": 0.0,
+            "total_lotes": 209.95375,
+            "descuadre": -209.95375
+        },
+        {
+            "co_art": "MP01N00X114                   ",
+            "art_des": "PIMENTON ROJO LICUADO SIN SEMILLAS  KG",
+            "stock_min": 0.0,
+            "total_lotes": 811.86452,
+            "descuadre": -811.86452
+        },
+        {
+            "co_art": "MP01N00X117                   ",
+            "art_des": "AJI PICANTE LICUADO SIN SEMILLAS KG",
+            "stock_min": 0.0,
+            "total_lotes": 29.4651,
+            "descuadre": -29.4651
+        },
+        {
+            "co_art": "MP01N00X120                   ",
+            "art_des": "PULPA DE AUYAMA  KG",
+            "stock_min": 0.0,
+            "total_lotes": 545.5159,
+            "descuadre": -545.5159
+        },
+        {
+            "co_art": "MP01N00X123                   ",
+            "art_des": "JENGIBRE RAYADO KG",
+            "stock_min": 0.0,
+            "total_lotes": 6.53,
+            "descuadre": -6.53
+        },
+        {
+            "co_art": "MP01N00X126                   ",
+            "art_des": "PULPA DE MORA CON SEMILLAS 5-8 \u00b0BRIX  KG",
+            "stock_min": 0.0,
+            "total_lotes": 176.86,
+            "descuadre": -176.86
+        },
+        {
+            "co_art": "MP01N00X129                   ",
+            "art_des": "CEBOLLA RAYADA KG",
+            "stock_min": 0.0,
+            "total_lotes": 401.18,
+            "descuadre": -401.18
+        },
+        {
+            "co_art": "MP01N00X132                   ",
+            "art_des": "PASAS RUBIAS PICADAS KG",
+            "stock_min": 0.0,
+            "total_lotes": 11.80375,
+            "descuadre": -11.80375
+        },
+        {
+            "co_art": "MP01N00X135                   ",
+            "art_des": "PI\u00d1A RAYADA FRUTA VERDE  KG",
+            "stock_min": 0.0,
+            "total_lotes": 813.759,
+            "descuadre": -813.759
+        },
+        {
+            "co_art": "MP01N00X138                   ",
+            "art_des": "LECHOZA VERDE RAYADA KG",
+            "stock_min": 0.0,
+            "total_lotes": 1102.821,
+            "descuadre": -1102.821
+        },
+        {
+            "co_art": "MP01N00X141                   ",
+            "art_des": "PASTA DE TOMATE CON 30-32 BRIX KG",
+            "stock_min": 0.0,
+            "total_lotes": 76582.0,
+            "descuadre": -76582.0
+        },
+        {
+            "co_art": "MP01N00X143                   ",
+            "art_des": "ACEITE DE SOYA KG",
+            "stock_min": 0.0,
+            "total_lotes": 71485.18147,
+            "descuadre": -71485.18147
+        },
+        {
+            "co_art": "MP01N00X152                   ",
+            "art_des": "YEMA DE HUEVO LIQUIDA KG",
+            "stock_min": 0.0,
+            "total_lotes": 2012.4412,
+            "descuadre": -2012.4412
+        },
+        {
+            "co_art": "MP01N00X153                   ",
+            "art_des": "AZUCAR BLANCA REFINADA KG",
+            "stock_min": 0.0,
+            "total_lotes": 81350.36565,
+            "descuadre": -81350.36565
+        },
+        {
+            "co_art": "MP01N00X154                   ",
+            "art_des": "SAL COMESTIBLE KG",
+            "stock_min": 0.0,
+            "total_lotes": 19538.0467,
+            "descuadre": -19538.0467
+        },
+        {
+            "co_art": "MP01N00X155                   ",
+            "art_des": "MOSTAZA PREPARADA KG",
+            "stock_min": 0.0,
+            "total_lotes": 9825.23161,
+            "descuadre": -9825.23161
+        },
+        {
+            "co_art": "MP01N00X156                   ",
+            "art_des": "SABOR ROMERO",
+            "stock_min": 0.0,
+            "total_lotes": 785.67303,
+            "descuadre": -785.67303
+        },
+        {
+            "co_art": "MP01N00X157                   ",
+            "art_des": "CONCHAS DE NARANJA",
+            "stock_min": 0.0,
+            "total_lotes": 4.6,
+            "descuadre": -4.6
+        },
+        {
+            "co_art": "MP01P01X03                    ",
+            "art_des": "Compuesto 03",
+            "stock_min": 0.0,
+            "total_lotes": 28.0,
+            "descuadre": -28.0
+        },
+        {
+            "co_art": "MP01P01X04                    ",
+            "art_des": "Compuesto 04",
+            "stock_min": 0.0,
+            "total_lotes": 4.00563,
+            "descuadre": -4.00563
+        },
+        {
+            "co_art": "MP03N00X001                   ",
+            "art_des": "SABOR KETCHUP",
+            "stock_min": 0.0,
+            "total_lotes": 1300.0,
+            "descuadre": -1300.0
+        },
+        {
+            "co_art": "MP04N00X003                   ",
+            "art_des": "ACIDO ASCORBICO KG",
+            "stock_min": 0.0,
+            "total_lotes": 69.07284,
+            "descuadre": -69.07284
+        },
+        {
+            "co_art": "MP04N00X006                   ",
+            "art_des": "ALMIDON MODIFICADO 8916 KG",
+            "stock_min": 0.0,
+            "total_lotes": 199.0,
+            "descuadre": -199.0
+        },
+        {
+            "co_art": "MP04N00X008                   ",
+            "art_des": "SORBATO DE POTASIO KG",
+            "stock_min": 0.0,
+            "total_lotes": 63.6,
+            "descuadre": -63.6
+        },
+        {
+            "co_art": "MP04N00X009                   ",
+            "art_des": "BENZOATO DE SODIO KG",
+            "stock_min": 0.0,
+            "total_lotes": 25.0,
+            "descuadre": -25.0
+        },
+        {
+            "co_art": "MP04N00X013                   ",
+            "art_des": "PECTINA RAPIDA KG",
+            "stock_min": 0.0,
+            "total_lotes": 375.02771,
+            "descuadre": -375.02771
+        },
+        {
+            "co_art": "MP04N00X014                   ",
+            "art_des": "ANTIESPUMANTE KG",
+            "stock_min": 0.0,
+            "total_lotes": 205.29005,
+            "descuadre": -205.29005
+        },
+        {
+            "co_art": "MP04N00X015                   ",
+            "art_des": "POLIDEXTROSA KG",
+            "stock_min": 0.0,
+            "total_lotes": 20.9,
+            "descuadre": -20.9
+        },
+        {
+            "co_art": "MP04N00X016                   ",
+            "art_des": "ERITRITOL KG",
+            "stock_min": 0.0,
+            "total_lotes": 19.66,
+            "descuadre": -19.66
+        },
+        {
+            "co_art": "MP04N00X017                   ",
+            "art_des": "MALTODEXTRINA KG",
+            "stock_min": 0.0,
+            "total_lotes": 24.7,
+            "descuadre": -24.7
+        },
+        {
+            "co_art": "MP04N00X019                   ",
+            "art_des": "VINAGRE KG",
+            "stock_min": 0.0,
+            "total_lotes": 48968.30715,
+            "descuadre": -48968.30715
+        },
+        {
+            "co_art": "MP04N00X020                   ",
+            "art_des": "ACIDO ETILENDIAMINOTETRAACETICO (EDTA) KG",
+            "stock_min": 0.0,
+            "total_lotes": 903.2964,
+            "descuadre": -903.2964
+        },
+        {
+            "co_art": "MP04N00X021                   ",
+            "art_des": "ACIDO CITRICO KG",
+            "stock_min": 0.0,
+            "total_lotes": 646.84418,
+            "descuadre": -646.84418
+        },
+        {
+            "co_art": "MP04N00X022                   ",
+            "art_des": "GOMA XANTHAM KG",
+            "stock_min": 0.0,
+            "total_lotes": 3473.78954,
+            "descuadre": -3473.78954
+        },
+        {
+            "co_art": "MP04N00X023                   ",
+            "art_des": "ERITORBATO DE SODIO (KGS)",
+            "stock_min": 0.0,
+            "total_lotes": 243.86025,
+            "descuadre": -243.86025
+        },
+        {
+            "co_art": "NP10N00X028                   ",
+            "art_des": "BOBINA STRETCH MANUAL",
+            "stock_min": 0.0,
+            "total_lotes": 28.0,
+            "descuadre": -28.0
+        },
+        {
+            "co_art": "PT01D01X011                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 3.3 Kg",
+            "stock_min": 0.0,
+            "total_lotes": 2144.0,
+            "descuadre": -2144.0
+        },
+        {
+            "co_art": "PT01D01X014                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 910g",
+            "stock_min": 0.0,
+            "total_lotes": 7084.0,
+            "descuadre": -7084.0
+        },
+        {
+            "co_art": "PT01D01X019                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 445g",
+            "stock_min": 0.0,
+            "total_lotes": 27570.0,
+            "descuadre": -27570.0
+        },
+        {
+            "co_art": "PT01D01X026                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 175g",
+            "stock_min": 0.0,
+            "total_lotes": 25377.0,
+            "descuadre": -25377.0
+        },
+        {
+            "co_art": "PT01D33X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Fresa 200g",
+            "stock_min": 0.0,
+            "total_lotes": 210.0,
+            "descuadre": -210.0
+        },
+        {
+            "co_art": "PT01D35X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Guayaba 200g",
+            "stock_min": 0.0,
+            "total_lotes": 5.0,
+            "descuadre": -5.0
+        },
+        {
+            "co_art": "PT01D36X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Mora 200g",
+            "stock_min": 0.0,
+            "total_lotes": 295.0,
+            "descuadre": -295.0
+        },
+        {
+            "co_art": "PT01D42X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Lechosa con Pi\u00f1a 200g",
+            "stock_min": 0.0,
+            "total_lotes": 172.0,
+            "descuadre": -172.0
+        },
+        {
+            "co_art": "PT01D43X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Piment\u00f3n 200g",
+            "stock_min": 0.0,
+            "total_lotes": 62.0,
+            "descuadre": -62.0
+        },
+        {
+            "co_art": "PT01D45X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Auyama, Naranja y Jemgibre 200g",
+            "stock_min": 0.0,
+            "total_lotes": 71.0,
+            "descuadre": -71.0
+        },
+        {
+            "co_art": "PT01P01X011                   ",
+            "art_des": "PIPITA Mayonesa Tradicional PEAD 3.3 kg",
+            "stock_min": 0.0,
+            "total_lotes": 3178.0,
+            "descuadre": -3178.0
+        },
+        {
+            "co_art": "PT01P01X012                   ",
+            "art_des": "PIPITA Mayonesa Tradicional PEAD 445g",
+            "stock_min": 0.0,
+            "total_lotes": 26719.22789,
+            "descuadre": -26719.22789
+        },
+        {
+            "co_art": "PT01P01X013                   ",
+            "art_des": "PIPITA Mayonesa Tradicional PEAD 175g",
+            "stock_min": 0.0,
+            "total_lotes": 30456.0,
+            "descuadre": -30456.0
+        },
+        {
+            "co_art": "PT01P01X016                   ",
+            "art_des": "PIPITA Mayonesa Tradicional Sachet 200g",
+            "stock_min": 0.0,
+            "total_lotes": 1150.0,
+            "descuadre": -1150.0
+        },
+        {
+            "co_art": "PT01P01X017                   ",
+            "art_des": "PIPITA Mayonesa Tradicional PEAD Sqeeze 200g",
+            "stock_min": 0.0,
+            "total_lotes": 20013.0,
+            "descuadre": -20013.0
+        },
+        {
+            "co_art": "PT02D01X020                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Ketchup premium Tradicional Vidrio 397g",
+            "stock_min": 0.0,
+            "total_lotes": 108033.0,
+            "descuadre": -108033.0
+        },
+        {
+            "co_art": "PT02D01X021                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Ketchup premium Tradicional Vidrio 198g",
+            "stock_min": 0.0,
+            "total_lotes": 52386.0,
+            "descuadre": -52386.0
+        },
+        {
+            "co_art": "PT02D01X028                   ",
+            "art_des": "Las Delicias de Bel\u00e9n Salsa a Base de Tomate Tradicional 3,85Kg",
+            "stock_min": 0.0,
+            "total_lotes": 6003.0,
+            "descuadre": -6003.0
+        },
+        {
+            "co_art": "PT04D14X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Pi\u00f1a picante 250g",
+            "stock_min": 0.0,
+            "total_lotes": 117.0,
+            "descuadre": -117.0
+        },
+        {
+            "co_art": "PT04D15X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Piment\u00f3n picante 250g",
+            "stock_min": 0.0,
+            "total_lotes": 265.0,
+            "descuadre": -265.0
+        },
+        {
+            "co_art": "PT04D16X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Fresa 250g",
+            "stock_min": 0.0,
+            "total_lotes": 838.0,
+            "descuadre": -838.0
+        },
+        {
+            "co_art": "PT04D17X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Pi\u00f1a 250g",
+            "stock_min": 0.0,
+            "total_lotes": 2.0,
+            "descuadre": -2.0
+        },
+        {
+            "co_art": "PT04D18X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Guayaba 250g",
+            "stock_min": 0.0,
+            "total_lotes": 439.0,
+            "descuadre": -439.0
+        },
+        {
+            "co_art": "PT04D20X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Mora 250g",
+            "stock_min": 0.0,
+            "total_lotes": 157.0,
+            "descuadre": -157.0
+        },
+        {
+            "co_art": "PT04D21X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Parchita 250g",
+            "stock_min": 0.0,
+            "total_lotes": 627.0,
+            "descuadre": -627.0
+        },
+        {
+            "co_art": "PT04D22X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Mango 250g",
+            "stock_min": 0.0,
+            "total_lotes": 147.0,
+            "descuadre": -147.0
+        },
+        {
+            "co_art": "PT04D23X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Naranja 250g",
+            "stock_min": 0.0,
+            "total_lotes": 178.0,
+            "descuadre": -178.0
+        },
+        {
+            "co_art": "PT04D42X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Lechosa con pi\u00f1a 250g",
+            "stock_min": 0.0,
+            "total_lotes": 485.0,
+            "descuadre": -485.0
+        },
+        {
+            "co_art": "PT04D43X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Pimenton 250g",
+            "stock_min": 0.0,
+            "total_lotes": 44.0,
+            "descuadre": -44.0
+        },
+        {
+            "co_art": "PT04D44X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Varietal Durazno 250g",
+            "stock_min": 0.0,
+            "total_lotes": 1058.0,
+            "descuadre": -1058.0
+        },
+        {
+            "co_art": "PT04D45X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Auyama, Naranja y Jengibre 250g",
+            "stock_min": 0.0,
+            "total_lotes": 549.0,
+            "descuadre": -549.0
+        },
+        {
+            "co_art": "PT04D46X001                   ",
+            "art_des": "Delicias de Bel\u00e9n Mermelada Cebolla con uvas pasas 250g",
+            "stock_min": 0.0,
+            "total_lotes": 397.0,
+            "descuadre": -397.0
+        },
+        {
+            "co_art": "ST01D01X001                   ",
+            "art_des": "MAYONESA DELICIAS DE BELEN GRANEL KG",
+            "stock_min": 0.0,
+            "total_lotes": 114953.09444,
+            "descuadre": -114953.09444
+        },
+        {
+            "co_art": "ST01D14X001                   ",
+            "art_des": "MERMELADA PI\u00d1A PICANTE A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 294.75,
+            "descuadre": -294.75
+        },
+        {
+            "co_art": "ST01D15X001                   ",
+            "art_des": "MERMELADA PIMENT\u00d3N PICANTE A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 771.84,
+            "descuadre": -771.84
+        },
+        {
+            "co_art": "ST01D16X001                   ",
+            "art_des": "MERMELADA DE FRESA A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 6112.795,
+            "descuadre": -6112.795
+        },
+        {
+            "co_art": "ST01D17X001                   ",
+            "art_des": "MERMELADA PI\u00d1A A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 629.746,
+            "descuadre": -629.746
+        },
+        {
+            "co_art": "ST01D18X001                   ",
+            "art_des": "MERMELADA GUAYABA A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 1969.082,
+            "descuadre": -1969.082
+        },
+        {
+            "co_art": "ST01D20X001                   ",
+            "art_des": "MERMELADA DE MORA A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 1478.82,
+            "descuadre": -1478.82
+        },
+        {
+            "co_art": "ST01D21X001                   ",
+            "art_des": "MERMELADA DE PARCHITA A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 1261.6,
+            "descuadre": -1261.6
+        },
+        {
+            "co_art": "ST01D22X001                   ",
+            "art_des": "MERMELADA DE MANGO A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 172.5,
+            "descuadre": -172.5
+        },
+        {
+            "co_art": "ST01D23X001                   ",
+            "art_des": "MERMELADA DE NARANJA A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 1595.3,
+            "descuadre": -1595.3
+        },
+        {
+            "co_art": "ST01D42X001                   ",
+            "art_des": "MERMELADA DE LECHOSA CON PI\u00d1A A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 479.75,
+            "descuadre": -479.75
+        },
+        {
+            "co_art": "ST01D43X001                   ",
+            "art_des": "MERMELADA DE PIMENT\u00d3N A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 854.75,
+            "descuadre": -854.75
+        },
+        {
+            "co_art": "ST01D44X001                   ",
+            "art_des": "MERMELADA DE DURAZNO A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 1783.81,
+            "descuadre": -1783.81
+        },
+        {
+            "co_art": "ST01D45X001                   ",
+            "art_des": "MERMELADA DE AUYAMA, NARANJA Y JENGIBRE A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 739.55,
+            "descuadre": -739.55
+        },
+        {
+            "co_art": "ST01D46X001                   ",
+            "art_des": "MERMELADA DE CEBOLLA CON UVAS PASAS A GRANEL POR KG",
+            "stock_min": 0.0,
+            "total_lotes": 266.0,
+            "descuadre": -266.0
+        },
+        {
+            "co_art": "ST01P01X001                   ",
+            "art_des": "MAYONESA PIPITA GRANEL KG",
+            "stock_min": 0.0,
+            "total_lotes": 231600.3157,
+            "descuadre": -231600.3157
+        }
+    ],
+    "purchasing_data": [
+        {
+            "materia_prima": "PT01P01X012                   ",
+            "consumo_proyectado": 1745750.6537,
+            "meta_con_reserva": 2269475.84981
+        }
+    ],
+    "summary": "# Informe Ejecutivo (Generado por Sistema de Respaldo)\n\n## 1. Auditor\u00eda de Inventario (Riesgos)\n- **ENVASE GALON PEAD (3,520 ML) UNID. (ME01N00X002                   )**: Descuadre de **-30061.68** unidades. (Lotes: 30061.68 vs Min: 0.0)\n- **ENVASE 900 G. PET MAYONESA UNID. (ME01N00X004                   )**: Descuadre de **-36517.5** unidades. (Lotes: 36517.5 vs Min: 0.0)\n- **ENVASE 500 G. PET MAYONESA UNID. (ME01N00X007                   )**: Descuadre de **-2009.0** unidades. (Lotes: 2009.0 vs Min: 0.0)\n- **ENVASE 500 G. PEAD MAYONESA UNID. (ME01N00X008                   )**: Descuadre de **-4684.0** unidades. (Lotes: 4684.0 vs Min: 0.0)\n- **ENVASE 200 G. PET MAYONESA UNID. (ME01N00X010                   )**: Descuadre de **-1601.0** unidades. (Lotes: 1601.0 vs Min: 0.0)\n- **ENVASE 200 G. PEAD MAYONESA UNID. (ME01N00X011                   )**: Descuadre de **-7130.0** unidades. (Lotes: 7130.0 vs Min: 0.0)\n- **ENVASE KETCHUP 397 G. VIDRIO UNID. (ME01N00X018                   )**: Descuadre de **-18874.0** unidades. (Lotes: 18874.0 vs Min: 0.0)\n- **ENVASE KETCHUP 198 G. VIDRIO UNID. (ME01N00X021                   )**: Descuadre de **-79332.0** unidades. (Lotes: 79332.0 vs Min: 0.0)\n- **ENVASE 200 G. VIDRIO MERMELADAS UNID. (ME01N00X026                   )**: Descuadre de **-49553.08** unidades. (Lotes: 49553.08 vs Min: 0.0)\n- **ENVASE PET 200 G. PARA SQUEEZE UNID. (ME01N00X027                   )**: Descuadre de **-723.0** unidades. (Lotes: 723.0 vs Min: 0.0)\n- **ENVASE BOTELLA 204 CC CRISTAL DN BOLSA X 190 (ME01N00X031                   )**: Descuadre de **-56100.0** unidades. (Lotes: 56100.0 vs Min: 0.0)\n- **ENVASE GENERICO 445 CC PE NAT RECT (ME01N00X036                   )**: Descuadre de **-129350.948** unidades. (Lotes: 129350.948 vs Min: 0.0)\n- **ENVASE PEAD 200 G. PARA SQUEEZE UNID. (ME01N00X039                   )**: Descuadre de **-166264.1** unidades. (Lotes: 166264.1 vs Min: 0.0)\n- **CAJA MAYONESA  SASCHET 200 GR (ME01N00X042                   )**: Descuadre de **-691.00467** unidades. (Lotes: 691.00467 vs Min: 0.0)\n- **ENVASE 196 G. PEAD MAYONESA UNID. (ME01N00X043                   )**: Descuadre de **-135291.8** unidades. (Lotes: 135291.8 vs Min: 0.0)\n- **ENVASE PET 520 CC MAYONESA BOLSA X 161 (ME01N00X044                   )**: Descuadre de **-433.0** unidades. (Lotes: 433.0 vs Min: 0.0)\n- **ENVASE BOTELLA 508 ML PET (ME01N00X045                   )**: Descuadre de **-89796.8** unidades. (Lotes: 89796.8 vs Min: 0.0)\n- **ENVASE BOTELLA 210ML PET (ME01N00X046                   )**: Descuadre de **-68178.0** unidades. (Lotes: 68178.0 vs Min: 0.0)\n- **TAPA ENVASE 110 MM GALON UNID. (AZUL) (ME02N00X001                   )**: Descuadre de **-18448.5** unidades. (Lotes: 18448.5 vs Min: 0.0)\n- **TAPA ENVASE 70 MM METALICA MERMELADA Y DESHIDRATADOS (NEGRA) UNID. (ME02N00X002                   )**: Descuadre de **-96201.8** unidades. (Lotes: 96201.8 vs Min: 0.0)\n- **TAPA ENVASE 200 / 500 DE 53 MM FLAT CON LINER UNID. (AZUL PIPITA) (ME02N00X006                   )**: Descuadre de **-404652.748** unidades. (Lotes: 404652.748 vs Min: 0.0)\n- **TAPA SALSAS FLIT TOP 38 MM CON LINER PEAD UNID. (ME02N00X007                   )**: Descuadre de **-2500.0** unidades. (Lotes: 2500.0 vs Min: 0.0)\n- **TAPA ENVASE VIDRIO KETCHUP 30 MM UNID. (ME02N00X009                   )**: Descuadre de **-12900.0** unidades. (Lotes: 12900.0 vs Min: 0.0)\n- **TAPA FLIPTOP SQUEEZE 200 G 33 MM (AZUL PIPITA) UNID. (ME02N00X010                   )**: Descuadre de **-113068.4** unidades. (Lotes: 113068.4 vs Min: 0.0)\n- **TAPA 63 MM FLAT CON LINER (NEGRA DDB) (ME02N00X012                   )**: Descuadre de **-271108.4** unidades. (Lotes: 271108.4 vs Min: 0.0)\n- **TAPA ENVASE 110 MM GALON UNID.(DDB NEGRA) (ME02N00X014                   )**: Descuadre de **-25078.9** unidades. (Lotes: 25078.9 vs Min: 0.0)\n- **TAPA ENVASE 200 DE 53 MM FLAT CON LINER UNID. (DDB NEGRA) (ME02N00X015                   )**: Descuadre de **-248203.8** unidades. (Lotes: 248203.8 vs Min: 0.0)\n- **TAPA FLIPTOP SQUEEZE 200 G 33 MM (NEGRA DDB) UNID. (ME02N00X016                   )**: Descuadre de **-2500.0** unidades. (Lotes: 2500.0 vs Min: 0.0)\n- **TAPA ENVASE 70 MM METALICA MERMELADA Y DESHIDRATADOS CERO (BLANCO) UNID. (ME02N00X017                   )**: Descuadre de **-64000.0** unidades. (Lotes: 64000.0 vs Min: 0.0)\n- **PRECINTO TAPA MERMELADA (ME02N00X018                   )**: Descuadre de **-32253.7** unidades. (Lotes: 32253.7 vs Min: 0.0)\n- **TAPA ENVASE 70 MM METALICA MERMELADA (DORADA) UNID. (ME02N00X019                   )**: Descuadre de **-1000.0** unidades. (Lotes: 1000.0 vs Min: 0.0)\n- **PRECINTO 53mm TAPA MAYONESA DDB (ME02N00X020                   )**: Descuadre de **-107500.0** unidades. (Lotes: 107500.0 vs Min: 0.0)\n- **PRECINTO 63MM TAPA MAYONESA DDB (ME02N00X021                   )**: Descuadre de **-96000.0** unidades. (Lotes: 96000.0 vs Min: 0.0)\n- **TAPA ENVASE MED TWIST OFF BOTON 30 MM/NEGRO KETCHUP 397 / 198grs (ME02N00X022                   )**: Descuadre de **-350995.0** unidades. (Lotes: 350995.0 vs Min: 0.0)\n- **ETIQUETA MAYONESA PREMIUM GALON MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X001                   )**: Descuadre de **-34102.0** unidades. (Lotes: 34102.0 vs Min: 0.0)\n- **ETIQUETA MAYONESA PREMIUM 900 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X002                   )**: Descuadre de **-47738.8** unidades. (Lotes: 47738.8 vs Min: 0.0)\n- **ETIQUETA MAYONESA PREMIUM 500 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X003                   )**: Descuadre de **-165934.8** unidades. (Lotes: 165934.8 vs Min: 0.0)\n- **ETIQUETA MAYONESA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X005                   )**: Descuadre de **-127067.0** unidades. (Lotes: 127067.0 vs Min: 0.0)\n- **ETIQUETA SALSA A BASE DE TOMATE  PRESENTACION 3.85 KG GALON  MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X006                   )**: Descuadre de **-25170.0** unidades. (Lotes: 25170.0 vs Min: 0.0)\n- **ETIQUETA KETCHUP PRESENTACION 397 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X007                   )**: Descuadre de **-61648.0** unidades. (Lotes: 61648.0 vs Min: 0.0)\n- **ETIQUETA KETCHUP PRESENTACION 198 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X009                   )**: Descuadre de **-58416.0** unidades. (Lotes: 58416.0 vs Min: 0.0)\n- **ETIQUETA CUELLOS  KETCHUP PRESENTACION 198 GR. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X011                   )**: Descuadre de **-56266.0** unidades. (Lotes: 56266.0 vs Min: 0.0)\n- **ETIQUETA CUELLOS  KETCHUP PRESENTACION 397 GR. MARCA LAS DELICIAS DE BELEN UNID. (ME03D01X017                   )**: Descuadre de **-60500.0** unidades. (Lotes: 60500.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA LECHOSA Y PI\u00d1A PREMIUM  200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D10X001                   )**: Descuadre de **-619.0** unidades. (Lotes: 619.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA LECHOSA Y PI\u00d1A PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D10X002                   )**: Descuadre de **-2503.0** unidades. (Lotes: 2503.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE CEBOLLA Y UVAS PASAS PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D11X002                   )**: Descuadre de **-1499.0** unidades. (Lotes: 1499.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE AUYAMA Y NARANJA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D13X002                   )**: Descuadre de **-784.0** unidades. (Lotes: 784.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PI\u00d1A RAYADA PICANTE PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D14X001                   )**: Descuadre de **-112.0** unidades. (Lotes: 112.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PI\u00d1A RAYADA PICANTE PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D14X002                   )**: Descuadre de **-2475.0** unidades. (Lotes: 2475.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PIMENTON PICANTE PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D15X002                   )**: Descuadre de **-3526.0** unidades. (Lotes: 3526.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE FRESA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D16X001                   )**: Descuadre de **-151.0** unidades. (Lotes: 151.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE FRESA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D16X002                   )**: Descuadre de **-20905.6** unidades. (Lotes: 20905.6 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PI\u00d1A PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D17X002                   )**: Descuadre de **-2596.0** unidades. (Lotes: 2596.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE GUAYABA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D18X001                   )**: Descuadre de **-575.0** unidades. (Lotes: 575.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE GUAYABA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D18X002                   )**: Descuadre de **-18106.2** unidades. (Lotes: 18106.2 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE AUYAMA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D19X001                   )**: Descuadre de **-48.0** unidades. (Lotes: 48.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE MORA PREMIUM 200 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D20X001                   )**: Descuadre de **-420.0** unidades. (Lotes: 420.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE MORA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D20X002                   )**: Descuadre de **-6525.8** unidades. (Lotes: 6525.8 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PARCHITA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D21X002                   )**: Descuadre de **-7376.8** unidades. (Lotes: 7376.8 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE MANGO PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D22X002                   )**: Descuadre de **-466.0** unidades. (Lotes: 466.0 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE NARANJA PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D23X002                   )**: Descuadre de **-2645.66** unidades. (Lotes: 2645.66 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE PIMENTON PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D24X002                   )**: Descuadre de **-2009.6** unidades. (Lotes: 2009.6 vs Min: 0.0)\n- **ETIQUETA MERMELADA DE DURAZNO PREMIUM 250 G. MARCA LAS DELICIAS DE BELEN UNID. (ME03D24X003                   )**: Descuadre de **-3472.16** unidades. (Lotes: 3472.16 vs Min: 0.0)\n- **ETIQUETA MAYONESA ECONOMICA GALON MARCA PIPITA UNID. (ME03P01X001                   )**: Descuadre de **-36522.88** unidades. (Lotes: 36522.88 vs Min: 0.0)\n- **ETIQUETA MAYONESA ECONOMICA 500 G. MARCA PIPITA UNID. (ME03P01X003                   )**: Descuadre de **-187000.8** unidades. (Lotes: 187000.8 vs Min: 0.0)\n- **ETIQUETA MAYONESA ECONOMICA 175 G. MARCA PIPITA UNID. (ME03P01X005                   )**: Descuadre de **-158827.4** unidades. (Lotes: 158827.4 vs Min: 0.0)\n- **ETIQUETA MAYONESA SQUEEZE 200 G. (TIRO)  MARCA PIPITA UNID. (ME03P01X006                   )**: Descuadre de **-93110.4** unidades. (Lotes: 93110.4 vs Min: 0.0)\n- **ETIQUETA MAYONESA SQUEEZE 200 G. (RETIRO)  MARCA PIPITA UNID. (ME03P01X007                   )**: Descuadre de **-88995.7** unidades. (Lotes: 88995.7 vs Min: 0.0)\n- **BOBINA PLASTICO TEROENCOGIBLE 90 MICRAS GRANEL  1 KG (ME04N00X001                   )**: Descuadre de **-4597.35075** unidades. (Lotes: 4597.35075 vs Min: 0.0)\n- **BOBINA BILAMINADA SACHET 200 G. PIPITA (ME04N00X012                   )**: Descuadre de **-253.21788** unidades. (Lotes: 253.21788 vs Min: 0.0)\n- **BOBINA PLASTICO TERMOENCOGIBLE 120 MICRAS GRANEL  1 KG (ME04N00X015                   )**: Descuadre de **-5712.63201** unidades. (Lotes: 5712.63201 vs Min: 0.0)\n- **BOBINA TEROENCOGIBLE 100 MICRAS 60CM (ME04N00X018                   )**: Descuadre de **-2040.0** unidades. (Lotes: 2040.0 vs Min: 0.0)\n- **BOBINA TEROENCOGIBLE 100 MICRAS 50CM (ME04N00X019                   )**: Descuadre de **-1429.4** unidades. (Lotes: 1429.4 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA SQUEEZE 200G (ME05N00X004                   )**: Descuadre de **-14876.77336** unidades. (Lotes: 14876.77336 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA 445G (ME05N00X005                   )**: Descuadre de **-11548.36555** unidades. (Lotes: 11548.36555 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA 175G (ME05N00X006                   )**: Descuadre de **-7824.70175** unidades. (Lotes: 7824.70175 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA 3.3 KG (ME05N00X007                   )**: Descuadre de **-6532.69691** unidades. (Lotes: 6532.69691 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MERMELADA (ME05N00X008                   )**: Descuadre de **-13242.665** unidades. (Lotes: 13242.665 vs Min: 0.0)\n- **SEPARADOR DE CARTON PARA BANDEJA ARMABLE MERMELADA (ME05N00X009                   )**: Descuadre de **-12763.485** unidades. (Lotes: 12763.485 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA ENVASE CILINDRICO 445G DELICIAS DE BELEN (ME05N00X010                   )**: Descuadre de **-2894.87002** unidades. (Lotes: 2894.87002 vs Min: 0.0)\n- **BANDEJA CARTON ARMABLE MAYONESA ENVASE CILINDRICO 910G DELICIAS DE BELEN (ME05N00X011                   )**: Descuadre de **-8016.86431** unidades. (Lotes: 8016.86431 vs Min: 0.0)\n- **CARTUCHO DE TINTA (ME05N00X012                   )**: Descuadre de **-16.0** unidades. (Lotes: 16.0 vs Min: 0.0)\n- **BANDEJA KETCHUP 397 G (ME05N00X013                   )**: Descuadre de **-4370.0** unidades. (Lotes: 4370.0 vs Min: 0.0)\n- **BANDEJA KETCHUP 198 G (ME05N00X014                   )**: Descuadre de **-6167.0** unidades. (Lotes: 6167.0 vs Min: 0.0)\n- **BANDEJA ARMABLE SQUEEZE 240 G (ME05N00X015                   )**: Descuadre de **-7387.0** unidades. (Lotes: 7387.0 vs Min: 0.0)\n- **CINTA DE EMBALAR (ME06N00X001                   )**: Descuadre de **-74.71707** unidades. (Lotes: 74.71707 vs Min: 0.0)\n- **Compuesto 01 (MP01D01X01                    )**: Descuadre de **-4.0** unidades. (Lotes: 4.0 vs Min: 0.0)\n- **Compuesto 02 (MP01D01X02                    )**: Descuadre de **-45.0** unidades. (Lotes: 45.0 vs Min: 0.0)\n- **Compuesto 20 (MP01D01X20                    )**: Descuadre de **-12.0** unidades. (Lotes: 12.0 vs Min: 0.0)\n- **Compuesto 15 (MP01D14X11                    )**: Descuadre de **-1.631** unidades. (Lotes: 1.631 vs Min: 0.0)\n- **Compuesto 12 (MP01D15X08                    )**: Descuadre de **-1.0** unidades. (Lotes: 1.0 vs Min: 0.0)\n- **Compuesto 05 (MP01D16X01                    )**: Descuadre de **-6.30085** unidades. (Lotes: 6.30085 vs Min: 0.0)\n- **Compuesto 16 (MP01D17X12                    )**: Descuadre de **-5.458** unidades. (Lotes: 5.458 vs Min: 0.0)\n- **Compuesto 07 (MP01D18X03                    )**: Descuadre de **-2.51** unidades. (Lotes: 2.51 vs Min: 0.0)\n- **Compuesto 06 (MP01D20X02                    )**: Descuadre de **-3.405** unidades. (Lotes: 3.405 vs Min: 0.0)\n- **Compuesto 10 (MP01D21X06                    )**: Descuadre de **-3.226** unidades. (Lotes: 3.226 vs Min: 0.0)\n- **Compuesto 13 (MP01D23X09                    )**: Descuadre de **-0.012** unidades. (Lotes: 0.012 vs Min: 0.0)\n- **Compuesto 11 (MP01D43X07                    )**: Descuadre de **-1.0** unidades. (Lotes: 1.0 vs Min: 0.0)\n- **Compuesto 17 (MP01D45X13                    )**: Descuadre de **-4.805** unidades. (Lotes: 4.805 vs Min: 0.0)\n- **CHAMPI\u00d1ONES  KG (MP01N00X003                   )**: Descuadre de **-2.0** unidades. (Lotes: 2.0 vs Min: 0.0)\n- **PI\u00d1A ENTERA  KG (MP01N00X030                   )**: Descuadre de **-759.60051** unidades. (Lotes: 759.60051 vs Min: 0.0)\n- **DURAZNO KG (MP01N00X033                   )**: Descuadre de **-0.81** unidades. (Lotes: 0.81 vs Min: 0.0)\n- **FRESA KG (MP01N00X036                   )**: Descuadre de **-934.3** unidades. (Lotes: 934.3 vs Min: 0.0)\n- **PARCHITA KG (MP01N00X042                   )**: Descuadre de **-1291.20085** unidades. (Lotes: 1291.20085 vs Min: 0.0)\n- **NARANJA  KG (MP01N00X048                   )**: Descuadre de **-440.38143** unidades. (Lotes: 440.38143 vs Min: 0.0)\n- **AUYAMA KG (MP01N00X060                   )**: Descuadre de **-29.0** unidades. (Lotes: 29.0 vs Min: 0.0)\n- **AJI PICANTE KG (MP01N00X066                   )**: Descuadre de **-20.8** unidades. (Lotes: 20.8 vs Min: 0.0)\n- **JENGIBRE  GRANEL 1 KG (MP01N00X069                   )**: Descuadre de **-29.06** unidades. (Lotes: 29.06 vs Min: 0.0)\n- **CEBOLLA  KG (MP01N00X072                   )**: Descuadre de **-4.0** unidades. (Lotes: 4.0 vs Min: 0.0)\n- **CONCHAS DE NARANJA MACERADAS (MP01N00X084                   )**: Descuadre de **-101.67512** unidades. (Lotes: 101.67512 vs Min: 0.0)\n- **CONCHA DE NARANJA EN JULIANAS (MP01N00X085                   )**: Descuadre de **-27.8** unidades. (Lotes: 27.8 vs Min: 0.0)\n- **PULPA DE DURAZNO 9-10 \u00b0BRIX  KG (MP01N00X087                   )**: Descuadre de **-604.7** unidades. (Lotes: 604.7 vs Min: 0.0)\n- **PULPA DE FRESA CON SEMILLAS 5-8 \u00b0BRIX  KG (MP01N00X090                   )**: Descuadre de **-658.4213** unidades. (Lotes: 658.4213 vs Min: 0.0)\n- **PULPA DE GUAYABA 7-9 \u00b0BRIX  KG (MP01N00X093                   )**: Descuadre de **-1804.685** unidades. (Lotes: 1804.685 vs Min: 0.0)\n- **PULPA DE PARCHITA SIN SEMILLA  KG (MP01N00X096                   )**: Descuadre de **-68.69** unidades. (Lotes: 68.69 vs Min: 0.0)\n- **PULPA DE PARCHITA CON SEMILLA KG (MP01N00X099                   )**: Descuadre de **-111.9325** unidades. (Lotes: 111.9325 vs Min: 0.0)\n- **PULPA DE MANGO  KG (MP01N00X102                   )**: Descuadre de **-2451.42** unidades. (Lotes: 2451.42 vs Min: 0.0)\n- **JUGO DE NARANJA KG (MP01N00X108                   )**: Descuadre de **-209.95375** unidades. (Lotes: 209.95375 vs Min: 0.0)\n- **PIMENTON ROJO LICUADO SIN SEMILLAS  KG (MP01N00X114                   )**: Descuadre de **-811.86452** unidades. (Lotes: 811.86452 vs Min: 0.0)\n- **AJI PICANTE LICUADO SIN SEMILLAS KG (MP01N00X117                   )**: Descuadre de **-29.4651** unidades. (Lotes: 29.4651 vs Min: 0.0)\n- **PULPA DE AUYAMA  KG (MP01N00X120                   )**: Descuadre de **-545.5159** unidades. (Lotes: 545.5159 vs Min: 0.0)\n- **JENGIBRE RAYADO KG (MP01N00X123                   )**: Descuadre de **-6.53** unidades. (Lotes: 6.53 vs Min: 0.0)\n- **PULPA DE MORA CON SEMILLAS 5-8 \u00b0BRIX  KG (MP01N00X126                   )**: Descuadre de **-176.86** unidades. (Lotes: 176.86 vs Min: 0.0)\n- **CEBOLLA RAYADA KG (MP01N00X129                   )**: Descuadre de **-401.18** unidades. (Lotes: 401.18 vs Min: 0.0)\n- **PASAS RUBIAS PICADAS KG (MP01N00X132                   )**: Descuadre de **-11.80375** unidades. (Lotes: 11.80375 vs Min: 0.0)\n- **PI\u00d1A RAYADA FRUTA VERDE  KG (MP01N00X135                   )**: Descuadre de **-813.759** unidades. (Lotes: 813.759 vs Min: 0.0)\n- **LECHOZA VERDE RAYADA KG (MP01N00X138                   )**: Descuadre de **-1102.821** unidades. (Lotes: 1102.821 vs Min: 0.0)\n- **PASTA DE TOMATE CON 30-32 BRIX KG (MP01N00X141                   )**: Descuadre de **-76582.0** unidades. (Lotes: 76582.0 vs Min: 0.0)\n- **ACEITE DE SOYA KG (MP01N00X143                   )**: Descuadre de **-71485.18147** unidades. (Lotes: 71485.18147 vs Min: 0.0)\n- **YEMA DE HUEVO LIQUIDA KG (MP01N00X152                   )**: Descuadre de **-2012.4412** unidades. (Lotes: 2012.4412 vs Min: 0.0)\n- **AZUCAR BLANCA REFINADA KG (MP01N00X153                   )**: Descuadre de **-81350.36565** unidades. (Lotes: 81350.36565 vs Min: 0.0)\n- **SAL COMESTIBLE KG (MP01N00X154                   )**: Descuadre de **-19538.0467** unidades. (Lotes: 19538.0467 vs Min: 0.0)\n- **MOSTAZA PREPARADA KG (MP01N00X155                   )**: Descuadre de **-9825.23161** unidades. (Lotes: 9825.23161 vs Min: 0.0)\n- **SABOR ROMERO (MP01N00X156                   )**: Descuadre de **-785.67303** unidades. (Lotes: 785.67303 vs Min: 0.0)\n- **CONCHAS DE NARANJA (MP01N00X157                   )**: Descuadre de **-4.6** unidades. (Lotes: 4.6 vs Min: 0.0)\n- **Compuesto 03 (MP01P01X03                    )**: Descuadre de **-28.0** unidades. (Lotes: 28.0 vs Min: 0.0)\n- **Compuesto 04 (MP01P01X04                    )**: Descuadre de **-4.00563** unidades. (Lotes: 4.00563 vs Min: 0.0)\n- **SABOR KETCHUP (MP03N00X001                   )**: Descuadre de **-1300.0** unidades. (Lotes: 1300.0 vs Min: 0.0)\n- **ACIDO ASCORBICO KG (MP04N00X003                   )**: Descuadre de **-69.07284** unidades. (Lotes: 69.07284 vs Min: 0.0)\n- **ALMIDON MODIFICADO 8916 KG (MP04N00X006                   )**: Descuadre de **-199.0** unidades. (Lotes: 199.0 vs Min: 0.0)\n- **SORBATO DE POTASIO KG (MP04N00X008                   )**: Descuadre de **-63.6** unidades. (Lotes: 63.6 vs Min: 0.0)\n- **BENZOATO DE SODIO KG (MP04N00X009                   )**: Descuadre de **-25.0** unidades. (Lotes: 25.0 vs Min: 0.0)\n- **PECTINA RAPIDA KG (MP04N00X013                   )**: Descuadre de **-375.02771** unidades. (Lotes: 375.02771 vs Min: 0.0)\n- **ANTIESPUMANTE KG (MP04N00X014                   )**: Descuadre de **-205.29005** unidades. (Lotes: 205.29005 vs Min: 0.0)\n- **POLIDEXTROSA KG (MP04N00X015                   )**: Descuadre de **-20.9** unidades. (Lotes: 20.9 vs Min: 0.0)\n- **ERITRITOL KG (MP04N00X016                   )**: Descuadre de **-19.66** unidades. (Lotes: 19.66 vs Min: 0.0)\n- **MALTODEXTRINA KG (MP04N00X017                   )**: Descuadre de **-24.7** unidades. (Lotes: 24.7 vs Min: 0.0)\n- **VINAGRE KG (MP04N00X019                   )**: Descuadre de **-48968.30715** unidades. (Lotes: 48968.30715 vs Min: 0.0)\n- **ACIDO ETILENDIAMINOTETRAACETICO (EDTA) KG (MP04N00X020                   )**: Descuadre de **-903.2964** unidades. (Lotes: 903.2964 vs Min: 0.0)\n- **ACIDO CITRICO KG (MP04N00X021                   )**: Descuadre de **-646.84418** unidades. (Lotes: 646.84418 vs Min: 0.0)\n- **GOMA XANTHAM KG (MP04N00X022                   )**: Descuadre de **-3473.78954** unidades. (Lotes: 3473.78954 vs Min: 0.0)\n- **ERITORBATO DE SODIO (KGS) (MP04N00X023                   )**: Descuadre de **-243.86025** unidades. (Lotes: 243.86025 vs Min: 0.0)\n- **BOBINA STRETCH MANUAL (NP10N00X028                   )**: Descuadre de **-28.0** unidades. (Lotes: 28.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 3.3 Kg (PT01D01X011                   )**: Descuadre de **-2144.0** unidades. (Lotes: 2144.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 910g (PT01D01X014                   )**: Descuadre de **-7084.0** unidades. (Lotes: 7084.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 445g (PT01D01X019                   )**: Descuadre de **-27570.0** unidades. (Lotes: 27570.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Mayonesa Premium Tradicional PET 175g (PT01D01X026                   )**: Descuadre de **-25377.0** unidades. (Lotes: 25377.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Fresa 200g (PT01D33X001                   )**: Descuadre de **-210.0** unidades. (Lotes: 210.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Guayaba 200g (PT01D35X001                   )**: Descuadre de **-5.0** unidades. (Lotes: 5.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Mora 200g (PT01D36X001                   )**: Descuadre de **-295.0** unidades. (Lotes: 295.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Lechosa con Pi\u00f1a 200g (PT01D42X001                   )**: Descuadre de **-172.0** unidades. (Lotes: 172.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Piment\u00f3n 200g (PT01D43X001                   )**: Descuadre de **-62.0** unidades. (Lotes: 62.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Auyama, Naranja y Jemgibre 200g (PT01D45X001                   )**: Descuadre de **-71.0** unidades. (Lotes: 71.0 vs Min: 0.0)\n- **PIPITA Mayonesa Tradicional PEAD 3.3 kg (PT01P01X011                   )**: Descuadre de **-3178.0** unidades. (Lotes: 3178.0 vs Min: 0.0)\n- **PIPITA Mayonesa Tradicional PEAD 445g (PT01P01X012                   )**: Descuadre de **-26719.22789** unidades. (Lotes: 26719.22789 vs Min: 0.0)\n- **PIPITA Mayonesa Tradicional PEAD 175g (PT01P01X013                   )**: Descuadre de **-30456.0** unidades. (Lotes: 30456.0 vs Min: 0.0)\n- **PIPITA Mayonesa Tradicional Sachet 200g (PT01P01X016                   )**: Descuadre de **-1150.0** unidades. (Lotes: 1150.0 vs Min: 0.0)\n- **PIPITA Mayonesa Tradicional PEAD Sqeeze 200g (PT01P01X017                   )**: Descuadre de **-20013.0** unidades. (Lotes: 20013.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Ketchup premium Tradicional Vidrio 397g (PT02D01X020                   )**: Descuadre de **-108033.0** unidades. (Lotes: 108033.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Ketchup premium Tradicional Vidrio 198g (PT02D01X021                   )**: Descuadre de **-52386.0** unidades. (Lotes: 52386.0 vs Min: 0.0)\n- **Las Delicias de Bel\u00e9n Salsa a Base de Tomate Tradicional 3,85Kg (PT02D01X028                   )**: Descuadre de **-6003.0** unidades. (Lotes: 6003.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Pi\u00f1a picante 250g (PT04D14X001                   )**: Descuadre de **-117.0** unidades. (Lotes: 117.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Piment\u00f3n picante 250g (PT04D15X001                   )**: Descuadre de **-265.0** unidades. (Lotes: 265.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Fresa 250g (PT04D16X001                   )**: Descuadre de **-838.0** unidades. (Lotes: 838.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Pi\u00f1a 250g (PT04D17X001                   )**: Descuadre de **-2.0** unidades. (Lotes: 2.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Guayaba 250g (PT04D18X001                   )**: Descuadre de **-439.0** unidades. (Lotes: 439.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Mora 250g (PT04D20X001                   )**: Descuadre de **-157.0** unidades. (Lotes: 157.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Parchita 250g (PT04D21X001                   )**: Descuadre de **-627.0** unidades. (Lotes: 627.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Mango 250g (PT04D22X001                   )**: Descuadre de **-147.0** unidades. (Lotes: 147.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Naranja 250g (PT04D23X001                   )**: Descuadre de **-178.0** unidades. (Lotes: 178.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Lechosa con pi\u00f1a 250g (PT04D42X001                   )**: Descuadre de **-485.0** unidades. (Lotes: 485.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Pimenton 250g (PT04D43X001                   )**: Descuadre de **-44.0** unidades. (Lotes: 44.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Varietal Durazno 250g (PT04D44X001                   )**: Descuadre de **-1058.0** unidades. (Lotes: 1058.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Auyama, Naranja y Jengibre 250g (PT04D45X001                   )**: Descuadre de **-549.0** unidades. (Lotes: 549.0 vs Min: 0.0)\n- **Delicias de Bel\u00e9n Mermelada Cebolla con uvas pasas 250g (PT04D46X001                   )**: Descuadre de **-397.0** unidades. (Lotes: 397.0 vs Min: 0.0)\n- **MAYONESA DELICIAS DE BELEN GRANEL KG (ST01D01X001                   )**: Descuadre de **-114953.09444** unidades. (Lotes: 114953.09444 vs Min: 0.0)\n- **MERMELADA PI\u00d1A PICANTE A GRANEL POR KG (ST01D14X001                   )**: Descuadre de **-294.75** unidades. (Lotes: 294.75 vs Min: 0.0)\n- **MERMELADA PIMENT\u00d3N PICANTE A GRANEL POR KG (ST01D15X001                   )**: Descuadre de **-771.84** unidades. (Lotes: 771.84 vs Min: 0.0)\n- **MERMELADA DE FRESA A GRANEL POR KG (ST01D16X001                   )**: Descuadre de **-6112.795** unidades. (Lotes: 6112.795 vs Min: 0.0)\n- **MERMELADA PI\u00d1A A GRANEL POR KG (ST01D17X001                   )**: Descuadre de **-629.746** unidades. (Lotes: 629.746 vs Min: 0.0)\n- **MERMELADA GUAYABA A GRANEL POR KG (ST01D18X001                   )**: Descuadre de **-1969.082** unidades. (Lotes: 1969.082 vs Min: 0.0)\n- **MERMELADA DE MORA A GRANEL POR KG (ST01D20X001                   )**: Descuadre de **-1478.82** unidades. (Lotes: 1478.82 vs Min: 0.0)\n- **MERMELADA DE PARCHITA A GRANEL POR KG (ST01D21X001                   )**: Descuadre de **-1261.6** unidades. (Lotes: 1261.6 vs Min: 0.0)\n- **MERMELADA DE MANGO A GRANEL POR KG (ST01D22X001                   )**: Descuadre de **-172.5** unidades. (Lotes: 172.5 vs Min: 0.0)\n- **MERMELADA DE NARANJA A GRANEL POR KG (ST01D23X001                   )**: Descuadre de **-1595.3** unidades. (Lotes: 1595.3 vs Min: 0.0)\n- **MERMELADA DE LECHOSA CON PI\u00d1A A GRANEL POR KG (ST01D42X001                   )**: Descuadre de **-479.75** unidades. (Lotes: 479.75 vs Min: 0.0)\n- **MERMELADA DE PIMENT\u00d3N A GRANEL POR KG (ST01D43X001                   )**: Descuadre de **-854.75** unidades. (Lotes: 854.75 vs Min: 0.0)\n- **MERMELADA DE DURAZNO A GRANEL POR KG (ST01D44X001                   )**: Descuadre de **-1783.81** unidades. (Lotes: 1783.81 vs Min: 0.0)\n- **MERMELADA DE AUYAMA, NARANJA Y JENGIBRE A GRANEL POR KG (ST01D45X001                   )**: Descuadre de **-739.55** unidades. (Lotes: 739.55 vs Min: 0.0)\n- **MERMELADA DE CEBOLLA CON UVAS PASAS A GRANEL POR KG (ST01D46X001                   )**: Descuadre de **-266.0** unidades. (Lotes: 266.0 vs Min: 0.0)\n- **MAYONESA PIPITA GRANEL KG (ST01P01X001                   )**: Descuadre de **-231600.3157** unidades. (Lotes: 231600.3157 vs Min: 0.0)\n\n## 2. Planificaci\u00f3n de Compras (Meta +30%)\n- **PT01P01X012                   **: Consumo Proyectado **1745750.65**. Meta con Reserva: **2269475.85**.\n"
+}

@@ -25,10 +25,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY ./app ./app
 COPY migrate_db.py .
 
-# Enable legacy OpenSSL renegotiation for SQL Server 2014 support
-RUN if [ -f /etc/ssl/openssl.cnf ]; then CONF=/etc/ssl/openssl.cnf; else CONF=/usr/lib/ssl/openssl.cnf; fi && \
-    sed -i 's/CipherString = DEFAULT:@SECLEVEL=2/CipherString = DEFAULT:@SECLEVEL=0\nOptions = UnsafeLegacyRenegotiation/' $CONF || \
-    echo "Warning: specific OpenSSL config pattern not found in $CONF"
+# Copy custom OpenSSL configuration
+COPY custom_openssl.cnf /etc/ssl/openssl.cnf
+ENV OPENSSL_CONF=/etc/ssl/openssl.cnf
 
 # Create directory for database
 RUN mkdir -p /app/data

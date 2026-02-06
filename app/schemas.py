@@ -40,6 +40,12 @@ class ProductionPlanningBase(BaseModel):
     kg: float = 0.0
     units: int = 0
     boxes: float = 0.0
+    units: int = 0
+    boxes: float = 0.0
+    waste_percentage: float = 0.0
+    waste_kg: float = 0.0
+    status: Optional[str] = "Pending"
+    notes: Optional[str] = None
 
 class ProductionPlanningCreate(ProductionPlanningBase):
     pass
@@ -64,8 +70,83 @@ class DashboardStats(BaseModel):
     compliance_percentage: float
     waste_percentage: float = 0.0
     avg_kg_per_batch: float = 0.0
+    quick_consumption_percentage: float = 0.0
     
     # Chart Data
     pie_data: list[dict] = [] # [{'label': 'Mayonesa', 'value': 1500.00}]
     history_data: list[dict] = [] # [{'date': '2025-12-01', 'produced': 100, 'planned': 120}]
 
+# Inventory Schemas
+class InventoryCaptureBase(BaseModel):
+    capture_type: str
+    article_code: str
+    article_description: str
+    batch: str
+    quantity: float
+    capture_date: str
+    capture_time: str
+    department: Optional[str] = None
+    out_of_range: bool = False
+
+class InventoryCaptureCreate(InventoryCaptureBase):
+    pass
+
+class InventoryCapture(InventoryCaptureBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
+
+
+# Inventory Schemas (Master-Detail)
+
+class InventoryLineBase(BaseModel):
+    article_code: str
+    article_description: str
+    batch: str
+    quantity: float
+
+class InventoryLineCreate(InventoryLineBase):
+    pass
+
+class InventoryLine(InventoryLineBase):
+    id: int
+    header_id: int
+    
+    class Config:
+        from_attributes = True
+
+class InventoryHeaderBase(BaseModel):
+    date: datetime
+    notes: Optional[str] = None
+
+class InventoryHeaderCreate(InventoryHeaderBase):
+    lines: list[InventoryLineCreate]
+
+class InventoryHeader(InventoryHeaderBase):
+    id: int
+    correlative: str
+    status: str
+    user_id: int
+    # created_at removed to match model 'date'
+    lines: list[InventoryLine] = []
+    
+    
+    class Config:
+        from_attributes = True
+
+class LogisticsRouteBase(BaseModel):
+    name: str
+    active: bool = True
+
+class LogisticsRouteCreate(LogisticsRouteBase):
+    pass
+
+class LogisticsRoute(LogisticsRouteBase):
+    id: int
+    created_at: datetime
+    
+    class Config:
+        from_attributes = True

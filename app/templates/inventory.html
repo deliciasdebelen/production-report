@@ -1,0 +1,498 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+<!-- Odoo Style CSS Overrides for this Page -->
+<style>
+    /* Status Bar */
+    .statusbar {
+        background: white;
+        border-bottom: 1px solid #dee2e6;
+        padding: 10px 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .statusbar-status {
+        display: flex;
+        gap: 0;
+    }
+
+    .status-item {
+        padding: 5px 15px;
+        background: #f1f3f5;
+        color: #495057;
+        font-size: 0.85rem;
+        font-weight: 500;
+        position: relative;
+        cursor: default;
+        border: 1px solid #ddd;
+        border-left: none;
+    }
+
+    .status-item:first-child {
+        border-left: 1px solid #ddd;
+        border-top-left-radius: 3px;
+        border-bottom-left-radius: 3px;
+    }
+
+    .status-item:last-child {
+        border-top-right-radius: 3px;
+        border-bottom-right-radius: 3px;
+    }
+
+    .status-item.active {
+        background: #714B67;
+        color: white;
+        border-color: #714B67;
+    }
+
+    /* Sheet */
+    .sheet {
+        background: white;
+        border: 1px solid #dcdcdc;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        padding: 40px;
+        max-width: 1100px;
+        margin: 0 auto;
+        min-height: 500px;
+        position: relative;
+    }
+
+    .sheet-title {
+        font-size: 1.8rem;
+        font-weight: 500;
+        margin-bottom: 20px;
+        color: #333;
+    }
+
+    /* Form Grid */
+    .o_group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 40px;
+        margin-bottom: 30px;
+    }
+
+    .o_inner_group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .o_field {
+        display: flex;
+        align-items: center;
+        min-height: 28px;
+    }
+
+    .o_field label {
+        width: 130px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        color: #4c4c4c;
+        border-right: 3px solid transparent;
+        /* Alignment aid */
+    }
+
+    .o_input {
+        flex: 1;
+        padding: 5px 8px;
+        border: 1px solid #ccc;
+        /* Default border */
+        border-bottom: 1px solid #888;
+        /* Odoo input style */
+        border-top: none;
+        border-left: none;
+        border-right: none;
+        background: transparent;
+        font-size: 0.9rem;
+        width: 100%;
+        color: #333;
+    }
+
+    .o_input:focus {
+        outline: none;
+        border-bottom: 2px solid #714B67;
+    }
+
+    /* Notebook */
+    .o_notebook {
+        margin-top: 20px;
+    }
+
+    .o_notebook_headers {
+        display: flex;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 0;
+    }
+
+    .o_notebook_tab {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+        color: #495057;
+        background: transparent;
+        border: 1px solid transparent;
+        border-bottom: none;
+        cursor: pointer;
+        margin-bottom: -1px;
+    }
+
+    .o_notebook_tab:hover {
+        background: #f8f9fa;
+    }
+
+    .o_notebook_tab.active {
+        background: white;
+        border-color: #dee2e6;
+        border-top: 2px solid #714B67;
+        font-weight: 500;
+        color: #212529;
+    }
+
+    /* Table inside notebook */
+    .o_list_view {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 0px;
+    }
+
+    .o_list_view th {
+        text-align: left;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #4c4c4c;
+        border-bottom: 2px solid #e6e6e6;
+    }
+
+    .o_list_view td {
+        padding: 8px 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 0.9rem;
+        vertical-align: middle;
+    }
+
+    /* Inline Input Styles for Table */
+    .inline-input {
+        width: 100%;
+        border: none;
+        padding: 5px;
+        background: #f8f9fa;
+        border-radius: 3px;
+    }
+
+    .inline-input:focus {
+        background: white;
+        outline: 1px solid #714B67;
+    }
+
+    /* Action Button (Link style) */
+    .o_field_x2many_list_row_add {
+        display: block;
+        padding: 10px;
+        color: #017e84;
+        /* Odoo teal */
+        cursor: pointer;
+        font-size: 0.9rem;
+    }
+
+    .o_field_x2many_list_row_add:hover {
+        background: #f0f0f0;
+        text-decoration: none;
+    }
+</style>
+
+<!-- Status Bar -->
+<div class="statusbar" style="max-width: 1100px; margin: 0 auto; margin-bottom: 10px;">
+    <div style="display: flex; gap: 10px;">
+        <button class="btn"
+            style="background: #714B67; color: white; padding: 6px 15px; border-radius: 4px; font-size: 0.9rem;"
+            onclick="saveFullCapture()">Guardar</button>
+        <button class="btn"
+            style="background: white; border: 1px solid #ccc; color: #333; padding: 6px 15px; border-radius: 4px; font-size: 0.9rem;"
+            onclick="window.location.reload()">Descartar</button>
+    </div>
+    <div class="statusbar-status">
+        <div class="status-item active">Borrador</div>
+        <div class="status-item">Confirmado</div>
+        <div class="status-item">Hecho</div>
+    </div>
+</div>
+
+<div class="sheet">
+    <!-- Header Title -->
+    <div class="sheet-title">
+        <span style="color: #714B67;">INV/2026/000X</span> <span
+            style="font-size: 1rem; color: #888; font-weight: 400;">(Nuevo)</span>
+    </div>
+
+    <!-- Top Form -->
+    <div class="o_group">
+        <div class="o_inner_group">
+            <div class="o_field">
+                <label>Usuario</label>
+                <div style="flex:1;">{{ user.username }} ({{ user.role }})</div>
+            </div>
+            <div class="o_field">
+                <label>Departamento</label>
+                <select id="departmentSelect" class="o_input">
+                    <option value="Logistica">Logística</option>
+                    <option value="Produccion">Producción</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="o_inner_group">
+            <div class="o_field">
+                <label>Fecha Ref.</label>
+                <input type="date" id="headerDate" class="o_input" style="border: none; border-bottom: 1px solid #888;">
+            </div>
+            <div class="o_field">
+                <label>Notas</label>
+                <input type="text" id="headerNotes" class="o_input" placeholder="Referencia de documento...">
+            </div>
+        </div>
+    </div>
+
+    <!-- Notebook -->
+    <div class="o_notebook">
+        <div class="o_notebook_headers">
+            <div class="o_notebook_tab active" onclick="switchTab('lines')">Líneas de Inventario</div>
+            <div class="o_notebook_tab" onclick="switchTab('info')">Otra Información</div>
+        </div>
+
+        <div id="tab-lines" style="border: 1px solid #dee2e6; border-top: none; min-height: 200px; padding: 0;">
+            <table class="o_list_view">
+                <thead>
+                    <tr>
+                        <th style="width: 40%;">Producto</th>
+                        <th style="width: 25%;">Lote/Nº Serie</th>
+                        <th style="width: 20%; text-align: right;">Cantidad</th>
+                        <th style="width: 10%;"></th>
+                    </tr>
+                </thead>
+                <tbody id="linesTableBody">
+                    <!-- Rows will be injected here -->
+                </tbody>
+                <tfoot>
+                    <!-- Inline Add Row -->
+                    <tr style="background: #fafafa;">
+                        <td style="position: relative;">
+                            <input type="text" id="articleSearch" class="inline-input" placeholder="Buscar producto..."
+                                autocomplete="off">
+                            <input type="hidden" id="articleCodeHidden">
+                            <input type="hidden" id="articleDescHidden">
+                            <!-- Dropdown -->
+                            <div id="articleResults"
+                                style="display: none; position: absolute; top: 100%; left: 0; width: 100%; max-height: 200px; overflow-y: auto; background: white; border: 1px solid #ccc; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            </div>
+                        </td>
+                        <td>
+                            <input type="text" id="batchInput" class="inline-input" placeholder="Lote...">
+                        </td>
+                        <td>
+                            <input type="number" id="qtyInput" class="inline-input" placeholder="0.00" step="0.01"
+                                style="text-align: right;">
+                        </td>
+                        <td style="text-align: center;">
+                            <button onclick="addLine()"
+                                style="background: transparent; border: 1px solid #ccc; cursor: pointer; border-radius: 4px; color: #017e84; padding: 2px 8px; font-size: 1.1rem;">
+                                &#10003; <!-- Checkmark -->
+                            </button>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+            <!-- "Add a line" pseudo link logic is handled by the footer row, simpler user experience -->
+            <div class="o_field_x2many_list_row_add" onclick="$('articleSearch').focus()">
+                añadir una línea
+            </div>
+        </div>
+
+        <div id="tab-info"
+            style="border: 1px solid #dee2e6; border-top: none; min-height: 200px; padding: 20px; display: none;">
+            <div class="o_group">
+                <div class="o_inner_group">
+                    <div class="o_field">
+                        <label>Tipo Op.</label>
+                        <select id="opType" class="o_input">
+                            <option value="Inicio">Inicio de Turno</option>
+                            <option value="Cierre">Cierre de Turno</option>
+                            <option value="Ajuste">Ajuste / Conteo Cíclico</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal -->
+<div id="successModal"
+    style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div style="background:white; padding: 30px; border-radius: 8px; text-align: center; max-width: 400px; width: 90%;">
+        <div style="font-size: 3rem; margin-bottom: 10px; color: #714B67;">✅</div>
+        <h2 style="color: #333; margin-bottom: 10px;">Guardado</h2>
+        <p style="color: #666; font-size: 1.1rem; margin-bottom: 20px;">Correlativo:</p>
+        <div id="correlativeDisplay"
+            style="background: #f8f9fa; color: #333; padding: 10px; font-weight: bold; font-size: 1.4rem; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+            INV-????
+        </div>
+        <button onclick="window.location.reload()" class="btn"
+            style="background: #714B67; color: white; padding: 8px 20px;">Aceptar</button>
+    </div>
+</div>
+
+<script>
+    const $ = id => document.getElementById(id);
+
+    // Init Date
+    $('headerDate').value = new Date().toISOString().split('T')[0];
+
+    // Tabs Logic
+    function switchTab(tabName) {
+        // Toggle Headers
+        document.querySelectorAll('.o_notebook_tab').forEach(el => el.classList.remove('active'));
+        if (tabName === 'lines') document.querySelectorAll('.o_notebook_tab')[0].classList.add('active');
+        if (tabName === 'info') document.querySelectorAll('.o_notebook_tab')[1].classList.add('active');
+
+        // Toggle Content
+        $('tab-lines').style.display = tabName === 'lines' ? 'block' : 'none';
+        $('tab-info').style.display = tabName === 'info' ? 'block' : 'none';
+    }
+
+    // State
+    let currentLines = [];
+
+    // --- Reuse Search Logic ---
+    let articlesData = [];
+    async function loadArticles() {
+        try {
+            const res = await fetch('/api/external/articles');
+            if (res.ok) articlesData = await res.json();
+        } catch (e) { console.error(e); }
+    }
+    loadArticles();
+
+    const searchInput = $('articleSearch');
+    const resultsDiv = $('articleResults');
+    const bInput = $('batchInput');
+
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        if (term.length < 1) { resultsDiv.style.display = 'none'; return; }
+        const filtered = articlesData.filter(a => a.description.toLowerCase().includes(term) || a.code.toLowerCase().includes(term));
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '8px'; div.style.cursor = 'pointer'; div.style.borderBottom = '1px solid #eee';
+                div.textContent = `${item.code} - ${item.description}`;
+                div.onclick = () => {
+                    searchInput.value = item.description;
+                    $('articleCodeHidden').value = item.code;
+                    $('articleDescHidden').value = item.description;
+                    resultsDiv.style.display = 'none';
+                    bInput.focus();
+                };
+                div.onmouseover = () => div.style.background = '#f8f9fa';
+                div.onmouseout = () => div.style.background = 'white';
+                resultsDiv.appendChild(div);
+            });
+        } else { resultsDiv.style.display = 'none'; }
+    });
+    // Enter key to add line logic
+    $('qtyInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addLine();
+    });
+    document.addEventListener('click', e => { if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) resultsDiv.style.display = 'none'; });
+
+    // --- Line Logic ---
+    function addLine() {
+        const code = $('articleCodeHidden').value;
+        const desc = $('articleDescHidden').value || searchInput.value; // Fallback if user typed manually (dangerous but flexible)
+        const batch = $('batchInput').value;
+        const qty = parseFloat($('qtyInput').value);
+
+        if (!desc || !qty || qty <= 0) {
+            // Subtle shake or red border? For now alert
+            // alert("Info Incompleta");
+            return;
+        }
+
+        currentLines.push({ article_code: code || 'MANUAL', article_description: desc, batch: batch || 'S/L', quantity: qty });
+        renderLines();
+
+        // Reset inputs
+        searchInput.value = '';
+        $('articleCodeHidden').value = '';
+        $('articleDescHidden').value = '';
+        $('batchInput').value = '';
+        $('qtyInput').value = '';
+        searchInput.focus();
+    }
+
+    function removeLine(index) {
+        currentLines.splice(index, 1);
+        renderLines();
+    }
+
+    function renderLines() {
+        const tbody = $('linesTableBody');
+        tbody.innerHTML = '';
+
+        currentLines.forEach((line, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${line.article_description} <span style="color:#888; font-size:0.8rem;">[${line.article_code}]</span></td>
+                <td>${line.batch}</td>
+                <td style="text-align: right;">${line.quantity.toFixed(2)}</td>
+                <td style="text-align: center;">
+                    <span onclick="removeLine(${idx})" style="cursor: pointer; color: #dc3545; font-size: 1.1rem;" title="Eliminar">&times;</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- Save Logic ---
+    async function saveFullCapture() {
+        if (currentLines.length === 0) {
+            alert("Agregue al menos una línea.");
+            return;
+        }
+
+        const payload = {
+            date: $('headerDate').value,
+            notes: $('headerNotes').value + " | Tipo: " + $('opType').value,
+            lines: currentLines
+        };
+
+        try {
+            const res = await fetch('/inventory/api/full-capture', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                $('correlativeDisplay').textContent = data.correlative;
+                $('successModal').style.display = 'flex';
+            } else {
+                alert("Error al guardar.");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión.");
+        }
+    }
+</script>
+
+{% endblock %}

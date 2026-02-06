@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import text
-from ..external_db import get_external_db
+from ..external_db import get_external_db, get_manufacturing_db
 from ..models import User
 from ..dependencies import get_current_active_user # Correct import now
 from typing import Optional
@@ -31,6 +31,13 @@ async def view_traslados_realtime(request: Request, user: User = Depends(get_cur
     if user.role not in [2, 4]:
          return templates.TemplateResponse("403.html", {"request": request, "user": user})
     return templates.TemplateResponse("traslados-tiempo-real.html", {"request": request, "title": "Traslados en Tiempo Real", "user": user})
+
+@router.get("/traslados/facturas", response_class=HTMLResponse)
+async def view_traslados_facturas(request: Request, user: User = Depends(get_current_active_user)):
+    if user.role not in [2, 4]:
+         return templates.TemplateResponse("403.html", {"request": request, "user": user})
+    return templates.TemplateResponse("traslados-facturas.html", {"request": request, "title": "Facturas Pendientes", "user": user})
+
 
 # --- APIs ---
 
@@ -178,4 +185,133 @@ def api_traslados_realtime(
 
     except Exception as e:
         print(f"Error /api/traslados/tiempo-real: {e}")
+        return []
+
+@router.get("/api/traslados/facturas-pendientes")
+def api_facturas_pendientes(
+    days: int = Query(15),
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_external_db)
+):
+    try:
+        # SP takes no parameters
+        sql = text("EXEC SP_CRM_FacturasPendientesGeneral")
+        result = db.execute(sql).fetchall()
+        
+        data = []
+        today = datetime.now()
+        
+        for row in result:
+            d = dict(row._mapping)
+            
+            # Parse Date (SP returns 'dd/mm/yyyy' string or datetime?)
+            # Debug output showed: '17/11/2025' (String)
+            f_emis_str = d.get('Fecha Emisión', '')
+            f_emis_dt = None
+            try:
+                # Try parsing DD/MM/YYYY
+                f_emis_dt = datetime.strptime(str(f_emis_str).strip(), '%d/%m/%Y')
+            except:
+                pass # Keep None
+
+            # Filter by Aging (Antigüedad)
+            aging_days = 0
+            if f_emis_dt:
+                aging_days = (today - f_emis_dt).days
+            
+            # Filter logic: Show invoices matching at least user request logic?
+            # User said: "select pending invoices for 15, 30, 45, or 60 days"
+            # Usually means "Older than X days".
+            if aging_days < days:
+                continue
+
+            # Map to Frontend Keys
+            item = {
+                "Numero": str(d.get('Número Factura', '')).strip(),
+                "Fecha": f_emis_dt.strftime('%Y-%m-%d') if f_emis_dt else f_emis_str,
+                "Cliente": str(d.get('Nombre Cliente', '')).strip(),
+                "Vendedor": "-", # Not returned by SP
+                "Monto": float(d.get('Total Factura', 0) or 0),
+                "Vencimiento": "-", # Not returned by SP
+                "DiasVencidos": aging_days
+            }
+            data.append(item)
+            
+        return data
+    except Exception as e:
+        print(f"Error /api/traslados/facturas-pendientes: {e}")
+        return []
+
+@router.get("/api/traslados/cierres-manufactura")
+def api_cierres_manufactura(
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_manufacturing_db)
+):
+    try:
+        # User requested: SELECT odp_num, fec_emis, cie_num FROM NSPCierreOP WHERE aju_num IS NULL
+        # assuming 'carmal_m' context or default DB has NSPCierreOP
+        sql = text("SELECT odp_num, fec_emis, cie_num FROM NSPCierreOP WHERE aju_num IS NULL")
+        result = db.execute(sql).fetchall()
+        
+        data = []
+        for row in result:
+             data.append({
+                 "odp_num": row.odp_num,
+                 "fec_emis": row.fec_emis.strftime('%Y-%m-%d') if row.fec_emis else None,
+                 "cie_num": row.cie_num
+             })
+        return data
+
+    except Exception as e:
+        print(f"Error /api/traslados/cierres-manufactura: {e}")
+        return []
+
+@router.get("/traslados/ordenes-cierre", response_class=HTMLResponse)
+async def view_traslados_ordenes_cierre(request: Request, user: User = Depends(get_current_active_user)):
+    if user.role not in [2, 4]:
+         return templates.TemplateResponse("403.html", {"request": request, "user": user})
+    return templates.TemplateResponse("traslados-ordenes-cierre.html", {"request": request, "title": "Órdenes sin Cierre", "user": user})
+
+@router.get("/api/traslados/ordenes-cierre-pendientes")
+def api_ordenes_cierre_pendientes(
+    days: int = Query(15),
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_manufacturing_db)
+):
+    try:
+        sql = text("SELECT odp_num, fec_emis, cie_num FROM NSPCierreOP WHERE aju_num IS NULL")
+        result = db.execute(sql).fetchall()
+        
+        data = []
+        today = datetime.now()
+        
+        for row in result:
+            # Map Row
+            d = dict(row._mapping)
+            
+            # Parse Date
+            f_emis_dt = d.get('fec_emis') # SQLAlchemy usually returns datetime/date object for SQL Server DATE/DATETIME
+            
+            # Filter by Aging
+            aging_days = 0
+            if f_emis_dt:
+                if isinstance(f_emis_dt, datetime):
+                     aging_days = (today - f_emis_dt).days
+                elif hasattr(f_emis_dt, 'year'): # date object
+                     aging_days = (today.date() - f_emis_dt).days
+            
+            if aging_days < days:
+                continue
+
+            item = {
+                "Numero": str(d.get('odp_num', '')).strip(),
+                "Fecha": f_emis_dt.strftime('%Y-%m-%d') if f_emis_dt else "-",
+                "Cierre": str(d.get('cie_num', '')).strip(),
+                "DiasVencidos": aging_days
+            }
+            data.append(item)
+            
+        return data
+    except Exception as e:
+        print(f"Error /api/traslados/ordenes-cierre-pendientes: {e}")
         return []

@@ -65,6 +65,16 @@
         <p style="font-size: 0.8rem; color: var(--text-muted);">Kg producidos por lote</p>
     </div>
 
+    <!-- Quick Consumption (Contribution Rate) -->
+    <div class="card" style="text-align: center; border-left: 5px solid #f59e0b;">
+        <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
+            Dep. Consumo Rápido</h4>
+        <div style="font-size: 2.5rem; font-weight: 700; color: #f59e0b;">
+            <span id="quickConsPct">0</span>%
+        </div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">% del Total Producido</p>
+    </div>
+
     <!-- MP Waste Kg -->
     <div class="card" style="text-align: center; border-left: 5px solid #6c757d;">
         <h4 style="color: var(--text-muted); margin-bottom: 0.5rem; font-size: 0.9rem; text-transform: uppercase;">
@@ -161,6 +171,7 @@
             document.getElementById('wastePct').textContent = data.waste_percentage.toFixed(2);
             document.getElementById('wasteKg').textContent = data.total_waste_kg.toFixed(2);
             document.getElementById('avgKgBatch').textContent = data.avg_kg_per_batch.toFixed(1);
+            document.getElementById('quickConsPct').textContent = data.quick_consumption_percentage.toFixed(1);
 
             // Production Stats
             document.getElementById('prodBatches').textContent = data.total_production_batches;
