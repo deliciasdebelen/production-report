@@ -6,8 +6,7 @@ from typing import Optional
 from ..database import get_db
 from ..external_db import get_external_db
 from .. import models
-from ..dependencies import get_current_active_user
-from fastapi.templating import Jinja2Templates
+from ..dependencies import get_current_active_user, templates
 from datetime import datetime, timedelta
 
 router = APIRouter(
@@ -16,7 +15,7 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-templates = Jinja2Templates(directory="app/templates")
+
 
 def apply_date_filter(query, model, date_column, start_date: str, end_date: str):
     if start_date:

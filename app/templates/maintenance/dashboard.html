@@ -47,12 +47,9 @@
                             <label>Rol</label>
                             <select name="role" required
                                 style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
-                                <option value="1">1 - KPI (Solo ver)</option>
-                                <option value="2">2 - Producción</option>
-                                <option value="3">3 - Planificación</option>
-                                <option value="4">4 - Admin (Todo)</option>
-                                <option value="5">5 - Almacén General</option>
-                                <option value="6">6 - Inventario</option>
+                                {% for r in roles %}
+                                <option value="{{ r.id }}">{{ r.id }} - {{ r.name }}</option>
+                                {% endfor %}
                             </select>
                         </div>
                         <button type="submit" class="btn-primary"
@@ -85,13 +82,7 @@
                         <tr style="border-bottom: 1px solid var(--border);">
                             <td style="padding: 0.5rem;"><strong>{{ u.username }}</strong></td>
                             <td style="padding: 0.5rem; color: var(--text-muted);">
-                                {% if u.role == 1 %} KPI
-                                {% elif u.role == 2 %} Producción
-                                {% elif u.role == 3 %} Planificación
-                                {% elif u.role == 4 %} Admin
-                                {% elif u.role == 5 %} Almacén
-                                {% elif u.role == 6 %} Inventario
-                                {% endif %}
+                                {{ u.role_obj.name if u.role_obj else u.role }}
                             </td>
                             <td style="padding: 0.5rem; text-align: right;">
                                 {% if u.username != 'admin' %}
@@ -105,6 +96,69 @@
                                 {% else %}
                                 <span style="font-size: 0.8rem; color: var(--text-muted);">Sistema</span>
                                 {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: ROLES (ACCESS MAP) -->
+    <div id="tab-roles" class="tab-content" style="display: none; padding: 2rem;">
+        <div class="grid-2" style="gap: 2rem; align-items: start;">
+            <!-- Create/Edit Role -->
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Definir Rol y Accesos</h3>
+                <form action="/maintenance/roles" method="post">
+                    <div style="display: grid; gap: 1rem;">
+                        <div class="form-group">
+                            <label>ID (Opcional - solo para editar)</label>
+                            <input type="number" name="id" placeholder="Dejar vacío para crear nuevo"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre del Rol</label>
+                            <input type="text" name="name" required placeholder="Ej: Auditor"
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
+                        </div>
+                        <div class="form-group">
+                            <label>Permisos (JSON Format)</label>
+                            <textarea name="perms" rows="6" required
+                                style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px; font-family: monospace;">{"logistics": ["view"]}</textarea>
+                            <small style="color: grey;">Ej: {"production": ["view"], "logistics": ["view",
+                                "print"]}</small>
+                        </div>
+                        <button type="submit" class="btn-primary"
+                            style="justify-self: end; width: auto; padding: 0.4rem 1.2rem; font-size: 0.85rem; font-weight: 500; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); margin-top: 0.5rem;">
+                            <span style="margin-right: 0.25rem;">💾</span> Guardar Rol
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- List Roles -->
+            <div>
+                <h3 style="margin-bottom: 1rem;">Mapa de Roles Existentes</h3>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                            <th style="padding: 0.5rem;">ID</th>
+                            <th style="padding: 0.5rem;">Rol</th>
+                            <th style="padding: 0.5rem;">Mapa de Permisos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in roles %}
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 0.5rem;">{{ r.id }}</td>
+                            <td style="padding: 0.5rem;"><strong>{{ r.name }}</strong></td>
+                            <td style="padding: 0.5rem;">
+                                <code
+                                    style="background: #eee; padding: 2px 4px; border-radius: 4px; font-size: 0.8rem;">
+                                    {{ r.permissions }}
+                                </code>
                             </td>
                         </tr>
                         {% endfor %}

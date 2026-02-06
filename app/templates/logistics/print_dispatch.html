@@ -151,9 +151,15 @@
         </div>
         {% endif %}
 
-        {% if '| Fact:' in log.document_ref %}
+        {% if header_invoices %}
         <div style="margin-top: 10px; font-size: 13px; color: #64748b;">
-            Ref. Adicional: {{ log.document_ref.split('|')[1] }}
+            <strong>Facturas:</strong> {{ header_invoices|join(', ') }}
+        </div>
+        {% endif %}
+
+        {% if header_notes %}
+        <div style="margin-top: 5px; font-size: 13px; color: #64748b;">
+            <strong>Notas de Entrega:</strong> {{ header_notes|join(', ') }}
         </div>
         {% endif %}
     </div>
@@ -163,16 +169,17 @@
         <h3
             style="border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; color: #334155; display: flex; justify-content: space-between;">
             <span>
-                Factura: {{ group.invoice }}
-                {% if group.client_name %}
-                <span style="font-weight: 400; color: #64748b; font-size: 0.9em; margin-left: 10px;">
-                    ({{ group.client_name }})
+                <span>
+                    {{ group.type_label }}: {{ group.number }}
+                    {% if group.client_name %}
+                    <span style="font-weight: 400; color: #64748b; font-size: 0.9em; margin-left: 10px;">
+                        ({{ group.client_name }})
+                    </span>
+                    {% endif %}
                 </span>
+                {% if group.invoice_total %}
+                <span style="color: #047857;">ToT: {{ "{:,.2f}".format(group.invoice_total) }}</span>
                 {% endif %}
-            </span>
-            {% if group.invoice_total %}
-            <span style="color: #047857;">ToT: {{ "{:,.2f}".format(group.invoice_total) }}</span>
-            {% endif %}
         </h3>
         <table>
             <thead>

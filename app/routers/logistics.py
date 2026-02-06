@@ -1547,23 +1547,73 @@ async def print_dispatch(
     if not dispatch:
         raise HTTPException(status_code=404, detail="Despacho no encontrado")
         
-    # Parse Items
+    # Parse Items & Group by Document
     items = []
     try:
         items = json.loads(dispatch.items_json)
     except: pass
+
+    # Sort items by fact to ensure nice grouping
+    items.sort(key=lambda x: x.get('fact', ''))
+
+    grouped_data = {}
+    header_invoices = set()
+    header_notes = set()
+
+    for item in items:
+        ref = item.get('fact', 'Sin Ref').strip()
+        if not ref: ref = "Sin Ref"
+        
+        # Detect Type
+        # Logic: If it looks like a standard invoice (all digits), it's a Factura.
+        # If it has "NE", "NOTA", or is non-standard, treat as Note? 
+        # User example: "Factura: 0000013441" -> Pure digits is standard invoice.
+        # Unless user prefixed it in 'fact' field. 
+        # Let's check typical format. usually just numbers.
+        # But if 'fact' field is just a number, how do we distinguish? 
+        # The user said: "cuando sea Factura... y cuando tenga notas de entrega".
+        # This implies the SYSTEM logic that created the item knows.
+        # OR we rely on a prefix check. 
+        # Assumption: Invoices are usually numeric. Delivery Notes often have prefixes in this system or different series.
+        # Let's stick to the visual request: "Factura: X" vs "Nota de Entrega: Y".
+        # If the ref starts with "NE" or "NOTA", label as "Nota de Entrega".
+        # Else label as "Factura".
+        
+        doc_type_label = "Factura"
+        if str(ref).upper().startswith("NE") or "NOTA" in str(ref).upper():
+            doc_type_label = "Nota de Entrega"
+            header_notes.add(ref)
+        else:
+            header_invoices.add(ref)
+            
+        if ref not in grouped_data:
+            grouped_data[ref] = {
+                "type_label": doc_type_label,
+                "number": ref,
+                "client_name": dispatch.client_destination,
+                "invoice_total": 0.0,
+                "line_items": []
+            }
+        
+        grouped_data[ref]['line_items'].append(item)
+        # Add to total if available? (Usually pre-calced outside, but we can try sum)
+        try:
+            qty = float(item.get('qty', 0))
+            price = float(item.get('price', 0)) # If price exists
+            grouped_data[ref]['invoice_total'] += (qty * price)
+        except: pass
+
+    # Convert to list
+    groups = list(grouped_data.values())
     
-    # Wrap in single group for template compatibility
-    groups = [{
-        "invoice": (dispatch.document_ref or "Sin Ref"),
-        "client_name": dispatch.client_destination,
-        "line_items": items,
-        "invoice_total": 0.0
-    }]
-    
+    # Sort groups? Numeric if possible
+    groups.sort(key=lambda x: x['number'])
+
     return templates.TemplateResponse("logistics/print_dispatch.html", {
         "request": request,
         "log": dispatch,
         "groups": groups,
+        "header_invoices": sorted(list(header_invoices)),
+        "header_notes": sorted(list(header_notes)),
         "now": datetime.now()
     })

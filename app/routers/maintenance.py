@@ -2,14 +2,16 @@ from fastapi import APIRouter, Depends, Request, HTTPException, Form
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text
-from ..dependencies import get_db, templates, get_current_user
+from sqlalchemy import desc, text
+from ..dependencies import get_db, templates, get_current_user, check_permission
 from ..models import (
     User, ProductionReport, ProductionPlanning, 
     LogisticsReceptionMerchandise, LogisticsReceptionProduction, 
-    LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine
+    LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine, Role
 )
 from .. import auth_utils
 import datetime
+import json
 from typing import Optional
 
 router = APIRouter(
@@ -20,22 +22,60 @@ router = APIRouter(
 @router.get("") # /maintenance
 async def view_maintenance_dashboard(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # Authorization: Admin Only
-    if user.role != 4:
+    # Authorization: Maintenance Access
+    if not check_permission(user, "maintenance", "view"):
         raise HTTPException(status_code=403, detail="Not authorized")
         
     users = db.query(User).all()
+    roles = db.query(Role).all()
     
     return templates.TemplateResponse("maintenance/dashboard.html", {
         "request": request,
         "user": user,
         "users": users, 
+        "roles": roles,
         "title": "Mantenimiento - Panel de Control"
     })
+
+# --- ROLE MANAGEMENT ---
+@router.post("/roles")
+async def create_update_role(
+    id: Optional[int] = Form(None),
+    name: str = Form(...),
+    perms: str = Form("{}"), # JSON string
+    db: Session = Depends(get_db), 
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "view"): raise HTTPException(403)
+    
+    # Simple validation of permissions JSON
+    try:
+        json.loads(perms)
+    except:
+        return RedirectResponse("/maintenance?error=Invalid JSON permissions", status_code=303)
+
+    if id:
+        # Update
+        role = db.query(Role).filter(Role.id == id).first()
+        if role:
+            role.name = name
+            role.permissions = perms
+    else:
+        # Create
+        # Find next ID manually since we manage IDs to match legacy if desired, or let autoincrement
+        # For legacy compat, we started up to 7. 
+        # If autoincrement is on, passing None to id should work if defined as Integer PK Autoincrement in DB.
+        # But SQLite handles Integer PK as autoincrement automatically.
+        role = Role(name=name, permissions=perms)
+        db.add(role)
+        
+    db.commit()
+    return RedirectResponse("/maintenance?tab=roles", status_code=303)
 
 # --- USER MANAGEMENT ---
 @router.post("/users")
 async def create_user(username: str = Form(...), password: str = Form(...), role: int = Form(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != 4: raise HTTPException(403)
+    if not check_permission(current_user, "maintenance", "manage_users"): raise HTTPException(403)
     hashed = auth_utils.get_password_hash(password)
     new_user = User(username=username, password_hash=hashed, role=role)
     try:
@@ -47,7 +87,7 @@ async def create_user(username: str = Form(...), password: str = Form(...), role
 
 @router.post("/users/delete")
 async def delete_user(user_id: int = Form(...), db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    if current_user.role != 4: raise HTTPException(403)
+    if not check_permission(current_user, "maintenance", "manage_users"): raise HTTPException(403)
     user_obj = db.query(User).filter(User.id == user_id).first()
     if user_obj and user_obj.username != "admin": 
         db.delete(user_obj)
@@ -63,7 +103,7 @@ async def preview_data(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != 4: raise HTTPException(403)
+    if not check_permission(current_user, "maintenance", "view"): raise HTTPException(403)
 
     model = None
     date_field = None
@@ -130,7 +170,7 @@ async def delete_data(
     db: Session = Depends(get_db), 
     current_user: User = Depends(get_current_user)
 ):
-    if current_user.role != 4: raise HTTPException(403)
+    if not check_permission(current_user, "maintenance", "delete_data"): raise HTTPException(403)
     
     model = None
     date_field = None
@@ -197,7 +237,7 @@ async def print_report_maintenance(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
-    if user.role != 4: return templates.TemplateResponse("403.html", {"request": request, "user": user})
+    if not check_permission(user, "maintenance", "print"): return templates.TemplateResponse("403.html", {"request": request, "user": user})
 
     rows = []
     columns = []

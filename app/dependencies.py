@@ -26,4 +26,44 @@ async def get_current_active_user(user: User = Depends(get_current_user)):
 
 # --- Templates ---
 from fastapi.templating import Jinja2Templates
+from fastapi.templating import Jinja2Templates
 templates = Jinja2Templates(directory="app/templates")
+
+# --- RBAC Permissions ---
+import json
+from fastapi import HTTPException
+
+def check_permission(user: User, module: str, action: str) -> bool:
+    """
+    Checks if user has permission for a specific module and action.
+    Admin (Role 4) always has access.
+    """
+    if user.role == 4: return True
+    
+    if not user.role_obj:
+        return False
+        
+    try:
+        perms = json.loads(user.role_obj.permissions)
+    except:
+        return False
+        
+    # Check Module
+    if "all" in perms: return True
+    if module not in perms: return False
+    
+    actions = perms[module]
+    if "*" in actions: return True
+    if action in actions: return True
+    
+    return False
+
+# Register for usage in Templates
+templates.env.globals['check_permission'] = check_permission
+
+def has_permission(module: str, action: str):
+    def dependency(user: User = Depends(get_current_active_user)):
+        if not check_permission(user, module, action):
+            raise HTTPException(status_code=403, detail="Permiso Denegado")
+        return user
+    return dependency

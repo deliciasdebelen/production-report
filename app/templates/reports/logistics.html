@@ -280,10 +280,12 @@
                     <td class="truncate-cell" title="{{ item.document_ref }}">{{ item.document_ref }}</td>
                     <td class="json-cell truncate-cell" data-json='{{ item.items_json }}'></td>
                     <td>
+                        {% if check_permission(user, 'logistics', 'print') %}
                         <a href="/logistics/dispatch/{{ item.id }}/print" target="_blank" class="btn-filter"
                             style="text-decoration: none; display: inline-flex; width: auto; padding: 0.2rem 0.5rem; font-size: 0.85rem;">
                             🖨️ Imprimir
                         </a>
+                        {% endif %}
                     </td>
 
                     {% elif active_tab == 'inventory' %}

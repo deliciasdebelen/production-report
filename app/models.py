@@ -87,14 +87,24 @@ class InventoryCapture(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class Role(Base):
+    __tablename__ = "roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    permissions = Column(Text, default="{}") # JSON: {"module": ["read", "write"]}
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     password_hash = Column(String)
-    role = Column(Integer, default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin, 5=Almacen, 6=Inventory, 7=Patrimonial
+    role = Column(Integer, ForeignKey("roles.id"), default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin, 5=Almacen, 6=Inventory, 7=Patrimonial
     is_active = Column(Integer, default=1)
+    
+    role_obj = relationship("Role")
 
 class LogisticsReceptionProduction(Base):
     __tablename__ = "logistics_reception_production"
