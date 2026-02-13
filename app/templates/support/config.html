@@ -1,0 +1,215 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="odoo-control-panel">
+    <div class="odoo-breadcrumb">
+        <a href="/support" style="text-decoration: none; color: inherit;">Soporte</a>
+        <span style="color:#aaa">/</span>
+        <span class="active">Configuración</span>
+    </div>
+</div>
+
+<div class="odoo-sheet">
+    <div class="odoo-notebook">
+        <!-- Tabs -->
+        <div class="odoo-tabs">
+            <div class="odoo-tab active" onclick="switchConfigTab('dept')">Departamentos</div>
+            <div class="odoo-tab" onclick="switchConfigTab('status')">Estatus</div>
+            <div class="odoo-tab" onclick="switchConfigTab('priority')">Prioridad</div>
+            <div class="odoo-tab" onclick="switchConfigTab('type')">Tipos</div>
+        </div>
+
+        <!-- Content: Departments -->
+        <div id="tab-dept" class="config-tab-content" style="display:block;">
+            <div class="odoo-list-view">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="newDeptName" placeholder="Nuevo Departamento" class="odoo-input"
+                        style="width: 200px;">
+                    <button class="btn-odoo-primary" onclick="addItem('department', 'newDeptName')">Agregar</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                    <table class="odoo-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th style="width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deptTableBody">
+                            <!-- Loaded via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content: Status -->
+        <div id="tab-status" class="config-tab-content" style="display:none;">
+            <div class="odoo-list-view">
+                <div style="margin-bottom: 1rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="newStatusName" placeholder="Nuevo Estado" class="odoo-input"
+                        style="width: 200px;">
+                    <input type="color" id="newStatusColor" value="#808080" title="Color Seleccionado">
+                    <button class="btn-odoo-primary"
+                        onclick="addItem('status', 'newStatusName', 'newStatusColor')">Agregar</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                    <table class="odoo-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Color</th>
+                                <th style="width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="statusTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content: Priority -->
+        <div id="tab-priority" class="config-tab-content" style="display:none;">
+            <div class="odoo-list-view">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="newPrioName" placeholder="Nueva Prioridad" class="odoo-input"
+                        style="width: 200px;">
+                    <input type="number" id="newPrioLevel" placeholder="Nivel (1-5)" class="odoo-input"
+                        style="width: 100px;" min="1" max="5">
+                    <button class="btn-odoo-primary"
+                        onclick="addItem('priority', 'newPrioName', null, 'newPrioLevel')">Agregar</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                    <table class="odoo-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Nivel</th>
+                                <th style="width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="prioTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content: Type -->
+        <div id="tab-type" class="config-tab-content" style="display:none;">
+            <div class="odoo-list-view">
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="newTypeName" placeholder="Nuevo Tipo" class="odoo-input"
+                        style="width: 200px;">
+                    <button class="btn-odoo-primary" onclick="addItem('type', 'newTypeName')">Agregar</button>
+                </div>
+                <div class="table-responsive-wrapper">
+                    <table class="odoo-table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th style="width: 100px;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="typeTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    let configData = {};
+
+    document.addEventListener('DOMContentLoaded', loadConfig);
+
+    function switchConfigTab(tabName) {
+        document.querySelectorAll('.config-tab-content').forEach(el => el.style.display = 'none');
+        document.getElementById('tab-' + tabName).style.display = 'block';
+
+        document.querySelectorAll('.odoo-tab').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+    }
+
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/support/config');
+            configData = await res.json();
+            renderTables();
+        } catch (e) {
+            console.error("Error loading config", e);
+        }
+    }
+
+    function renderTables() {
+        // Departments
+        const deptBody = document.getElementById('deptTableBody');
+        deptBody.innerHTML = configData.departments.map(d => `
+            <tr>
+                <td>${d.name}</td>
+                <td><button class="btn-odoo-secondary btn-sm" onclick="deleteItem('department', ${d.id})">🗑️</button></td>
+            </tr>
+        `).join('');
+
+        // Status
+        const statusBody = document.getElementById('statusTableBody');
+        statusBody.innerHTML = configData.status.map(s => `
+            <tr>
+                <td>${s.name}</td>
+                <td><span style="display:inline-block; width: 20px; height: 20px; background-color: ${s.color_hex || '#ccc'}; border-radius: 4px;"></span></td>
+                <td><button class="btn-odoo-secondary btn-sm" onclick="deleteItem('status', ${s.id})">🗑️</button></td>
+            </tr>
+        `).join('');
+
+        // Priority
+        const prioBody = document.getElementById('prioTableBody');
+        prioBody.innerHTML = configData.priorities.map(p => `
+            <tr>
+                <td>${p.name}</td>
+                <td>${p.level}</td>
+                <td><button class="btn-odoo-secondary btn-sm" onclick="deleteItem('priority', ${p.id})">🗑️</button></td>
+            </tr>
+        `).join('');
+
+        // Type
+        const typeBody = document.getElementById('typeTableBody');
+        typeBody.innerHTML = configData.types.map(t => `
+            <tr>
+                <td>${t.name}</td>
+                <td><button class="btn-odoo-secondary btn-sm" onclick="deleteItem('type', ${t.id})">🗑️</button></td>
+            </tr>
+        `).join('');
+    }
+
+    async function addItem(table, nameId, colorId = null, levelId = null) {
+        const name = document.getElementById(nameId).value;
+        if (!name) return;
+
+        const formData = new FormData();
+        formData.append('name', name);
+        formData.append('action', 'create');
+
+        if (colorId) formData.append('color', document.getElementById(colorId).value);
+        if (levelId) formData.append('level', document.getElementById(levelId).value);
+
+        await fetch(`/api/support/config/${table}`, { method: 'POST', body: formData });
+
+        // Clear inputs
+        document.getElementById(nameId).value = '';
+        loadConfig();
+    }
+
+    async function deleteItem(table, id) {
+        if (!confirm('¿Eliminar?')) return;
+        const formData = new FormData();
+        formData.append('id', id);
+        formData.append('action', 'delete');
+        // Name is required by backend validation even if delete? Let's check backend or send dummy.
+        formData.append('name', 'DELETE');
+
+        await fetch(`/api/support/config/${table}`, { method: 'POST', body: formData });
+        loadConfig();
+    }
+</script>
+{% endblock %}

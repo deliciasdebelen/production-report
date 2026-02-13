@@ -298,9 +298,10 @@
                         <input type="hidden" name="action" value="all">
                         <input type="hidden" name="start_date" id="formPlanStart">
                         <input type="hidden" name="end_date" id="formPlanEnd">
+                        <input type="hidden" name="end_date" id="formPlanEnd">
                         <button type="submit" class="btn"
                             style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
-                            ELIMINAR SELECCIÓN
+                            ELIMINAR TODO EN RANGO
                         </button>
                     </form>
                 </div>
@@ -352,7 +353,7 @@
                         <input type="hidden" name="action" value="all">
                         <button type="submit" class="btn"
                             style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
-                            ELIMINAR TODO
+                            ELIMINAR TODO EN RANGO
                         </button>
                     </form>
                 </div>
@@ -362,7 +363,13 @@
 
     <!-- Preview Area -->
     <div id="previewContainer" style="margin-top: 2rem; display: none;">
-        <h4>Previsualización de Datos</h4>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h4 style="margin: 0;">Previsualización de Datos</h4>
+            <button id="btnDeleteSelected" onclick="deleteSelected()" class="btn" disabled
+                style="background: #dc3545; color: white; padding: 0.25rem 0.75rem; font-size: 0.85rem; opacity: 0.5; cursor: not-allowed;">
+                🗑️ Eliminar Marcados (<span id="selectedCount">0</span>)
+            </button>
+        </div>
         <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
             <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;" id="previewTable">
                 <thead>
@@ -457,7 +464,12 @@
         return confirm(msg);
     }
 
+
+
+    let currentTable = ''; // Store current table for deleteSelected
+
     async function previewData(table) {
+        currentTable = table;
         const formData = new FormData();
         formData.append('table', table);
 
@@ -515,6 +527,7 @@
             };
 
             let headerRow = '<tr style="background:#f1f1f1; text-align:left;">';
+            headerRow += '<th style="padding:0.5rem; width: 30px;"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>';
             keys.forEach(k => headerRow += `<th style="padding:0.5rem; white-space:nowrap;">${headerMap[k] || k}</th>`);
             headerRow += '<th style="padding:0.5rem;">Acción</th>'; // Action Header
             headerRow += '</tr>';
@@ -523,6 +536,7 @@
             // Build Rows
             data.forEach(row => {
                 let tr = '<tr style="border-bottom:1px solid #eee;">';
+                tr += `<td style="padding:0.5rem;"><input type="checkbox" class="row-check" value="${row.id}" onchange="updateDeleteButton()"></td>`;
                 keys.forEach(k => {
                     let content = row[k];
                     if (content === null || content === undefined) content = "";
@@ -568,6 +582,74 @@
             if (res.ok) {
                 // Refresh preview
                 previewData(table);
+            } else {
+                alert("Error al eliminar");
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    }
+
+
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.row-check');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateDeleteButton();
+    }
+
+    function updateDeleteButton() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        const btn = document.getElementById('btnDeleteSelected');
+        const countSpan = document.getElementById('selectedCount');
+
+        countSpan.innerText = checked.length;
+
+        if (checked.length > 0) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+
+    async function deleteSelected() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) return;
+
+        const ids = Array.from(checked).map(cb => cb.value).join(',');
+
+        if (!confirm(`¿Eliminar los ${checked.length} registros seleccionados? Esta acción no se puede deshacer.`)) return;
+
+        const formData = new FormData();
+        formData.append('table', currentTable); // Use stored table
+        formData.append('action', 'list');
+        formData.append('ids', ids);
+
+        // Add dates to preserve context if backend needs it (though list delete usually ignores dates)
+        // Better safe to be simple. Backend relies on IDs.
+
+        try {
+            const res = await fetch('/maintenance/data/delete', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok || res.status === 303 || res.redirected) {
+                // Since fetch follows redirects automatically for 303 but returns the HTML of the new page, 
+                // we might want to manually reload or just call previewData again to refresh the table.
+                // But the backend returns a RedirectResponse to /maintenance?message=...
+                // Fetch will get that HTML. We can't easily change the browser URL and show the message without a full reload 
+                // or extracting the message. 
+                // Let's just reload the page to show the flash message or refresh the grid.
+                // Actually, resizing the grid is better UX, but we want the flash message "Se eliminaron X registros".
+                // If we use fetch, we lose the flash message if we don't handle it.
+                // Let's force a reload to the URL that the backend redirected to (if we can get it) 
+                // or just reload current page with a custom message if possible.
+                // Fetch 'res.url' should be the redirected URL.
+                window.location.href = res.url;
             } else {
                 alert("Error al eliminar");
             }

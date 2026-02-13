@@ -310,7 +310,9 @@
     <!-- Status Bar -->
     <div class="odoo-statusbar">
         <div style="display: flex; gap: 0.5rem; align-items: center;">
+            {% if user.role in [1, 4, 5, 6] %}
             <button type="submit" id="btnSave" class="btn-odoo-primary">Guardar</button>
+            {% endif %}
             <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
         </div>
         <div class="odoo-statusbar-status">
@@ -363,40 +365,42 @@
 
             <!-- Tab Content: Lines -->
             <div id="tab-lines" style="display: block;">
-                <table class="o_list_view">
-                    <thead>
-                        <tr>
-                            <th style="width: 50%;">Producto</th>
-                            <th style="width: 30%;">Lote/Nº Serie</th>
-                            <th style="width: 15%; text-align: right;">Cantidad</th>
-                            <th style="width: 5%;"></th>
-                        </tr>
-                    </thead>
-                    <tbody id="linesTableBody">
-                        <tr id="inputRow" style="background: #fafafa; border-bottom: 2px solid #eee;">
-                            <td>
-                                <div class="search-container">
-                                    <input type="text" id="newArticleName" placeholder="Buscar producto..."
-                                        autocomplete="off">
-                                    <input type="hidden" id="newArticleCode">
-                                    <div id="searchResults" class="results-dropdown"></div>
-                                </div>
-                            </td>
-                            <td>
-                                <input type="text" id="newBatch" placeholder="Lote...">
-                            </td>
-                            <td>
-                                <input type="number" step="0.01" id="newQty" placeholder="0.00"
-                                    style="text-align: right;">
-                            </td>
-                            <td style="text-align: center;">
-                                <button type="button" onclick="addLine()"
-                                    style="border: none; background: none; color: var(--odoo-primary); cursor: pointer; font-size: 1.2rem;">✓</button>
-                            </td>
-                        </tr>
-                        <!-- Lines will go here -->
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="o_list_view">
+                        <thead>
+                            <tr>
+                                <th style="width: 50%;">Producto</th>
+                                <th style="width: 30%;">Lote/Nº Serie</th>
+                                <th style="width: 15%; text-align: right;">Cantidad</th>
+                                <th style="width: 5%;"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="linesTableBody">
+                            <tr id="inputRow" style="background: #fafafa; border-bottom: 2px solid #eee;">
+                                <td>
+                                    <div class="search-container">
+                                        <input type="text" id="newArticleName" placeholder="Buscar producto..."
+                                            autocomplete="off">
+                                        <input type="hidden" id="newArticleCode">
+                                        <div id="searchResults" class="results-dropdown"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <input type="text" id="newBatch" placeholder="Lote...">
+                                </td>
+                                <td>
+                                    <input type="number" step="0.01" id="newQty" placeholder="0.00"
+                                        style="text-align: right;">
+                                </td>
+                                <td style="text-align: center;">
+                                    <button type="button" onclick="addLine()"
+                                        style="border: none; background: none; color: var(--odoo-primary); cursor: pointer; font-size: 1.2rem;">✓</button>
+                                </td>
+                            </tr>
+                            <!-- Lines will go here -->
+                        </tbody>
+                    </table>
+                </div>
                 <div style="margin-top: 10px;">
                     <a href="javascript:void(0)" onclick="$('newArticleName').focus()"
                         style="color: var(--odoo-link); text-decoration: none;">añadir una línea</a>

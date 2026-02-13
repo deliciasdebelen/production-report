@@ -249,3 +249,61 @@ class SystemInsight(Base):
     
     last_detected = Column(DateTime(timezone=True), server_default=func.now())
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- SUPPORT MODULE MODELS ---
+
+class SupportDepartment(Base):
+    __tablename__ = "support_departments"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    
+class SupportStatus(Base):
+    __tablename__ = "support_status"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    color_hex = Column(String, default="#808080")
+    
+class SupportPriority(Base):
+    __tablename__ = "support_priorities"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+    level = Column(Integer, default=1) # 1=Low, 4=Urgent
+
+class SupportType(Base):
+    __tablename__ = "support_types"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False)
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String, unique=True, index=True, nullable=False) # e.g., SOP-2024-001
+    
+    description = Column(Text, nullable=False)
+    attachment_url = Column(String, nullable=True)
+    contact_email = Column(String, nullable=True)
+    
+    # Foreign Keys
+    created_by_id = Column(Integer, ForeignKey("users.id"))
+    assigned_to_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    
+    department_id = Column(Integer, ForeignKey("support_departments.id"), nullable=True)
+    type_id = Column(Integer, ForeignKey("support_types.id"), nullable=True)
+    priority_id = Column(Integer, ForeignKey("support_priorities.id"), nullable=True)
+    status_id = Column(Integer, ForeignKey("support_status.id"), nullable=True)
+    
+    # Relationships
+    created_by = relationship("User", foreign_keys=[created_by_id])
+    assigned_to = relationship("User", foreign_keys=[assigned_to_id])
+    department = relationship("SupportDepartment")
+    support_type = relationship("SupportType")
+    priority = relationship("SupportPriority")
+    status = relationship("SupportStatus")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    closed_at = Column(DateTime(timezone=True), nullable=True)

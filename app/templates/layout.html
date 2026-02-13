@@ -211,14 +211,20 @@
                             {% endif %}
 
                             {% if user %}
-                            <a href="/assistant" class="nav-link" title="Asistente IA">
-                                <span class="nav-icon">🤖</span> <span class="nav-text">Asistente IA</span>
+                            <a href="/assistant" class="nav-link" title="Supervisor Belén">
+                                <span class="nav-icon">👩‍💼</span> <span class="nav-text">Supervisor Belén</span>
                             </a>
                             {% endif %}
 
                             {% if user %}
                             <a href="/alerts" class="nav-link" title="Alertas">
                                 <span class="nav-icon">🛡️</span> <span class="nav-text">Alertas</span>
+                            </a>
+                            {% endif %}
+
+                            {% if user %}
+                            <a href="/support" class="nav-link" title="Soporte">
+                                <span class="nav-icon">🎫</span> <span class="nav-text">Soporte</span>
                             </a>
                             {% endif %}
                         </div>
@@ -406,17 +412,25 @@
         // Sidebar Toggle
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('collapsed');
+            const overlay = document.querySelector('.sidebar-overlay');
 
-            // Save preference
-            localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+            if (window.innerWidth <= 768) {
+                // Mobile Logic
+                sidebar.classList.toggle('expanded-mobile');
+                overlay.classList.toggle('active');
+            } else {
+                // Desktop Logic
+                sidebar.classList.toggle('collapsed');
+                // Save preference
+                localStorage.setItem('sidebarState', sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded');
+            }
         }
 
         // Restore sidebar state
         document.addEventListener('DOMContentLoaded', () => {
             const state = localStorage.getItem('sidebarState');
             // Default: 'collapsed' if null (Prodio style) or explicitly 'collapsed'
-            if (state === 'collapsed' || state === null) {
+            if (window.innerWidth > 768 && (state === 'collapsed' || state === null)) {
                 document.getElementById('sidebar').classList.add('collapsed');
             }
 
@@ -442,6 +456,7 @@
             header.classList.toggle('expanded', !isExpanded);
         }
     </script>
+    <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
     {% block scripts %}{% endblock %}
 </body>
 

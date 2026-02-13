@@ -27,12 +27,14 @@
 
         <!-- Top Centered Save Button -->
         <div style="display: flex; justify-content: center; margin-bottom: 2rem;">
+            {% if user.role in [1, 4, 5] %}
             <button type="submit" form="dispatchForm" class="btn"
                 style="background: #1e293b; color: white; padding: 0.75rem 3rem; font-size: 1rem; border-radius: 6px; box-shadow: var(--shadow-md); transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 600;"
                 onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='var(--shadow-lg)';"
                 onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow-md)';">
                 <span>📤</span> Confirmar Salida
             </button>
+            {% endif %}
         </div>
 
         <form id="dispatchForm">

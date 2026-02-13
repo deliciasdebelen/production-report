@@ -150,3 +150,65 @@ class LogisticsRoute(LogisticsRouteBase):
     
     class Config:
         from_attributes = True
+
+# --- SUPPORT MODULE SCHEMAS ---
+
+class SupportBase(BaseModel):
+    name: str
+
+class SupportDepartment(SupportBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class SupportStatus(SupportBase):
+    id: int
+    color_hex: str
+    class Config:
+        from_attributes = True
+
+class SupportPriority(SupportBase):
+    id: int
+    level: int
+    class Config:
+        from_attributes = True
+
+class SupportType(SupportBase):
+    id: int
+    class Config:
+        from_attributes = True
+
+class SupportTicketBase(BaseModel):
+    description: str
+    attachment_url: Optional[str] = None
+    contact_email: Optional[str] = None
+    department_id: int
+    type_id: int
+    priority_id: int
+
+class SupportTicketCreate(SupportTicketBase):
+    pass
+
+class SupportTicketUpdate(BaseModel):
+    status_id: Optional[int] = None
+    assigned_to_id: Optional[int] = None
+    priority_id: Optional[int] = None
+
+class SupportTicket(SupportTicketBase):
+    id: int
+    code: str
+    created_by_id: int
+    status_id: Optional[int] = None
+    assigned_to_id: Optional[int] = None
+    created_at: datetime
+    closed_at: Optional[datetime] = None
+    
+    # Relationships (Simplified for listing)
+    department: Optional[SupportDepartment] = None
+    status: Optional[SupportStatus] = None
+    priority: Optional[SupportPriority] = None
+    support_type: Optional[SupportType] = None
+    created_by_username: Optional[str] = None # Calculated field
+
+    class Config:
+        from_attributes = True

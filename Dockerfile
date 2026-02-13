@@ -24,6 +24,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY ./app ./app
 COPY migrate_db.py .
+COPY init_support_data.py .
 
 # Copy custom OpenSSL configuration
 COPY custom_openssl.cnf /etc/ssl/openssl.cnf

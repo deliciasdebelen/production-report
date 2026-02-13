@@ -3,22 +3,58 @@
 {% block content %}
 <h1 style="margin-bottom: 1.5rem;">Dashboard de Producción</h1>
 
+<!-- AI Stock Supervisor Section -->
+<div id="ai-supervisor-section" style="margin-bottom: 2rem; display: none;">
+    <div
+        style="background: linear-gradient(135deg, #1e293b, #334155); color: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div
+                    style="width: 40px; height: 40px; background: rgba(255,255,255,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    👩‍💼
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: white;">Supervisor IA Belén</h3>
+                    <div style="font-size: 0.85rem; opacity: 0.8;">Monitoreando stocks, devoluciones y almacenes...
+                    </div>
+                </div>
+            </div>
+            <button onclick="refreshAIDiagnostics()"
+                style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; transition: all 0.2s;">
+                🔄 Escanear
+            </button>
+        </div>
+
+        <div id="ai-issues-container" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <!-- Issues will be injected here -->
+        </div>
+
+        <div id="ai-clean-state"
+            style="display: none; align-items: center; gap: 0.5rem; background: rgba(34, 197, 94, 0.2); padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.3);">
+            <span>✅</span>
+            <span>Todos los sistemas operativos. No se detectaron anomalías en el stock.</span>
+        </div>
+    </div>
+</div>
+
 <!-- KPI Cards -->
 <div style="margin-bottom: 2rem;">
     <!-- Date Filters -->
-    <div
+    <div class="responsive-flex-row"
         style="display: flex; gap: 1rem; align-items: center; background: white; padding: 1rem; border-radius: 8px; border: 1px solid var(--border);">
         <div style="font-weight: bold; color: var(--text-muted);">Filtrar por Fecha:</div>
         <div>
-            <input type="date" id="startDate" style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px;">
+            <input type="date" id="startDate"
+                style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px; width: 100%;">
         </div>
         <div style="color: var(--text-muted);">hasta</div>
         <div>
-            <input type="date" id="endDate" style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px;">
+            <input type="date" id="endDate"
+                style="border: 1px solid #ddd; padding: 0.25rem; border-radius: 4px; width: 100%;">
         </div>
-        <button onclick="loadDashboard()" class="btn" style="padding: 0.25rem 1rem;">Filtrar</button>
+        <button onclick="loadDashboard()" class="btn" style="padding: 0.25rem 1rem; width: 100%;">Filtrar</button>
         <button onclick="clearFilter()" class="btn"
-            style="padding: 0.25rem 1rem; background: #e2e6ea; color: #333;">Borrar</button>
+            style="padding: 0.25rem 1rem; background: #e2e6ea; color: #333; width: 100%;">Borrar</button>
     </div>
 </div>
 
@@ -284,6 +320,102 @@
 
     dateStart.addEventListener('change', validateDateRange);
     dateEnd.addEventListener('change', validateDateRange);
+
+    // AI Supervisor Logic
+    async function refreshAIDiagnostics() {
+        const container = document.getElementById('ai-supervisor-section');
+        const list = document.getElementById('ai-issues-container');
+        const cleanMsg = document.getElementById('ai-clean-state');
+
+        // Show section
+        container.style.display = 'block';
+        list.innerHTML = '<div style="opacity: 0.7;">Analizando base de datos...</div>';
+        cleanMsg.style.display = 'none';
+
+        try {
+            const res = await fetch('/api/ai/stock/diagnose');
+            const issues = await res.json();
+
+            list.innerHTML = '';
+
+            if (issues.length === 0) {
+                cleanMsg.style.display = 'flex';
+            } else {
+                issues.forEach(issue => {
+                    const div = document.createElement('div');
+                    div.style.cssText = `
+                        background: rgba(255, 255, 255, 0.95);
+                        color: #1e293b;
+                        padding: 1rem;
+                        border-radius: 8px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        gap: 1rem;
+                        border-left: 4px solid #ef4444;
+                    `;
+
+                    div.innerHTML = `
+                        <div>
+                            <div style="font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+                                ⚠️ ${issue.title}
+                                <span style="background: #fee2e2; color: #dc2626; font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; text-transform: uppercase;">${issue.severity}</span>
+                            </div>
+                            <div style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">${issue.description}</div>
+                        </div>
+                        <button onclick="fixIssue('${issue.id}', '${issue.type}', this)" 
+                            style="background: #dc2626; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: all 0.2s;">
+                            ✨ Corregir con AI
+                        </button>
+                    `;
+                    list.appendChild(div);
+                });
+            }
+        } catch (e) {
+            console.error(e);
+            list.innerHTML = '<div style="color: #fca5a5;">Error de conexión con el servicio AI.</div>';
+        }
+    }
+
+    async function fixIssue(id, type, btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '⏳ Procesando...';
+        btn.disabled = true;
+        btn.style.opacity = 0.7;
+
+        try {
+            const res = await fetch('/api/ai/stock/fix', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, type })
+            });
+
+            const result = await res.json();
+
+            if (res.ok) {
+                btn.innerHTML = '✅ Corregido';
+                btn.style.background = '#22c55e';
+                setTimeout(() => {
+                    // Refresh checks
+                    refreshAIDiagnostics();
+                }, 1500);
+            } else {
+                alert("Error: " + result.detail);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                btn.style.opacity = 1;
+            }
+        } catch (e) {
+            alert("Error de red");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    // Auto-load AI Supervisor
+    document.addEventListener('DOMContentLoaded', () => {
+        refreshAIDiagnostics();
+    });
 
     loadDashboard();
 </script>

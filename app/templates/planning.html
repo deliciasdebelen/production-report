@@ -1,239 +1,7 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<style>
-    /* Odoo-like Design System */
-    :root {
-        --odoo-primary: #714B67;
-        /* Odoo Community Purple */
-        --odoo-primary-dark: #5d3d54;
-        --odoo-bg: #f9f9f9;
-        --odoo-border: #d3d3d3;
-        --odoo-text: #4e4e4e;
-        --odoo-danger-bg: #ffe4e4;
-        --odoo-link: #017e84;
-    }
 
-    body {
-        background-color: var(--odoo-bg);
-    }
-
-    .odoo-control-panel {
-        background: white;
-        border-bottom: 1px solid var(--odoo-border);
-        padding: 10px 20px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin: -1.5rem -1.5rem 1.5rem -1.5rem;
-        /* Negate layout padding */
-    }
-
-    .odoo-breadcrumb {
-        font-size: 1.1rem;
-        color: var(--odoo-link);
-        font-weight: 500;
-    }
-
-    .odoo-breadcrumb .active {
-        color: #212529;
-        font-weight: 700;
-    }
-
-    .odoo-actions {
-        display: flex;
-        gap: 0.5rem;
-    }
-
-    .btn-odoo-primary {
-        background-color: var(--odoo-primary);
-        color: white;
-        border: 1px solid var(--odoo-primary-dark);
-        padding: 0.4rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 4px;
-        font-weight: 500;
-    }
-
-    .btn-odoo-primary:hover {
-        background-color: var(--odoo-primary-dark);
-    }
-
-    .btn-odoo-secondary {
-        background-color: white;
-        color: var(--odoo-text);
-        border: 1px solid var(--odoo-border);
-        padding: 0.4rem 1rem;
-        font-size: 0.9rem;
-        border-radius: 4px;
-        font-weight: 500;
-    }
-
-    /* Status Bar */
-    .odoo-statusbar {
-        background: white;
-        border: 1px solid var(--odoo-border);
-        padding: 5px 15px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-        border-radius: 4px;
-    }
-
-    .odoo-statusbar-status {
-        display: flex;
-    }
-
-    .status-item {
-        padding: 5px 15px;
-        margin-left: -1px;
-        border: 1px solid var(--odoo-border);
-        background: white;
-        color: #666;
-        font-size: 0.85rem;
-        position: relative;
-        cursor: default;
-    }
-
-    .status-item.active {
-        background: #f0f0f0;
-        font-weight: 600;
-    }
-
-    .status-red {
-        color: #d9534f;
-        border-bottom: 3px solid #d9534f !important;
-    }
-
-    .status-yellow {
-        color: #f0ad4e;
-        border-bottom: 3px solid #f0ad4e !important;
-    }
-
-    .status-green {
-        color: #5cb85c;
-        border-bottom: 3px solid #5cb85c !important;
-    }
-
-    /* Arrow effect simulation (simplified) */
-    .status-arrow {
-        /* Complex CSS arrow usually used here, simplification for now */
-    }
-
-    /* Main Sheet */
-    .odoo-sheet {
-        background: white;
-        border: 1px solid var(--odoo-border);
-        padding: 2rem 3rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        max-width: 1140px;
-        margin: 0 auto;
-    }
-
-    .odoo-title-area {
-        margin-bottom: 1.5rem;
-    }
-
-    .odoo-title-area h1 {
-        font-size: 2rem;
-        color: var(--odoo-primary);
-        margin: 0;
-        font-weight: 500;
-    }
-
-    /* Form Layout */
-    .odoo-group {
-        display: flex;
-        gap: 3rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .odoo-col {
-        flex: 1;
-    }
-
-    .odoo-field {
-        display: flex;
-        margin-bottom: 0.5rem;
-        align-items: baseline;
-    }
-
-    .odoo-field label {
-        width: 140px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        color: #4e4e4e;
-        border-right: 2px solid transparent;
-        /* Alignment guide */
-        padding-right: 10px;
-    }
-
-    .odoo-field input {
-        flex: 1;
-        border: none;
-        border-bottom: 1px solid #ccc;
-        padding: 2px 0;
-        font-size: 0.95rem;
-        color: #333;
-    }
-
-    .odoo-field input:focus {
-        outline: none;
-        border-bottom-color: var(--odoo-primary);
-    }
-
-    .odoo-field input.required-field {
-        background-color: var(--odoo-danger-bg) !important;
-        padding-left: 5px;
-    }
-
-    /* Notebook / Tabs */
-    .odoo-notebook {
-        margin-top: 2rem;
-    }
-
-    .odoo-tabs {
-        display: flex;
-        border-bottom: 1px solid var(--odoo-border);
-        margin-bottom: 1rem;
-    }
-
-    .odoo-tab {
-        padding: 0.6rem 1.2rem;
-        font-size: 0.9rem;
-        color: #666;
-        cursor: pointer;
-        border-bottom: 2px solid transparent;
-        text-transform: uppercase;
-        font-weight: 600;
-    }
-
-    .odoo-tab.active {
-        color: #212529;
-        border-bottom-color: var(--odoo-primary);
-    }
-
-    /* Special Inputs */
-    .search-container {
-        position: relative;
-        flex: 1;
-    }
-
-    .results-dropdown {
-        position: absolute;
-        top: 100%;
-        left: 0;
-        width: 100%;
-        background: white;
-        border: 1px solid #ccc;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        z-index: 100;
-        display: none;
-        max-height: 200px;
-        overflow-y: auto;
-    }
-</style>
 
 <!-- Control Panel -->
 <div class="odoo-control-panel">
@@ -249,9 +17,11 @@
     <!-- Status Bar -->
     <div class="odoo-statusbar">
         <div style="display: flex; gap: 0.5rem; align-items: center;">
+            {% if user.role == 3 or user.role == 4 %}
             <button type="submit" id="btnConfirm" class="btn-odoo-primary">Confirmar</button>
             <button type="button" id="btnEdit" class="btn-odoo-secondary" style="display: none;"
                 onclick="enableEdit()">Editar</button>
+            {% endif %}
             <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
             <!-- Navigation Moved Here -->
             <!-- Premium Navigation -->
@@ -362,67 +132,71 @@
 
             <!-- Tab Content -->
             <div style="padding: 1rem 0;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="border-bottom: 2px solid #eee; text-align: left;">
-                            <th style="padding: 10px; font-weight: 600; color: #666;">Parámetro</th>
-                            <th style="padding: 10px; font-weight: 600; color: #666; text-align: left;">Valor</th>
-                            <th style="padding: 10px; font-weight: 600; color: #666;">Unidad</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Presentación</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="text" name="presentation" id="presentationInput" placeholder="Ej: 600G"
-                                    style="border:none; width: 150px; text-align: left;">
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Texto</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Merma Estimada (%)</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="text" inputmode="decimal" name="waste_percentage" id="wastePercentageInput"
-                                    placeholder="0.00" style="border:none; width: 150px; text-align: left;">
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">%</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Kg por Batch</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00"
-                                    style="border:none; width: 150px; text-align: left;">
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
-                        </tr>
-                        <tr style="background: #fcfcfc;">
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: 600;">Total Kilogramos
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required readonly
-                                    style="border:none; width: 150px; background: transparent; font-weight: 700; color: var(--odoo-primary); text-align: left;">
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Unidades Esperadas</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="number" name="units" id="unitsInput" required
-                                    style="border:none; width: 150px; text-align: left;">
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Ud</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">Numero de Cajas</td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee;">
-                                <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required
-                                    style="border:none; width: 80px; text-align: left;">
-                                <span id="boxesHelper" style="font-size: 0.75rem; color: #999;"></span>
-                            </td>
-                            <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Cajas</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #eee; text-align: left;">
+                                <th style="padding: 10px; font-weight: 600; color: #666;">Parámetro</th>
+                                <th style="padding: 10px; font-weight: 600; color: #666; text-align: left;">Valor</th>
+                                <th style="padding: 10px; font-weight: 600; color: #666;">Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Presentación</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" name="presentation" id="presentationInput" placeholder="Ej: 600G"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Texto</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Merma Estimada (%)</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="waste_percentage"
+                                        id="wastePercentageInput" placeholder="0.00"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Kg por Batch</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
+                            </tr>
+                            <tr style="background: #fcfcfc;">
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: 600;">Total
+                                    Kilogramos
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required readonly
+                                        style="border:none; width: 150px; background: transparent; font-weight: 700; color: var(--odoo-primary); text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Unidades Esperadas</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="number" name="units" id="unitsInput" required
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Ud</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Numero de Cajas</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required
+                                        style="border:none; width: 80px; text-align: left;">
+                                    <span id="boxesHelper" style="font-size: 0.75rem; color: #999;"></span>
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Cajas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
                 <div style="margin-top: 2rem;">
                     <label
                         style="font-weight: 600; color: #666; display: block; margin-bottom: 0.5rem;">Observaciones</label>

@@ -21,7 +21,7 @@ async def view_discuss(request: Request, user: models.User = Depends(get_current
 
 # --- Helper ---
 def format_message(m, status=None):
-    author_name = m.author.username if m.author else "Sistema"
+    author_name = m.author.username if m.author else "Supervisor Belén"
     is_starred = status.is_starred if status else False
     is_read = status.is_read if status else False
     return {

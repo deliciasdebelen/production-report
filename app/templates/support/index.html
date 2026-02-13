@@ -1,0 +1,51 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="max-width: 1000px; margin: 0 auto; padding-top: 4rem;">
+    <div style="text-align: center; margin-bottom: 3rem;">
+        <h1 style="font-size: 2.5rem; color: var(--odoo-primary); margin-bottom: 0.5rem;">Soporte Técnico</h1>
+        <p style="color: #666; font-size: 1.1rem;">Seleccione una opción para continuar</p>
+    </div>
+
+    <div class="grid-2" style="max-width: 800px; margin: 0 auto;">
+        <!-- Card: Gestión de Tickets (Admin & Users) -->
+        <a href="/support/tickets" style="text-decoration: none;">
+            <div class="card"
+                style="height: 100%; transition: transform 0.2s; cursor: pointer; text-align: center; padding: 3rem 2rem;">
+                <div style="font-size: 3.5rem; margin-bottom: 1.5rem; color: #3b82f6;">
+                    🎫
+                </div>
+                <h2 style="color: var(--odoo-primary); margin-bottom: 1rem;">Gestión de Tickets</h2>
+                <p style="color: #666;">
+                    Cree, visualice y gestione sus solicitudes de soporte.
+                </p>
+            </div>
+        </a>
+
+        <!-- Card: Configuración (Admin Only) -->
+        <!-- We can use JS or Jinja to hide if not admin, but for now show to all or use a check -->
+        {% if current_user.role == 4 %}
+        <a href="/support/config" style="text-decoration: none;">
+            <div class="card"
+                style="height: 100%; transition: transform 0.2s; cursor: pointer; text-align: center; padding: 3rem 2rem;">
+                <div style="font-size: 3.5rem; margin-bottom: 1.5rem; color: #714B67;">
+                    ⚙️
+                </div>
+                <h2 style="color: var(--odoo-primary); margin-bottom: 1rem;">Configuración</h2>
+                <p style="color: #666;">
+                    Administre departamentos, estados, prioridades y técnicos.
+                </p>
+            </div>
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        border-color: var(--odoo-link);
+    }
+</style>
+{% endblock %}

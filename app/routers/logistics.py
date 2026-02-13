@@ -750,6 +750,10 @@ async def confirm_reception(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    # Role Check: KPI(1), Admin(4), Warehouse(5)
+    if user.role not in [1, 4, 5]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para confirmar recepciones")
+
     report = db.query(ProductionReport).filter(ProductionReport.id == production_id).first()
     if not report:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
@@ -796,6 +800,10 @@ async def create_reception_merchandise(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    # Role Check: KPI(1), Admin(4), Warehouse(5)
+    if user.role not in [1, 4, 5]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para registrar recepción de mercancía")
+
     new_log = LogisticsReceptionMerchandise(
         supplier=supplier,
         document_ref=document_ref,
@@ -818,6 +826,10 @@ async def create_dispatch(
     external_db: Session = Depends(get_external_db),
     background_tasks: BackgroundTasks = BackgroundTasks()
 ):
+    # Role Check: KPI(1), Admin(4), Warehouse(5)
+    if user.role not in [1, 4, 5]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para crear despachos")
+
     # Manual Form Parsing to Bypass "Field required" persistence
     # Pydantic/FastAPI was refusing to accept the missing/empty field despite Optional[str]
     form_data = await request.form()

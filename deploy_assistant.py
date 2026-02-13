@@ -27,18 +27,11 @@ def create_tarball(output_filename):
             return tarinfo
 
         tar.add("app", arcname="app", filter=filter_func)
-        tar.add("docker-compose.yml", arcname="docker-compose.yml")
-        tar.add("Dockerfile", arcname="Dockerfile")
-        tar.add("requirements.txt", arcname="requirements.txt")
-        # Add migration script just in case, though DB is migrated
-        if os.path.exists("migrate_db.py"):
-            tar.add("migrate_db.py", arcname="migrate_db.py")
-        if os.path.exists("init_support_data.py"):
-            tar.add("init_support_data.py", arcname="init_support_data.py")
+        # Include migrate_db if needed, but not critical for new tables handled by create_all
 
 def deploy():
     try:
-        tar_name = "deploy.tar.gz"
+        tar_name = "deploy_assistant.tar.gz"
         create_tarball(tar_name)
         
         print(f"Connecting to {HOSTNAME}...")
@@ -70,7 +63,10 @@ def deploy():
         full_deployment_cmd = (
             f"cd {REMOTE_DIR} && "
             f"tar -xzf {tar_name} && "
-            f"docker-compose up -d --build web"
+            f"echo 'Restarting container...' && "
+            f"docker-compose restart web && "
+            f"sleep 5 && " # Wait for startup
+            f"echo 'Deployment Complete'"
         )
         
         run_cmd(full_deployment_cmd)

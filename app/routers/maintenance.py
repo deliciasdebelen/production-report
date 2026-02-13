@@ -165,6 +165,7 @@ async def delete_data(
     table: str = Form(...), 
     action: str = Form(...), 
     id: Optional[str] = Form(None),
+    ids: Optional[str] = Form(None), # Comma separated IDs
     start_date: Optional[str] = Form(None),
     end_date: Optional[str] = Form(None),
     db: Session = Depends(get_db), 
@@ -210,6 +211,20 @@ async def delete_data(
             if header_ids:
                 db.query(InventoryCaptureLine).filter(InventoryCaptureLine.header_id.in_(header_ids)).delete(synchronize_session=False)
 
+        deleted_count = query.delete(synchronize_session=False)
+
+    elif action == 'list' and ids:
+        # Bulk Delete by ID List
+        id_list = [i.strip() for i in ids.split(',') if i.strip()]
+        if not id_list:
+             return RedirectResponse("/maintenance?message=No se seleccionaron registros", status_code=303)
+        
+        query = query.filter(model.id.in_(id_list))
+        
+        # Inventory Check
+        if table == 'inventory':
+             db.query(InventoryCaptureLine).filter(InventoryCaptureLine.header_id.in_(id_list)).delete(synchronize_session=False)
+             
         deleted_count = query.delete(synchronize_session=False)
 
     elif action == 'one' and id:

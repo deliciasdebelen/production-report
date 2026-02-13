@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import shutil
 import os
 from fastapi.staticfiles import StaticFiles
+import json
 from sqlalchemy.orm import Session
 from . import models, schemas, auth_utils
 from app.database import engine, Base, get_db, SessionLocal
@@ -37,8 +38,14 @@ app.include_router(reports.router)
 app.include_router(maintenance.router)
 app.include_router(discuss.router)
 
+from .routers import support
+app.include_router(support.router)
+
 from .routers import export
 app.include_router(export.router)
+
+from .routers import ai_solver
+app.include_router(ai_solver.router)
 
 from app.utils_id import get_next_order_number
 
@@ -160,6 +167,28 @@ async def view_assistant(request: Request, user: models.User = Depends(get_curre
 #     return templates.TemplateResponse("maintenance.html", {"request": request, "title": "Mantenimiento", "user": user, "users": users})
 
 
+# --- Support Pages ---
+
+@app.get("/support", response_class=HTMLResponse)
+async def view_support_index(request: Request, user: models.User = Depends(get_current_active_user)):
+    return templates.TemplateResponse("support/index.html", {"request": request, "title": "Soporte", "current_user": user, "user": user})
+
+@app.get("/support/create", response_class=HTMLResponse)
+async def view_support_create(request: Request, user: models.User = Depends(get_current_active_user)):
+    return templates.TemplateResponse("support/create_ticket.html", {"request": request, "title": "Crear Ticket", "current_user": user, "user": user})
+
+@app.get("/support/tickets", response_class=HTMLResponse)
+async def view_support_list(request: Request, user: models.User = Depends(get_current_active_user)):
+    # Everyone can view tickets? Or just their own? The template handles logic. Admin sees all.
+    return templates.TemplateResponse("support/management.html", {"request": request, "title": "Gestión de Tickets", "current_user": user, "user": user})
+
+@app.get("/support/config", response_class=HTMLResponse)
+async def view_support_config(request: Request, user: models.User = Depends(get_current_active_user)):
+    if user.role != 4:
+         raise HTTPException(status_code=403, detail="Access denied")
+    return templates.TemplateResponse("support/config.html", {"request": request, "title": "Configuración Soporte", "current_user": user, "user": user})
+
+
 
 # --- API Endpoints (Protected? Maybe allow allow all auth users for now) ---
 from .utils import generate_next_order_number
@@ -191,6 +220,10 @@ async def create_production_report(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
+    # Role Check: Production (2) or Admin (4)
+    if current_user.role not in [2, 4]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para crear reportes de producción")
+
     try:
         # --- VALIDATION LOGIC ---
         planning_order = db.query(models.ProductionPlanning).filter(models.ProductionPlanning.id == planning_order_id).first()
@@ -288,7 +321,11 @@ async def create_production_report(
         raise HTTPException(status_code=500, detail=f"Server Error: {str(e)}")
 
 @app.put("/api/production/{report_id}", response_model=schemas.ProductionReport)
-def update_production_report(report_id: str, report: schemas.ProductionReportCreate, db: Session = Depends(get_db)):
+def update_production_report(report_id: str, report: schemas.ProductionReportCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    # Role Check: Production (2) or Admin (4)
+    if current_user.role not in [2, 4]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para modificar reportes de producción")
+
     db_report = db.query(models.ProductionReport).filter(models.ProductionReport.id == report_id).first()
     if not db_report:
         raise HTTPException(404, "Reporte no encontrado")
@@ -382,6 +419,10 @@ def navigate_production(id: str, direction: str, db: Session = Depends(get_db)):
 
 @app.post("/api/planning", response_model=schemas.ProductionPlanning)
 def create_planning(plan: schemas.ProductionPlanningCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    # Role Check: Planning (3) or Admin (4)
+    if current_user.role not in [3, 4]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para crear planificaciones")
+
     today_str = datetime.date.today().strftime("%Y-%m-%d")
     if plan.date < today_str and current_user.role != 4:
         raise HTTPException(status_code=403, detail="Solo administradores pueden planificar fechas pasadas")
@@ -464,6 +505,10 @@ def navigate_planning(id: int, direction: str, db: Session = Depends(get_db)):
 
 @app.put("/api/planning/{id}", response_model=schemas.ProductionPlanning)
 def update_planning(id: int, plan: schemas.ProductionPlanningCreate, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_active_user)):
+    # Role Check: Planning (3) or Admin (4)
+    if current_user.role not in [3, 4]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para modificar planificaciones")
+
     db_plan = db.query(models.ProductionPlanning).filter(models.ProductionPlanning.id == id).first()
     if not db_plan:
         raise HTTPException(404, "Plan no encontrado")
@@ -646,6 +691,68 @@ def get_visor_data(db: Session = Depends(get_db)):
         "planning": planning_list,
         "production": production_list
     }
+
+@app.get("/api/assistant/alerts")
+def get_assistant_alerts(db: Session = Depends(get_db)):
+    # Filter by Today
+    today = datetime.date.today()
+    start_of_day = datetime.datetime.combine(today, datetime.time.min)
+    
+    logs = db.query(models.AuditLog).filter(
+        models.AuditLog.resource_type == 'dispatch',
+        models.AuditLog.created_at >= start_of_day
+        # Show ALL for the day, even if status is resolved
+        # models.AuditLog.status != 'Ignored' 
+    ).order_by(models.AuditLog.created_at.desc()).all()
+    
+    alerts = []
+    
+    for log in logs:
+        # Fetch related dispatch
+        try:
+            dispatch = db.query(models.LogisticsDispatch).filter(models.LogisticsDispatch.id == log.resource_id).first()
+            if not dispatch: continue
+            
+            # Parse Items for summary
+            summary = []
+            try:
+                items = json.loads(dispatch.items_json)
+                # Parse top 3
+                for i in items[:3]:
+                    summary.append(f"{i.get('qty', 0)} {i.get('unit', 'UNI')} - {i.get('item', 'Unknown')}")
+                if len(items) > 3:
+                    summary.append(f"... (+{len(items)-3} items)")
+            except:
+                summary = []
+
+            # Parse Guide Ref
+            ref_parts = (dispatch.document_ref or "").replace(" | ", "|").split("|")
+            guide_col = ref_parts[0] if ref_parts else "S/R"
+            fact_col = ref_parts[1] if len(ref_parts) > 1 else ""
+            
+            # Determine Status
+            st = "OK"
+            if log.severity in ['high', 'critical']: st = "CRÍTICO"
+            elif log.severity == 'medium': st = "WARNING"
+            else: st = "AI OK"
+
+            alerts.append({
+                "id": log.id,
+                "client": dispatch.client_destination,
+                "guide_ref": guide_col,
+                "invoice_ref": fact_col,
+                "status": st,
+                "severity": log.severity,
+                "description": log.description,
+                "items": summary,
+                "date": log.created_at.strftime("%d/%m %H:%M")
+            })
+            
+        except Exception as e:
+            print(f"Error processing alert {log.id}: {e}")
+            continue
+            
+    return alerts
 
 
 

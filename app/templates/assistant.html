@@ -230,26 +230,148 @@
         color: var(--primary-dark);
         font-weight: 600;
     }
+
+    /* Alert Card Styles */
+    .alert-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s;
+    }
+
+    .alert-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .alert-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .alert-badge {
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        font-weight: bold;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        text-transform: uppercase;
+    }
+
+    .badge-critical {
+        background: #fee2e2;
+        color: #dc2626;
+        border: 1px solid #fecaca;
+    }
+
+    .badge-ok {
+        background: #dcfce7;
+        color: #16a34a;
+        border: 1px solid #bbf7d0;
+    }
+
+    .badge-warning {
+        background: #fef9c3;
+        color: #ca8a04;
+        border: 1px solid #fde047;
+    }
+
+    .alert-client {
+        font-weight: 700;
+        font-size: 1.05rem;
+        color: var(--text-main);
+        margin-bottom: 0.25rem;
+    }
+
+    .alert-refs {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.75rem;
+    }
+
+    .ref-badge {
+        background: #eff6ff;
+        color: #3b82f6;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-family: monospace;
+    }
+
+    .alert-items {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+    }
+
+    .alert-items ul {
+        margin: 0;
+        padding-left: 1.2rem;
+    }
+
+    .alert-desc-container {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed #e2e8f0;
+        display: none;
+        /* Hidden by default */
+    }
+
+    .alert-desc-title {
+        font-size: 0.8rem;
+        font-weight: bold;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+    }
+
+    .alert-desc-text {
+        font-size: 0.9rem;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+
+    .toggle-btn {
+        background: transparent;
+        border: none;
+        color: var(--primary);
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+        text-decoration: underline;
+        margin-top: 0.5rem;
+    }
 </style>
 
 <div class="chat-container">
     <div class="chat-header">
-        <div class="ai-avatar">AI</div>
+        <div class="ai-avatar">👩‍💼</div>
         <div>
-            <h2 style="font-size: 1.1rem; margin: 0;">Asistente de Producción</h2>
+            <h2 style="font-size: 1.1rem; margin: 0;">Supervisor Belén</h2>
             <div style="font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 4px;">
                 <span style="width: 8px; height: 8px; background: var(--success); border-radius: 50%;"></span>
                 En línea
             </div>
         </div>
+        <button onclick="loadAlerts()"
+            style="margin-left: auto; background: white; border: 1px solid #e2e8f0; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--text-muted); transition: all 0.2s;">
+            <span style="font-size: 1.1rem;">🔔</span> Notificaciones
+        </button>
     </div>
 
     <div class="chat-messages" id="chatMessages">
         <!-- Introduction -->
         <div class="message ai">
-            <div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">AI</div>
+            <div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">👩‍💼</div>
             <div class="message-content">
-                ¡Hola! Soy tu asistente inteligente. 👋<br>
+                ¡Hola! Soy Belén, tu supervisora inteligente. 👋<br>
                 Puedo ayudarte a analizar el rendimiento de tu planta, detectar mermas y resumir la producción
                 diaria.<br><br>
                 ¿Qué te gustaría revisar hoy?
@@ -338,7 +460,7 @@
 
         let avatar = '';
         if (type === 'ai') {
-            avatar = `<div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">AI</div>`;
+            avatar = `<div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">👩‍💼</div>`;
         }
 
         div.innerHTML = `
@@ -424,6 +546,103 @@
             addMessage("🎉 No detecto problemas críticos en este momento. La operación fluye con normalidad.", 'ai');
         } else {
             addMessage(`He detectado las siguientes anomalías que requieren atención:<br><ul><li>${issues.join('</li><li>')}</li></ul>`, 'ai');
+        }
+    }
+
+    async function loadAlerts() {
+        addMessage("🔍 Buscando alertas de análisis de inteligencia...", 'user');
+        showTypingInfo();
+
+        try {
+            const res = await fetch('/api/assistant/alerts');
+            const alerts = await res.json();
+
+            removeTypingInfo();
+
+            if (!alerts || alerts.length === 0) {
+                addMessage("✅ No hay alertas pendientes. Todo está en orden.", 'ai');
+                return;
+            }
+
+            addMessage(`He encontrado <strong>${alerts.length} alertas</strong> que requieren tu atención:`, 'ai');
+
+            // Build Alerts HTML
+            let html = '<div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">';
+
+            alerts.forEach(alert => {
+                let badgeClass = 'badge-ok';
+                let icon = '✅';
+                if (alert.status === 'CRÍTICO' || alert.severity === 'critical' || alert.severity === 'high') {
+                    badgeClass = 'badge-critical';
+                    icon = '⚠️';
+                } else if (alert.status === 'WARNING' || alert.severity === 'medium') {
+                    badgeClass = 'badge-warning';
+                    icon = '🔸';
+                }
+
+                // Items List
+                let itemsList = alert.items.map(i => `<li>${i}</li>`).join('');
+
+                html += `
+                <div class="alert-card">
+                    <div class="alert-header">
+                        <div style="font-size: 0.85rem; color: #64748b;">#${alert.id}</div>
+                        <div class="alert-badge ${badgeClass}">${icon} ${alert.status}</div>
+                    </div>
+                    
+                    <div class="alert-client">${alert.client || 'Cliente Desconocido'}</div>
+                    
+                    <div class="alert-refs">
+                        <span class="ref-badge">📄 ${alert.guide_ref}</span>
+                        ${alert.invoice_ref ? `<span class="ref-badge" style="background:#f1f5f9; color:#64748b;">🧾 ${alert.invoice_ref}</span>` : ''}
+                    </div>
+                    
+                    <div class="alert-items">
+                        <strong>Resumen de Ítems:</strong>
+                        <ul style="margin: 0.25rem 0 0 1.2rem; padding: 0;">${itemsList}</ul>
+                    </div>
+                    
+                    <button class="toggle-btn" onclick="toggleDesc('desc-${alert.id}', this)">⬇️ Ver Descripción Completa</button>
+                    
+                    <div id="desc-${alert.id}" class="alert-desc-container">
+                        <div class="alert-desc-title">ANÁLISIS DE INTELIGENCIA:</div>
+                        <div class="alert-desc-text">${alert.description || 'Sin descripción detallada.'}</div>
+                    </div>
+                    
+                    <div style="text-align: right; font-size: 0.75rem; color: #94a3b8; margin-top: 0.5rem;">
+                        ${alert.date}
+                    </div>
+                </div>`;
+            });
+
+            html += '</div>';
+
+            // Append directly to chat special
+            const div = document.createElement('div');
+            div.className = 'message ai';
+            div.innerHTML = `
+                <div class="ai-avatar" style="width: 32px; height: 32px; font-size: 1rem;">👩‍💼</div>
+                <div class="message-content" style="background: transparent; padding: 0; box-shadow: none; width: 100%; max-width: 100%;">${html}</div>
+            `;
+            chatMessages.appendChild(div);
+            // Scroll to bottom
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+
+        } catch (e) {
+            removeTypingInfo();
+            console.error(e);
+            addMessage("❌ Error al cargar las alertas.", 'ai');
+        }
+    }
+
+    function toggleDesc(id, btn) {
+        const el = document.getElementById(id);
+        if (el.style.display === 'block') {
+            el.style.display = 'none';
+            btn.innerHTML = '⬇️ Ver Descripción Completa';
+        } else {
+            el.style.display = 'block';
+            btn.innerHTML = '⬆️ Ocultar Descripción';
         }
     }
 </script>

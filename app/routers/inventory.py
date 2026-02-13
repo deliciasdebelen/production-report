@@ -45,6 +45,10 @@ async def create_full_capture(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_active_user)
 ):
+    # Role Check: KPI(1), Admin(4), Warehouse(5), Inventory(6)
+    if user.role not in [1, 4, 5, 6]:
+        raise HTTPException(status_code=403, detail="No tiene permisos para registrar inventario")
+
     # 1. Generate Correlative
     correlative = generate_inventory_correlative(db)
     

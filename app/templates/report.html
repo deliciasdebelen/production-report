@@ -189,7 +189,9 @@
     <!-- Status Bar -->
     <div class="odoo-statusbar">
         <div style="display: flex; gap: 0.5rem; align-items: center;">
+            {% if user.role == 2 or user.role == 4 %}
             <button type="submit" id="btnConfirm" class="btn-odoo-primary">Confirmar Producción</button>
+            {% endif %}
             <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
 
             <!-- Navigation -->
@@ -457,7 +459,8 @@
             <!-- TAB CONTENT (Dense Layout inside) -->
             <div class="odoo-group">
                 <!-- Parameters Table Style Row -->
-                <div style="display: flex; gap: 2rem; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
+                <div class="responsive-flex-row"
+                    style="display: flex; gap: 2rem; padding: 10px 0; border-bottom: 1px solid #f3f4f6;">
                     <div class="odoo-field" style="flex: 1;">
                         <label>Presentación</label>
                         <input type="text" name="presentation" id="presentationInput">
@@ -474,7 +477,7 @@
                 </div>
 
                 <!-- Totals Row (Highlighted) -->
-                <div
+                <div class="responsive-flex-row"
                     style="display: flex; gap: 2rem; padding: 15px 0; border-bottom: 1px solid #f3f4f6; align-items:center;">
                     <div class="odoo-field" style="flex: 1;">
                         <label style="color: #111827; font-weight: 700;">Total Kilogramos</label>
@@ -494,7 +497,7 @@
                 </div>
 
                 <!-- Three Column Details: Waste, Quality, CR -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2rem; margin-top: 2rem;">
+                <div class="grid-3" style="gap: 2rem; margin-top: 2rem;">
                     <!-- Col 1: Waste -->
                     <div>
                         <h5
