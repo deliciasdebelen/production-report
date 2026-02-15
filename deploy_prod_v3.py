@@ -28,10 +28,12 @@ def create_tarball(output_filename):
 
         tar.add("app", arcname="app", filter=filter_func)
         tar.add("scripts", arcname="scripts", filter=filter_func)
-        tar.add("docs", arcname="docs", filter=filter_func)
-        tar.add("docker-compose.yml", arcname="docker-compose.yml")
-        tar.add("Dockerfile", arcname="Dockerfile")
-        tar.add("requirements.txt", arcname="requirements.txt")
+        if os.path.exists("migrate_ai.py"):
+            tar.add("migrate_ai.py", arcname="migrate_ai.py") # Still adding root one? No, remove this check or keep as fallback
+        
+        # We don't need to add it explicitly if it's in app/ and app/ is added recursively.
+        # But 'app' dir logic: tar.add("app", arcname="app", filter=filter_func)
+        # So app/migrate_ai.py is added.
 
 def deploy():
     try:
@@ -67,9 +69,10 @@ def deploy():
         full_deployment_cmd = (
             f"cd {REMOTE_DIR} && "
             f"tar -xzf {tar_name} && "
-            f"docker-compose restart web && "
-            f"sleep 5 && " # Wait for startup
-            f"docker-compose exec -T web python -m app.migrate_notifications"
+            f"docker-compose down && "
+            f"docker-compose up -d --build && "
+            f"sleep 10 && " # Wait for startup
+            f"docker-compose exec -T web python -m app.migrate_ai"
         )
         
         run_cmd(full_deployment_cmd)

@@ -109,17 +109,54 @@ class AuditService:
             # Schema: saFacturaVenta (co_tipo_doc, nro_doc) 
             # We will try exact match on nro_doc if we strip prefix, or full string.
             
+            # Determine table based on prefix
+            is_nent = "NENT" in doc_ref.upper()
+            is_fact = "FACT" in doc_ref.upper()
+            
             clean_ref = doc_ref.split('-')[-1].strip() # 12345
             
-            sql = text(f"""
-                SELECT SUM(total_bultos) as boxes
-                FROM saFacturaVenta
-                WHERE nro_doc LIKE '%{clean_ref}'
-            """)
+            # Logic: Explicit Routing
+            if is_nent:
+                sql = text(f"""
+                    SELECT SUM(total_bultos) as boxes
+                    FROM saNotaEntregaVenta
+                    WHERE nro_doc LIKE '%{clean_ref}'
+                """)
+                result = self.ext_db.execute(sql).fetchone()
+                if result and result[0] is not None:
+                     return {"boxes": float(result[0])}
             
-            result = self.ext_db.execute(sql).fetchone()
-            if result:
-                 return {"boxes": float(result[0] or 0)}
+            elif is_fact:
+                sql = text(f"""
+                    SELECT SUM(total_bultos) as boxes
+                    FROM saFacturaVenta
+                    WHERE nro_doc LIKE '%{clean_ref}'
+                """)
+                result = self.ext_db.execute(sql).fetchone()
+                if result and result[0] is not None:
+                     return {"boxes": float(result[0])}
+            
+            else:
+                # Fallback / Generic Search (Try Invoice first as default)
+                sql_fact = text(f"""
+                    SELECT SUM(total_bultos) as boxes
+                    FROM saFacturaVenta
+                    WHERE nro_doc LIKE '%{clean_ref}'
+                """)
+                result = self.ext_db.execute(sql_fact).fetchone()
+                if result and result[0] is not None:
+                     return {"boxes": float(result[0])}
+                     
+                # Try Note
+                sql_nent = text(f"""
+                    SELECT SUM(total_bultos) as boxes
+                    FROM saNotaEntregaVenta
+                    WHERE nro_doc LIKE '%{clean_ref}'
+                """)
+                result_nent = self.ext_db.execute(sql_nent).fetchone()
+                if result_nent and result_nent[0] is not None:
+                     return {"boxes": float(result_nent[0])}
+            
             return None
             
         except Exception as e:

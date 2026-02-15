@@ -307,3 +307,28 @@ class SupportTicket(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     closed_at = Column(DateTime(timezone=True), nullable=True)
+
+# --- AI PARAMETERS MODULE ---
+
+class AIFunctionality(Base):
+    __tablename__ = "ai_functionalities"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    parameters = relationship("AIParameter", back_populates="functionality")
+
+class AIParameter(Base):
+    __tablename__ = "ai_parameters"
+
+    id = Column(Integer, primary_key=True, index=True)
+    functionality_id = Column(Integer, ForeignKey("ai_functionalities.id"), nullable=False)
+    key = Column(String, nullable=False)
+    value = Column(String, nullable=False) # Stored as string, cast as needed
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    functionality = relationship("AIFunctionality", back_populates="parameters")

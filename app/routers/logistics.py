@@ -1631,3 +1631,79 @@ def generate_next_guide_number(db: Session):
 
 
 
+    return RedirectResponse("/logistics/dispatch", status_code=303)
+
+
+# --- Invoice Dispatch Registration (Registro de Despacho de Facturas) ---
+
+@router.get("/invoice-dispatch")
+async def view_invoice_dispatch(request: Request, user: User = Depends(get_current_user)):
+    """
+    New view for registering invoice dispatch dates.
+    """
+    if not user: return RedirectResponse("/login")
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    return templates.TemplateResponse("logistics/invoice_dispatch.html", {
+        "request": request,
+        "user": user,
+        "title": "Registro de Despacho de Facturas"
+    })
+
+@router.post("/api/external/update-reception-date")
+async def update_reception_date(
+    doc_type: str = Form(...), # 'invoice' or 'delivery_note'
+    doc_num: str = Form(...),
+    reception_date: str = Form(...), # YYYY-MM-DD
+    guide_num: Optional[str] = Form(None), # Optional Guide Number
+    db: Session = Depends(get_external_db),
+    user: User = Depends(get_current_user)
+):
+    """
+    Updates 'campo4' (Reception Date) and 'campo6' (Guide Number optional) 
+    in saFacturaVenta or saNotaEntregaVenta.
+    """
+    if user.role not in [1, 3, 4, 5]:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
+    table_name = "saFacturaVenta" if doc_type == "invoice" else "saNotaEntregaVenta"
+    
+    # Sanitize input slightly just in case (SQLAlchemy params handle injection though)
+    
+    try:
+        # Construct Update Query
+        # Using raw SQL for external DB update
+        # Assuming campo4 is datetime or varchar? Usually varchar or datetime.
+        # Profit Plus custom fields are usually Varchar or specific types.
+        # User said: "el campo4 sera el campo de fecha de recepcion... se va almacenar en campo4"
+        
+        # We also need to update Campo6 if guide_num is provided?
+        # User prompt: "el campo 6 sera el campo a afectar por el numero de guia de despacho"
+        
+        update_sql = f"""
+            UPDATE {table_name}
+            SET campo4 = :date
+        """
+        
+        params = {"date": reception_date, "doc": doc_num}
+        
+        if guide_num:
+            update_sql += ", campo6 = :guide"
+            params["guide"] = guide_num
+            
+        update_sql += " WHERE doc_num = :doc"
+        
+        # Execute
+        result = db.execute(text(update_sql), params)
+        db.commit()
+        
+        if result.rowcount == 0:
+            return {"status": "error", "message": "Documento no encontrado o no actualizado."}
+            
+        return {"status": "success", "message": "Fecha actualizada correctamente."}
+        
+    except Exception as e:
+        print(f"Error updating reception date: {e}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(e)}")

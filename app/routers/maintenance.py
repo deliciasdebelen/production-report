@@ -7,7 +7,8 @@ from ..dependencies import get_db, templates, get_current_user, check_permission
 from ..models import (
     User, ProductionReport, ProductionPlanning, 
     LogisticsReceptionMerchandise, LogisticsReceptionProduction, 
-    LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine, Role
+    LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine, Role,
+    AIFunctionality, AIParameter
 )
 from .. import auth_utils
 import datetime
@@ -29,11 +30,15 @@ async def view_maintenance_dashboard(request: Request, db: Session = Depends(get
     users = db.query(User).all()
     roles = db.query(Role).all()
     
+    # Fetch AI Data
+    ai_funcs = db.query(AIFunctionality).all()
+    
     return templates.TemplateResponse("maintenance/dashboard.html", {
         "request": request,
         "user": user,
         "users": users, 
         "roles": roles,
+        "ai_funcs": ai_funcs,
         "title": "Mantenimiento - Panel de Control"
     })
 
@@ -283,3 +288,78 @@ async def print_report_maintenance(
         "generated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "date_range": "Generado desde Mantenimiento"
     })
+
+# --- AI PARAMETERS MANAGEMENT ---
+
+@router.post("/ai/toggle")
+async def toggle_ai_functionality(
+    func_id: int = Form(...),
+    enabled: bool = Form(...), # Helper JS sends true/false
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "manage_ai"): 
+        # Fallback if permission not yet defined in Roles, proceed if Admin (role 4)
+        if current_user.role != 4: raise HTTPException(403)
+
+    func = db.query(AIFunctionality).filter(AIFunctionality.id == func_id).first()
+    if func:
+        func.is_active = enabled
+        db.commit()
+    
+    return {"status": "success", "enabled": enabled}
+
+def validate_ai_parameter_logic(key: str, value: str):
+    """
+    Mock AI Logic to validate parameters.
+    Rules:
+    - Keys must be lowercase and underscore only.
+    - Values must not be empty.
+    - If key contains 'threshold', value must be float between 0 and 1.
+    """
+    if not key or not value:
+        return {"accepted": False, "reason": "Empty key or value"}
+    
+    if " " in key:
+        return {"accepted": False, "reason": "Key must be lowercase with no spaces (use underscores)"}
+        
+    # Validation logic here can be expanded
+    if "threshold" in key:
+        try:
+            val = float(value)
+            if not (0.0 <= val <= 1.0):
+                return {"accepted": False, "reason": "Threshold must be between 0.0 and 1.0"}
+        except ValueError:
+            return {"accepted": False, "reason": "Threshold value must be a number"}
+
+    return {"accepted": True, "reason": "Valid"}
+
+@router.post("/ai/parameter")
+async def add_ai_parameter(
+    func_id: int = Form(...),
+    key: str = Form(...),
+    value: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "manage_ai"):
+        if current_user.role != 4: raise HTTPException(403)
+
+    # 1. Intelligence Check (Mock)
+    # The AI decides if the parameter is valid based on key/value patterns
+    ai_response = validate_ai_parameter_logic(key, value)
+    
+    if not ai_response["accepted"]:
+        return RedirectResponse(f"/maintenance?error=AI Rejected: {ai_response['reason']}", status_code=303)
+
+    # 2. Add Parameter
+    new_param = AIParameter(
+        functionality_id=func_id,
+        key=key,
+        value=value,
+        description="Added by user via Maintenance"
+    )
+    db.add(new_param)
+    db.commit()
+
+    return RedirectResponse("/maintenance?message=Parameter accepted by AI", status_code=303)

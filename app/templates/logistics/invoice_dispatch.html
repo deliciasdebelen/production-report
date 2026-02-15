@@ -1,0 +1,248 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex-between" style="margin-bottom: 2rem;">
+    <div>
+        <h1 style="margin-bottom: 0.5rem;">Registro de Despacho de Facturas</h1>
+        <p style="color: var(--text-muted);">Actualización de fecha de recepción en sistema externo.</p>
+    </div>
+    <a href="/logistics" class="btn"
+        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">
+        <span style="margin-right: 0.5rem;">⬅</span> Volver
+    </a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <!-- Header / Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+            <div>
+                <button type="button" id="btnDocToggle" onclick="toggleDocType()"
+                    style="display: inline-block; font-size: 0.75rem; padding: 2px 8px; margin-bottom: 0.5rem; cursor: pointer; border: 1px solid var(--border); background: #f1f5f9; border-radius: 4px; color: var(--text-muted);">
+                    🔄 Cambiar a Nota de Entrega
+                </button>
+                <h3 style="margin: 0; color: var(--primary);" id="lblTitle">Buscar Factura</h3>
+            </div>
+            <div id="statusBadge"
+                style="display: none; padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">
+            </div>
+        </div>
+
+        <!-- Search Input -->
+        <div class="input-group" style="display:flex; gap:0.5rem; margin-bottom: 1rem;">
+            <input type="text" class="form-control" id="searchInput" list="searchList"
+                placeholder="Escriba número o cliente..." autocomplete="off"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;"
+                oninput="handleInput(this.value)" onfocus="this.value=''">
+            <datalist id="searchList"></datalist>
+            <button type="button" onclick="searchDocument()" class="btn"
+                style="background:#3b82f6; color:white; border-radius:8px; padding: 0 1.5rem;">🔍</button>
+        </div>
+    </div>
+
+    <!-- Details Section (Hidden until selected) -->
+    <div id="detailsSection" style="display: none; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Cliente</label>
+                <div id="detClient" style="font-weight: 600; font-size: 1.1rem;"></div>
+            </div>
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Documento</label>
+                <div id="detDoc" style="font-weight: 600; font-size: 1.1rem;"></div>
+            </div>
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Monto
+                    Total</label>
+                <div id="detAmount" style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);"></div>
+            </div>
+        </div>
+
+        <!-- Form for Date Update -->
+        <form id="updateForm" onsubmit="submitUpdate(event)"
+            style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+            <input type="hidden" name="doc_type" id="formDocType">
+            <input type="hidden" name="doc_num" id="formDocNum">
+
+            <div class="grid-2" style="gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Fecha
+                        de Recepción *</label>
+                    <input type="date" name="reception_date" id="receptionDate" required
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;">
+                </div>
+                <div>
+                    <label
+                        style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">Nro.
+                        Guía (Opcional)</label>
+                    <input type="text" name="guide_num" id="guideNum" placeholder="Ej: 10500"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;">
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="submit" class="btn"
+                    style="background: #10b981; color: white; padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; font-size: 1rem;">
+                    💾 Guardar Fecha
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentDocType = 'invoice';
+    let searchDebounce;
+
+    // Set default date to today
+    document.getElementById('receptionDate').valueAsDate = new Date();
+
+    function toggleDocType() {
+        const btn = document.getElementById('btnDocToggle');
+        const lbl = document.getElementById('lblTitle');
+        const input = document.getElementById('searchInput');
+
+        if (currentDocType === 'invoice') {
+            currentDocType = 'delivery_note';
+            btn.innerHTML = '🔄 Cambiar a Factura';
+            lbl.innerText = 'Buscar Nota de Entrega';
+            input.placeholder = 'Buscar Nota...';
+        } else {
+            currentDocType = 'invoice';
+            btn.innerHTML = '🔄 Cambiar a Nota de Entrega';
+            lbl.innerText = 'Buscar Factura';
+            input.placeholder = 'Buscar Factura...';
+        }
+
+        // Reset
+        input.value = '';
+        input.focus();
+        document.getElementById('detailsSection').style.display = 'none';
+    }
+
+    function handleInput(val) {
+        if (val.length < 2) return;
+
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(async () => {
+            try {
+                const endpoint = currentDocType === 'invoice'
+                    ? '/logistics/api/external/invoices/search'
+                    : '/logistics/api/external/delivery_notes/search';
+
+                const res = await fetch(`${endpoint}?q=${encodeURIComponent(val)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const datalist = document.getElementById('searchList');
+                    datalist.innerHTML = '';
+                    data.forEach(item => {
+                        const option = document.createElement('option');
+                        option.value = `${item.doc_num} - ${item.client}`;
+                        datalist.appendChild(option);
+                    });
+                }
+            } catch (err) {
+                console.error("Autocomplete error", err);
+            }
+        }, 300);
+    }
+
+    async function searchDocument() {
+        const input = document.getElementById('searchInput');
+        let val = input.value.trim();
+
+        if (!val) return;
+
+        // Extract Doc Num if format is "NUM - CLIENT"
+        if (val.includes(' - ')) {
+            val = val.split(' - ')[0].trim();
+        }
+
+        const docNum = val;
+
+        // Show Loading?
+        input.disabled = true;
+
+        try {
+            // Get Details
+            // Use existing items endpoint to get client/total?
+            const endpoint = currentDocType === 'invoice'
+                ? `/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items`
+                : `/logistics/api/external/delivery_note/${encodeURIComponent(docNum)}/items`;
+
+            const res = await fetch(endpoint);
+            const data = await res.json();
+
+            if (data.error || !Array.isArray(data) || data.length === 0) {
+                alert("Documento no encontrado o sin detalles.");
+                input.disabled = false;
+                return;
+            }
+
+            // Populate Details
+            const first = data[0];
+            document.getElementById('detClient').innerText = first.client_name || first.client || 'Desconocido';
+            document.getElementById('detDoc').innerText = `${currentDocType === 'invoice' ? 'FACT' : 'NOTA'} ${docNum}`;
+
+            // Amount?
+            // Existing endpoint returns 'invoice_total'.
+            const amt = first.invoice_total || 0;
+            document.getElementById('detAmount').innerText = amt.toLocaleString('es-VE', { style: 'currency', currency: 'USD' }); // Assumption USD/BS? Just format number
+
+            // Prepare Form
+            document.getElementById('formDocType').value = currentDocType;
+            document.getElementById('formDocNum').value = docNum;
+
+            // Show Section
+            document.getElementById('detailsSection').style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            alert("Error consultando documento");
+        } finally {
+            input.disabled = false;
+        }
+    }
+
+    async function submitUpdate(e) {
+        e.preventDefault();
+
+        if (!confirm("¿Está seguro de actualizar la fecha de recepción para este documento?")) return;
+
+        const form = document.getElementById('updateForm');
+        const formData = new FormData(form);
+        const btn = form.querySelector('button[type="submit"]');
+
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+
+        try {
+            const res = await fetch('/logistics/api/external/update-reception-date', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+
+            if (result.status === 'success') {
+                alert("✅ Actualización Exitosa");
+                // Reset UI
+                document.getElementById('searchInput').value = '';
+                document.getElementById('detailsSection').style.display = 'none';
+                document.getElementById('searchInput').focus();
+            } else {
+                alert("❌ Error: " + (result.message || "Desconocido"));
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 Guardar Fecha";
+        }
+    }
+</script>
+{% endblock %}

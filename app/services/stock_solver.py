@@ -109,45 +109,69 @@ class StockSolver:
                     })
 
 
-                # Rule B: Return vs Credit Note (Monto Validation)
+                # Rule C: Return vs Credit Note (Monto Validation)
                 # Strategy: Find recent returns and try to find matching N/C
-                # We limit to last 30 days or active ones to avoid scanning whole history
                 q_ret_nc = text("""
-                    SELECT top 50 H.doc_num, H.co_cli, H.total_neto, H.fec_emis, H.rowguid
+                    SELECT top 50 H.doc_num, H.co_cli, H.total_neto, H.fec_emis, H.rowguid, H.co_mone
                     FROM saDevolucionCliente H
-                    WHERE H.anulado = 0 AND H.status = '0' -- Assuming 0 is active/processed?
+                    WHERE H.anulado = 0 AND H.status = '0' 
                     ORDER BY H.fec_emis DESC
                 """)
                 recent_returns = conn.execute(q_ret_nc).fetchall()
                 
                 for ret in recent_returns:
-                    # Look for N/C
-                    # Try exact match first
-                    q_nc_check = text("""
-                        SELECT total_neto 
+                    # Look for N/C for this Client on the same day (or close?)
+                    # Let's search by Date and Client first
+                    q_nc_candidates = text("""
+                        SELECT rowguid, nro_doc, total_neto, doc_orig, nro_orig
                         FROM saDocumentoVenta 
-                        WHERE co_tipo_doc = 'N/C' 
+                        WHERE co_tipo_doc = 'N/CR' 
                         AND co_cli = :cli 
-                        AND ABS(total_neto - :monto) < 0.1
                         AND CAST(fec_emis AS DATE) = CAST(:date AS DATE)
                     """)
-                    nc = conn.execute(q_nc_check, {
+                    candidates = conn.execute(q_nc_candidates, {
                         "cli": ret.co_cli, 
-                        "monto": ret.total_neto, 
                         "date": ret.fec_emis
-                    }).fetchone()
+                    }).fetchall()
                     
-                    if not nc:
-                        # Try finding by doc_num if it propagates?
-                        # Or maybe just flag it as missing/mismatch
-                        issues.append({
-                            "id": str(ret.rowguid),
-                            "type": "NC_MISSING_OR_MISMATCH",
-                            "severity": "medium",
-                            "title": f"Nota de Crédito No Encontrada: {ret.doc_num}",
-                            "description": f"No se halló N/C por {ret.total_neto:,.2f} para la devolución del {ret.fec_emis}.",
-                            "meta": {}
-                        })
+                    match_found = False
+                    best_match = None
+                    
+                    for nc in candidates:
+                        # Check logic:
+                        # 1. Exact Amount Match
+                        if abs(nc.total_neto - ret.total_neto) < 0.1:
+                            match_found = True
+                            break
+                        # 2. Origin Match (if exists)
+                        if nc.nro_orig and nc.nro_orig.strip() == ret.doc_num.strip():
+                            match_found = True
+                            best_match = nc
+                            break
+                            
+                    if not match_found:
+                        if candidates:
+                            # Found N/C on same day but amount differs -> Mismatch
+                            # Pick the first one or the one closest?
+                            # Let's verify if manual fix needed
+                            issues.append({
+                                "id": str(ret.rowguid),
+                                "type": "NC_MISMATCH",
+                                "severity": "medium",
+                                "title": f"Diferencia N/C vs Devolución: {ret.doc_num}",
+                                "description": f"Devolución de {ret.total_neto:,.2f}. N/C encontradas ({len(candidates)}) pero montos no coinciden (Ej: {candidates[0].total_neto:,.2f}).",
+                                "meta": {"nc_doc": candidates[0].nro_doc, "nc_guid": str(candidates[0].rowguid)}
+                            })
+                        else:
+                            # No N/C found at all
+                            issues.append({
+                                "id": str(ret.rowguid),
+                                "type": "NC_MISSING",
+                                "severity": "medium",
+                                "title": f"Falta Nota de Crédito: {ret.doc_num}",
+                                "description": f"No se halló ninguna N/C del cliente {ret.co_cli} para la fecha {ret.fec_emis}.",
+                                "meta": {}
+                            })
                 
                 # Check saLoteSalida for warehouse 99 ... (Existing code continuing)
                 target_99 = 'P1-99 '
@@ -350,12 +374,21 @@ class StockSolver:
                     if not row: return {"success": False, "message": "Registro no encontrado"}
                     
                     new_total = row.total_bruto + row.monto_imp
+                    # Calculate difference to adjust Balance (Saldo) without losing payments
+                    # diff = new_total - old_total
+                    # new_saldo = old_saldo - diff (Wait, if net increases, saldo increases)
+                    # new_saldo = old_saldo + (new_total - old_total)
                     
-                    q_upd = text("UPDATE saDevolucionCliente SET total_neto = :new_tot, saldo = :new_tot WHERE rowguid = :guid")
+                    q_upd = text("""
+                        UPDATE saDevolucionCliente 
+                        SET saldo = saldo + (:new_tot - total_neto),
+                            total_neto = :new_tot 
+                        WHERE rowguid = :guid
+                    """)
                     conn.execute(q_upd, {"new_tot": new_total, "guid": issue_id})
                     
                     trans.commit()
-                    return {"success": True, "message": f"Total corregido a {new_total:,.2f}"}
+                    return {"success": True, "message": f"Total corregido a {new_total:,.2f} (Saldo ajustado)"}
 
                 elif issue_type == "RETURN_LINE_MISMATCH":
                     # Fix: Recalculate Header based on Lines
@@ -373,10 +406,13 @@ class StockSolver:
                     new_imp = sums.sum_imp or 0
                     new_neto = new_bruto + new_imp
                     
-                    # 2. Update Header
+                    # 2. Update Header (Preserve Saldo diff)
                     q_upd = text("""
                         UPDATE saDevolucionCliente 
-                        SET total_bruto = :b, monto_imp = :i, total_neto = :n, saldo = :n 
+                        SET saldo = saldo + (:n - total_neto),
+                            total_bruto = :b, 
+                            monto_imp = :i, 
+                            total_neto = :n
                         WHERE rowguid = :guid
                     """)
                     conn.execute(q_upd, {"b": new_bruto, "i": new_imp, "n": new_neto, "guid": issue_id})
@@ -386,29 +422,49 @@ class StockSolver:
 
                     return {"success": True, "message": f"Cabecera ajustada a Renglones: {new_neto:,.2f}"}
 
-                elif issue_type == "RETURN_NC_MISMATCH":
-                    # Fix: Update N/C to match Return
+                elif issue_type == "NC_MISMATCH":
+                    # Fix: Synchronize N/C amount to Return amount
                     # 1. Get Return Data
-                    q_ret = text("SELECT total_bruto, monto_imp, total_neto, nro_doc FROM saDevolucionCliente WHERE rowguid = :guid")
+                    q_ret = text("SELECT total_bruto, monto_imp, total_neto, nro_doc, co_cli, fec_emis FROM saDevolucionCliente WHERE rowguid = :guid")
                     ret = conn.execute(q_ret, {"guid": issue_id}).fetchone()
                     
                     if not ret: return {"success": False, "message": "Devolución no encontrada"}
                     
-                    # 2. Update N/C
+                    # 2. Find the target N/C again (Heuristic)
+                    q_nc_find = text("""
+                        SELECT rowguid, nro_doc, total_neto 
+                        FROM saDocumentoVenta 
+                        WHERE co_tipo_doc = 'N/CR' 
+                        AND co_cli = :cli 
+                        AND CAST(fec_emis AS DATE) = CAST(:date AS DATE)
+                    """)
+                    candidates = conn.execute(q_nc_find, {
+                        "cli": ret.co_cli, 
+                        "date": ret.fec_emis
+                    }).fetchall()
+                    
+                    target_nc = None
+                    if candidates:
+                        target_nc = candidates[0] # Assume first one is the intended link
+                    
+                    if not target_nc:
+                         return {"success": False, "message": "No se encontró la N/C para corregir"}
+
+                    # 3. Update N/C
                     q_upd = text("""
                         UPDATE saDocumentoVenta 
                         SET total_bruto = :b, monto_imp = :i, total_neto = :n, saldo = :n 
-                        WHERE nro_doc = :nc AND co_tipo_doc = 'N/C'
+                        WHERE rowguid = :nc_guid
                     """)
                     conn.execute(q_upd, {
                         "b": ret.total_bruto, 
                         "i": ret.monto_imp, 
                         "n": ret.total_neto, 
-                        "nc": ret.nro_doc
+                        "nc_guid": target_nc.rowguid
                     })
                     
                     trans.commit()
-                    return {"success": True, "message": f"N/CR {ret.nro_doc} sincronizada con Devolución ({ret.total_neto:,.2f})"}
+                    return {"success": True, "message": f"N/CR {target_nc.nro_doc} sincronizada con Devolución ({ret.total_neto:,.2f})"}
 
                 else:
                     return {"success": False, "message": "Tipo de problema desconocido"}

@@ -63,7 +63,8 @@
 <div style="margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
     <button onclick="showTab('users', this)" class="tab-btn active">Usuarios</button>
     <button onclick="showTab('data', this)" class="tab-btn">Base de Datos</button>
-    <button onclick="showTab('routes', this)" class="tab-btn">Rutas</button>
+    <button onclick="showTab('routes', this)" class="tab-btn">Rutas de Despacho</button>
+    <button onclick="showTab('ai', this)" class="tab-btn">Parámetros IA</button>
     <button onclick="showTab('validations', this)" class="tab-btn">Validaciones</button>
     <button onclick="showTab('notifications', this)" class="tab-btn">Notificaciones</button>
 </div>
@@ -380,6 +381,126 @@
         </div>
     </div>
 </div>
+
+<!-- AI Parameters Tab -->
+<div id="ai" class="tab-content" style="display: none;">
+    <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #8b5cf6;">
+        <h3 style="color: #8b5cf6; margin-top: 0;">🧠 Inteligencia Artificial - Configuración</h3>
+        <p style="color: #6c757d;">
+            Gestione las capacidades cognitivas del sistema. Active o desactive módulos y ajuste los parámetros de
+            comportamiento.
+            <br>
+            <small>Nota: La IA validará automáticamente cualquier parámetro nuevo antes de aceptarlo.</small>
+        </p>
+    </div>
+
+    <!-- Functionalities List -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+        {% for func in ai_funcs %}
+        <div class="card" style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.1rem;">{{ func.name }}</h4>
+                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0.25rem 0 0 0;">{{ func.description }}</p>
+                </div>
+                <!-- Toggle Switch -->
+                <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 24px;">
+                    <input type="checkbox" onchange="toggleAI({{ func.id }}, this)" {% if func.is_active %}checked{%
+                        endif %} style="opacity: 0; width: 0; height: 0;">
+                    <span class="slider round"
+                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                    <style>
+                        .switch input:checked+.slider {
+                            background-color: #8b5cf6;
+                        }
+
+                        .switch input:checked+.slider:before {
+                            transform: translateX(16px);
+                        }
+
+                        .slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 16px;
+                            width: 16px;
+                            left: 4px;
+                            bottom: 4px;
+                            background-color: white;
+                            transition: .4s;
+                            border-radius: 50%;
+                        }
+                    </style>
+                </label>
+            </div>
+
+            <!-- Parameters Table -->
+            <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                <table style="width: 100%; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="text-align: left; color: #64748b;">
+                            <th>Parámetro</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for param in func.parameters %}
+                        <tr>
+                            <td style="font-family: monospace; color: #334155;">{{ param.key }}</td>
+                            <td style="font-weight: 600; color: #0f172a;">{{ param.value }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" style="color: #94a3b8; font-style: italic;">Sin parámetros</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add Parameter Form -->
+            <form action="/maintenance/ai/parameter" method="post"
+                style="border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                <input type="hidden" name="func_id" value="{{ func.id }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem;">
+                    <input type="text" name="key" placeholder="key_name" required
+                        style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <input type="text" name="value" placeholder="Value" required
+                        style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <button type="submit"
+                        style="background: #8b5cf6; color: white; border: none; padding: 0 0.75rem; border-radius: 4px; font-size: 1.2rem; cursor: pointer; line-height: 1;">+</button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- JS for AI Toggle -->
+    <script>
+        async function toggleAI(id, checkbox) {
+            const enabled = checkbox.checked;
+            const formData = new FormData();
+            formData.append('func_id', id);
+            formData.append('enabled', enabled);
+
+            try {
+                const res = await fetch('/maintenance/ai/toggle', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status !== 'success') {
+                    alert('Error al cambiar estado');
+                    checkbox.checked = !enabled; // Revert
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de conexión');
+                checkbox.checked = !enabled; // Revert
+            }
+        }
+    </script>
+</div>
+
 </div>
 
 <script>
