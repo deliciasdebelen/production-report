@@ -1,0 +1,364 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Odoo List View Styles - Copied from Reports */
+    .report-container {
+        padding: 1.5rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        margin: 1rem;
+    }
+
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .report-title {
+        font-size: 1.5rem;
+        color: #714B67;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .filter-bar {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        background: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        border: 1px solid #e9ecef;
+    }
+
+    .filter-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .filter-item label {
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 600;
+    }
+
+    .filter-item input {
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        padding: 0.3rem 0.5rem;
+        font-size: 0.9rem;
+    }
+
+    .btn-filter {
+        background: #714B67;
+        color: white;
+        border: none;
+        padding: 0.4rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .btn-filter:hover {
+        background: #5d3d54;
+    }
+
+    .btn-clear {
+        background: white;
+        color: #666;
+        border: 1px solid #ced4da;
+        padding: 0.4rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+    }
+
+    .btn-clear:hover {
+        background: #e9ecef;
+    }
+
+    .odoo-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .odoo-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.95rem;
+        table-layout: fixed;
+        /* Enforce column widths if needed, or just let truncate work */
+    }
+
+    .odoo-table thead th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        /* Reduced padding */
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+    }
+
+    .odoo-table tbody td {
+        padding: 0.4rem 0.75rem;
+        /* Compact padding */
+        border-bottom: 1px solid #e9ecef;
+        color: #212529;
+        vertical-align: middle;
+    }
+
+    /* TRUNCATION UTILITY */
+    .truncate-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 300px;
+        /* Default max width, can override inline */
+        display: block;
+        /* Needed for div/span, but on td acts usually if max-width set? */
+    }
+
+    /* Apply truncation to td directly via class */
+    td.truncate-cell {
+        display: table-cell;
+        /* Reset display */
+        max-width: 300px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .odoo-table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .text-right {
+        text-align: right;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    /* Tabs */
+    .tabs-nav {
+        display: flex;
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 2rem;
+    }
+
+    .tab-link {
+        padding: 0.75rem 1.5rem;
+        text-decoration: none;
+        color: #666;
+        font-weight: 600;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    /* Active tab style logic */
+    .tab-link:hover {
+        color: #714B67;
+        background-color: #f8f9fa;
+    }
+
+    .tab-link.active {
+        color: #714B67;
+        border-bottom-color: #714B67;
+    }
+</style>
+
+<div class="report-container">
+    <div class="report-header">
+        <h1 class="report-title">{{ title }}</h1>
+
+        <form class="filter-bar" method="GET" action="/reports/logistics">
+            <!-- Preserve active tab -->
+            <input type="hidden" name="active_tab" value="{{ active_tab }}">
+
+            <div class="filter-item">
+                <label>Desde:</label>
+                <input type="date" name="start_date" value="{{ start_date or '' }}">
+            </div>
+            <div class="filter-item">
+                <label>Hasta:</label>
+                <input type="date" name="end_date" value="{{ end_date or '' }}">
+            </div>
+            <button type="submit" class="btn-filter">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                </svg>
+                Filtrar
+            </button>
+            {% if start_date or end_date %}
+            <a href="/reports/logistics?active_tab={{ active_tab }}" class="btn-clear">Limpiar</a>
+            {% endif %}
+
+            <button type="button" onclick="exportLogisticsExcel()" class="btn-filter"
+                style="background: #107c41; margin-left: auto;">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path
+                        d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z" />
+                    <path d="M5.5 10.5A.5.5 0 0 1 6 10h4a.5.5 0 0 1 0 1H6a.5.5 0 0 1-.5-.5z" />
+                </svg>
+                Excel
+            </button>
+        </form>
+
+        <script>
+            function exportLogisticsExcel() {
+                const tab = document.querySelector('input[name="active_tab"]').value;
+                const start = document.querySelector('input[name="start_date"]').value;
+                const end = document.querySelector('input[name="end_date"]').value;
+                window.location.href = `/reports/export/${tab}?start_date=${start}&end_date=${end}`;
+            }
+        </script>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-nav">
+        <a href="/reports/logistics?active_tab=reception_production&start_date={{ start_date or '' }}&end_date={{ end_date or '' }}"
+            class="tab-link {{ 'active' if active_tab == 'reception_production' else '' }}">
+            Recepción Producción
+        </a>
+        <a href="/reports/logistics?active_tab=reception_merchandise&start_date={{ start_date or '' }}&end_date={{ end_date or '' }}"
+            class="tab-link {{ 'active' if active_tab == 'reception_merchandise' else '' }}">
+            Recepción Mercancía
+        </a>
+        <a href="/reports/logistics?active_tab=dispatch&start_date={{ start_date or '' }}&end_date={{ end_date or '' }}"
+            class="tab-link {{ 'active' if active_tab == 'dispatch' else '' }}">
+            Despachos
+        </a>
+        <a href="/reports/logistics?active_tab=inventory&start_date={{ start_date or '' }}&end_date={{ end_date or '' }}"
+            class="tab-link {{ 'active' if active_tab == 'inventory' else '' }}">
+            Inventario
+        </a>
+    </div>
+
+    <div class="odoo-table-wrapper">
+        <table class="odoo-table">
+            <thead>
+                <tr>
+                    {% if active_tab == 'reception_production' %}
+                    <th style="width: 150px;">Fecha</th>
+                    <th style="width: 100px;">Prod Ref</th>
+                    <th>Producto</th>
+                    <th class="text-right" style="width: 100px;">Cantidad</th>
+                    <th>Notas</th>
+                    {% elif active_tab == 'reception_merchandise' %}
+                    <th style="width: 150px;">Fecha</th>
+                    <th>Proveedor</th>
+                    <th>Documento</th>
+                    <th>Items</th>
+                    {% elif active_tab == 'dispatch' %}
+                    <th style="width: 150px;">Fecha</th>
+                    <th>Cliente Destino</th>
+                    <th>Documento</th>
+                    <th>Items</th>
+                    <th style="width: 120px;">Acciones</th>
+                    {% elif active_tab == 'inventory' %}
+                    <th style="width: 150px;">Fecha</th>
+                    <th>Ref</th>
+                    <th>Estado</th>
+                    <th>Notas</th>
+                    <th style="width: 120px;">Acciones</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    {% if active_tab == 'reception_production' %}
+                    <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
+                    <td>{{ item.production_report_id or '-' }}</td>
+                    <td class="truncate-cell" title="{{ item.product_name }}">{{ item.product_name }}</td>
+                    <td class="text-right">{{ item.quantity }}</td>
+                    <td class="truncate-cell" title="{{ item.notes or '' }}">{{ item.notes or '' }}</td>
+
+                    {% elif active_tab == 'reception_merchandise' %}
+                    <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
+                    <td class="truncate-cell" title="{{ item.supplier }}">{{ item.supplier }}</td>
+                    <td class="truncate-cell" title="{{ item.document_ref }}">{{ item.document_ref }}</td>
+                    <td class="json-cell truncate-cell" data-json='{{ item.items_json }}'></td>
+
+                    {% elif active_tab == 'dispatch' %}
+                    <td>{{ item.date.strftime('%Y-%m-%d %H:%M') if item.date else '-' }}</td>
+                    <td class="truncate-cell" title="{{ item.client_destination }}">{{ item.client_destination }}</td>
+                    <td class="truncate-cell" title="{{ item.document_ref }}">{{ item.document_ref }}</td>
+                    <td class="json-cell truncate-cell" data-json='{{ item.items_json }}'></td>
+                    <td>
+                        {% if check_permission(user, 'logistics', 'print') %}
+                        <a href="/logistics/dispatch/{{ item.id }}/print" target="_blank" class="btn-filter"
+                            style="text-decoration: none; display: inline-flex; width: auto; padding: 0.2rem 0.5rem; font-size: 0.85rem;">
+                            🖨️ Imprimir
+                        </a>
+                        {% endif %}
+                    </td>
+
+                    {% elif active_tab == 'inventory' %}
+                    <!-- Inventory now returns Headers, not flattened Capture Objects 
+                         We need to adjust fields: date, correlative, status, notes -->
+                    <td>{{ item.date.strftime('%Y-%m-%d') if item.date else '-' }}</td>
+                    <td>{{ item.correlative }}</td>
+                    <td>
+                        <span class="status-badge" style="background: #5cb85c;">
+                            {{ item.status }}
+                        </span>
+                    </td>
+                    <td class="truncate-cell" title="{{ item.notes or '-' }}">{{ item.notes or '-' }}</td>
+                    <td>
+                        <a href="/reports/inventory/print/{{ item.id }}" target="_blank" class="btn-filter"
+                            style="text-decoration: none; display: inline-flex; width: auto; padding: 0.2rem 0.5rem; font-size: 0.85rem;">
+                            🖨️ Imprimir
+                        </a>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center" style="padding: 2rem; color: #999;">
+                        No se encontraron registros.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // JS to parse JSON cells
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.json-cell').forEach(td => {
+            try {
+                const raw = td.getAttribute('data-json');
+                if (!raw) return;
+                const data = JSON.parse(raw);
+                if (Array.isArray(data)) {
+                    // Summarize: "3 Items: Item A (10)..."
+                    const count = data.length;
+                    const preview = data.slice(0, 2).map(i => `${i.item} (${i.qty})`).join(', ');
+                    const text = `${count} Items: ${preview}${count > 2 ? '...' : ''}`;
+                    td.textContent = text;
+                    td.title = JSON.stringify(data, null, 2); // Tooltip full details
+                }
+            } catch (e) {
+                td.textContent = '(Error parsing details)';
+            }
+        });
+    });
+</script>
+
+{% endblock %}

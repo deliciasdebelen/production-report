@@ -1,0 +1,154 @@
+erDiagram
+    production_planning {
+        INTEGER id PK
+        VARCHAR order_number
+        VARCHAR date
+        VARCHAR article
+        VARCHAR presentation
+        INTEGER batches
+        FLOAT kg
+        INTEGER units
+        INTEGER units_pending
+        FLOAT boxes
+        FLOAT waste_percentage
+        FLOAT waste_kg
+        VARCHAR status
+        TEXT notes
+        VARCHAR color
+        DATETIME created_at
+    }
+    logistics_reception_production {
+        INTEGER id PK
+        DATETIME date
+        VARCHAR production_report_id
+        VARCHAR product_name
+        FLOAT quantity
+        VARCHAR status
+        TEXT notes
+        DATETIME created_at
+    }
+    channels {
+        INTEGER id PK
+        VARCHAR name
+        VARCHAR type
+        VARCHAR description
+        DATETIME created_at
+    }
+    production_reports {
+        VARCHAR id PK
+        INTEGER batch_qty
+        VARCHAR article_type
+        FLOAT kg_produced
+        VARCHAR presentation
+        FLOAT boxes
+        INTEGER pt_units
+        INTEGER pt_lab
+        INTEGER pt_burned
+        INTEGER mp_containers
+        INTEGER mp_caps_clean
+        INTEGER mp_caps_dirty
+        FLOAT mp_waste_kg
+        VARCHAR mp_waste_image
+        VARCHAR order_number
+        VARCHAR status
+        TEXT planning_order_ids
+        VARCHAR cons_type
+        FLOAT cons_count
+        FLOAT cons_unit_weight
+        FLOAT cons_qty
+        TEXT notes
+        VARCHAR color
+        DATETIME created_at
+    }
+    logistics_reception_merchandise {
+        INTEGER id PK
+        DATETIME date
+        VARCHAR supplier
+        VARCHAR document_ref
+        TEXT items_json
+        DATETIME created_at
+    }
+    inventory_lines {
+        INTEGER id PK
+        INTEGER header_id FK
+        VARCHAR article_code
+        VARCHAR article_description
+        VARCHAR batch
+        FLOAT quantity
+    }
+    users {
+        INTEGER id PK
+        VARCHAR username
+        VARCHAR password_hash
+        INTEGER role
+        INTEGER is_active
+    }
+    inventory_captures {
+        INTEGER id PK
+        VARCHAR capture_type
+        VARCHAR article_code
+        VARCHAR article_description
+        VARCHAR batch
+        FLOAT quantity
+        VARCHAR capture_date
+        VARCHAR capture_time
+        VARCHAR department
+        BOOLEAN out_of_range
+        INTEGER user_id FK
+        DATETIME created_at
+    }
+    logistics_dispatch {
+        INTEGER id PK
+        DATETIME date
+        VARCHAR client_destination
+        VARCHAR document_ref
+        TEXT items_json
+        INTEGER route_id FK
+        DATETIME created_at
+    }
+    logistics_routes {
+        INTEGER id PK
+        VARCHAR name
+        BOOLEAN active
+        DATETIME created_at
+    }
+    messages {
+        INTEGER id PK
+        TEXT body
+        VARCHAR message_type
+        INTEGER author_id FK
+        INTEGER channel_id FK
+        DATETIME created_at
+    }
+    inventory_headers {
+        INTEGER id PK
+        VARCHAR correlative
+        DATETIME date
+        INTEGER user_id FK
+        VARCHAR status
+        TEXT notes
+    }
+    notification_subscribers {
+        INTEGER id PK
+        VARCHAR name
+        VARCHAR email
+        VARCHAR report_type
+        BOOLEAN is_active
+        DATETIME created_at
+    }
+    message_statuses {
+        INTEGER id PK
+        INTEGER user_id FK
+        INTEGER message_id FK
+        BOOLEAN is_read
+        BOOLEAN is_starred
+        DATETIME received_at
+    }
+    inventory_headers ||--o{ inventory_lines : "has"
+    users ||--o{ inventory_captures : "has"
+    logistics_routes ||--o{ logistics_dispatch : "has"
+    users ||--o{ messages : "has"
+    channels ||--o{ messages : "has"
+    users ||--o{ inventory_headers : "has"
+    users ||--o{ message_statuses : "has"
+    messages ||--o{ message_statuses : "has"

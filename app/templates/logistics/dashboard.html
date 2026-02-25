@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1>Logística y Almacén</h1>
+
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+</style>
+
+<div class="dashboard-grid">
+    <!-- Recepción Producción -->
+    <a href="/logistics/reception/production" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--primary);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏭</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Recepción de Producción</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Verificar y dar entrada a productos terminados desde
+                planta.</p>
+        </div>
+    </a>
+
+    <!-- Recepción Mercancía -->
+    <a href="/logistics/reception/merchandise" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--secondary);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Recepción de Mercancía</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Entrada de materias primas y suministros de
+                proveedores.</p>
+        </div>
+    </a>
+
+    <!-- Despacho -->
+    <a href="/logistics/dispatch" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: var(--warning);">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚚</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Despacho de Mercancía</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Salida de productos a clientes y distribuidores.</p>
+        </div>
+    </a>
+
+    <!-- Control de Inventario (Nuevo) -->
+    <a href="/logistics/inventory" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #8b5cf6;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📋</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Control de Inventario</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Captura de inventarios, inicio y cierre de
+                operaciones.</p>
+        </div>
+    </a>
+
+    <!-- Invoice Dispatch Registration (NEW) -->
+    <a href="/logistics/invoice-dispatch" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #10b981;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📅</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main);">Recepción de facturas por fecha de despacho</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem;">Registro de fecha de recepción de facturas y notas
+                de entrega.</p>
+        </div>
+    </a>
+</div>
+{% endblock %}

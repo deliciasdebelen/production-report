@@ -1,0 +1,451 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex-between">
+    <h1>Recepción de Producción</h1>
+    <a href="/logistics" class="btn" style="background: var(--text-muted);">Volver</a>
+</div>
+
+<!-- Search Section -->
+<!-- Search Section -->
+<div class="grid-2" style="margin-top: 1.5rem; gap: 1.5rem; align-items: stretch;">
+    <!-- Import Section -->
+    <div class="card"
+        style="padding: 1.5rem; margin-top: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">⬇️ Importar Orden de Producción</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Seleccione una orden pendiente para
+            registrar su recepción.</p>
+        <button class="btn" onclick="openImportModal()"
+            style="background: var(--primary); color: white; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
+            Seleccionar Orden Pendiente
+        </button>
+    </div>
+
+    <!-- Date Filter Section (Keep as is) -->
+    <div class="card" style="padding: 1.5rem; margin-top: 0;">
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">📅 Filtrar Historial</h3>
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
+            <div style="flex: 1;">
+                <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Desde</label>
+                <input type="date" id="dateStart" style="padding: 0.4rem;">
+            </div>
+            <div style="flex: 1;">
+                <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Hasta</label>
+                <input type="date" id="dateEnd" style="padding: 0.4rem;">
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn" onclick="searchByDate()"
+                    style="background: var(--text-main); color: #fff; padding: 0.5rem 1rem;">FILTRAR</button>
+                <button class="btn" onclick="clearFilters()"
+                    style="background: #e2e8f0; color: var(--text-main); padding: 0.5rem 1rem;">BORRAR</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="searchResults" style="margin-top: 1rem; margin-bottom: 2rem;"></div>
+
+<!-- Import Modal -->
+<div id="importModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); backdrop-filter: blur(2px); z-index:2000; overflow: auto;">
+    <div
+        style="background:#fff; margin: 4vh auto; border:none; width:90%; max-width:850px; border-radius:12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); overflow:hidden; animation: slideDown 0.3s ease-out;">
+
+        <!-- Header -->
+        <div style="padding: 1.5rem 2rem; border-bottom: 1px solid #f3f4f6; background-color: #fff;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0; color:#111827; font-size:1.25rem; font-weight:700;">Seleccionar Orden Pendiente
+                    </h3>
+                    <p style="margin:4px 0 0 0; color:#6b7280; font-size:0.875rem;">Mostrando órdenes pendientes de
+                        recepción</p>
+                </div>
+                <span onclick="closeImportModal()"
+                    style="color:#9ca3af; font-size:24px; cursor:pointer; transition:color 0.2s;"
+                    onmouseover="this.style.color='#111827'">&times;</span>
+            </div>
+        </div>
+        <!-- Search Input Integrated in Header: REMOVED as requested -->
+        <!-- Search Input Integrated in Header: REMOVED as requested -->
+
+        <!-- Table Container -->
+        <div style="max-height: 60vh; overflow-y: auto;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="position: sticky; top: 0; background-color: #f9fafb; z-index: 10;">
+                    <tr>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+                            Correlativo</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb;">
+                            Producto</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                            Producido</th>
+                        <th
+                            style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-align: center;">
+                            Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="modalListBody">
+                    <!-- Rows injected via JS -->
+                </tbody>
+            </table>
+            <div id="modalLoading" style="text-align: center; padding: 3rem; display: none;">
+                <div
+                    style="display: inline-block; width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;">
+                </div>
+                <p style="margin-top: 10px; color: #6b7280; font-size: 0.875rem;">Cargando órdenes...</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="padding: 1rem 2rem; background-color: #f9fafb; border-top: 1px solid #e5e7eb; text-align: right;">
+            <button onclick="closeImportModal()"
+                style="padding: 8px 16px; border: 1px solid #d1d5db; background-color: white; color: #374151; border-radius: 6px; font-size: 0.875rem; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+<style>
+    @keyframes slideDown {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+</style>
+
+<div class="grid-2" style="margin-top: 2rem; align-items: start;">
+    <!-- Form -->
+    <div class="card" id="receptionCard" style="opacity: 0.5; pointer-events: none;">
+        <h3>Registrar Entrada</h3>
+        <form id="rxForm">
+            <!-- Hidden ID -->
+            <input type="hidden" name="production_id" id="prodId">
+            <input type="hidden" name="expected_units" id="expectedUnits">
+            <input type="hidden" name="order_number" id="orderNumber">
+
+            <div class="form-group grid-2" style="gap: 1rem;">
+                <div>
+                    <label>Orden Producción</label>
+                    <input type="text" id="dispOrderNumber" readonly style="background: #f0f0f0;">
+                </div>
+                <div>
+                    <label>Producto</label>
+                    <input type="text" id="dispProduct" readonly style="background: #f0f0f0;">
+                </div>
+            </div>
+
+            <div class="form-group grid-2" style="gap:1rem;">
+                <div>
+                    <label>Esperado (Unidades)</label>
+                    <input type="number" id="dispExpected" readonly style="background: #f0f0f0;">
+                </div>
+                <div>
+                    <label>Recibido Real (Unidades) <span style="color:red">*</span></label>
+                    <input type="number" step="1" name="received_qty" id="receivedQty" required>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Total Cajas</label>
+                <input type="number" id="totalBoxes" step="0.01" readonly
+                    style="background: #f0f0f0; font-weight: bold; color: var(--primary);">
+            </div>
+
+            <div class="form-group" style="margin-top: 1rem;">
+                <label>Notas de Recepción</label>
+                <textarea id="notes" rows="2" placeholder="Opcional"></textarea>
+            </div>
+            <div style="text-align: right; margin-top: 1.5rem;">
+                {% if user.role in [1, 4, 5] %}
+                <button type="button" class="btn" onclick="validateAndSubmit()"
+                    style="padding: 0.5rem 2rem; font-size: 0.9rem; background: var(--primary); color: white;">
+                    Validar y Confirmar
+                </button>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Recent Logs -->
+    <div class="card">
+        <h3>Últimos Movimientos</h3>
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th>Cant.</th>
+                        <th>Notas</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ log.product_name }}</td>
+                        <td>{{ log.quantity }}</td>
+                        <td>{{ log.notes }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Modal -->
+<div id="alertModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="card" style="width: 90%; max-width: 500px; background: white; border: 1px solid var(--danger);">
+        <h2 style="color: var(--danger); margin-top: 0;">⚠️ Discrepancia Detectada</h2>
+        <p>La cantidad recibida no coincide con la reportada. Se debe notificar.</p>
+
+        <div class="form-group">
+            <label>Para (Correo)</label>
+            <input type="email" id="emailTo" value="gerencia@empresa.com, calidad@empresa.com">
+        </div>
+        <div class="form-group">
+            <label>Asunto</label>
+            <input type="text" id="emailSubject" value="Alerta de Merma - Recepción">
+        </div>
+        <div class="form-group">
+            <label>Mensaje</label>
+            <textarea id="emailBody" rows="4"></textarea>
+        </div>
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+            <button class="btn" style="background: #ccc; color: black;" onclick="closeModal()">Cancelar</button>
+            <button class="btn" style="background: var(--danger);" onclick="confirmWithAlert()">Confirmar y Enviar
+                Alerta</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal & Fetch Logic
+    let pendingOrders = [];
+
+    function openImportModal() {
+        document.getElementById('importModal').style.display = 'flex';
+        fetchPendingOrders();
+    }
+
+    function closeImportModal() {
+        document.getElementById('importModal').style.display = 'none';
+    }
+
+    async function fetchPendingOrders() {
+        const tbody = document.getElementById('modalListBody');
+        const loading = document.getElementById('modalLoading');
+        tbody.innerHTML = '';
+        loading.style.display = 'block';
+
+        try {
+            const res = await fetch(`/logistics/api/production/pending`);
+            const data = await res.json();
+            pendingOrders = data;
+            renderModalList(data);
+        } catch (e) {
+            console.error(e);
+            loading.style.display = 'none';
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:red; padding: 1rem;'>Error cargando órdenes...</td></tr>";
+        }
+    }
+
+    function renderModalList(items) {
+        const tbody = document.getElementById('modalListBody');
+        const loading = document.getElementById('modalLoading');
+        tbody.innerHTML = '';
+        loading.style.display = 'none';
+
+        if (items.length === 0) {
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 2rem; color: #6b7280;'>No hay órdenes pendientes.</td></tr>";
+            return;
+        }
+
+        items.forEach(order => {
+            const row = document.createElement("tr");
+            row.style.borderBottom = "1px solid #f3f4f6";
+            row.style.cursor = "pointer";
+            row.onmouseover = function () { this.style.backgroundColor = "#eff6ff"; };
+            row.onmouseout = function () { this.style.backgroundColor = "transparent"; };
+            row.onclick = () => selectOrder(order);
+
+            const orderNum = order.order_number ? String(order.order_number).padStart(8, '0') : order.id;
+
+            row.innerHTML = `
+                <td style="padding: 16px 24px; font-family: monospace; font-weight: 700; color: #2563eb;">#${orderNum}</td>
+                <td style="padding: 16px 24px; color: #111827;">${order.article_type}</td>
+                <td style="padding: 16px 24px; text-align: right; font-weight: 600;">${order.pt_units} Und</td>
+                <td style="padding: 16px 24px; text-align: center;">
+                    <button style="background-color: #4f46e5; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">SELECT</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Modal Search Filter removed
+    /*
+    document.getElementById('modalSearchInput').addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const filtered = pendingOrders.filter(o =>
+            (o.order_number && String(o.order_number).includes(term)) ||
+            (o.article_type && o.article_type.toLowerCase().includes(term))
+        );
+        renderModalList(filtered);
+    });
+    */
+
+    function selectOrder(order) {
+        // Unlock form
+        const card = document.getElementById('receptionCard');
+        card.style.opacity = '1';
+        card.style.pointerEvents = 'auto';
+
+        document.getElementById('prodId').value = order.id;
+        document.getElementById('expectedUnits').value = order.pt_units;
+        document.getElementById('orderNumber').value = order.order_number;
+
+        document.getElementById('dispOrderNumber').value = order.order_number || order.id;
+        document.getElementById('dispProduct').value = order.article_type;
+        document.getElementById('dispExpected').value = order.pt_units;
+        document.getElementById('receivedQty').value = ''; // Clear previous
+
+        closeImportModal();
+        closeImportModal();
+        window.scrollTo(0, card.offsetTop);
+
+        // Fetch Box Equivalence
+        fetchArticleDetails(order.article_type);
+    }
+
+    let currentBoxEquiv = 0;
+
+    async function fetchArticleDetails(description) {
+        if (!description) return;
+        try {
+            // Re-use external articles API to find the article and get box_equiv
+            const res = await fetch('/api/external/articles');
+            if (res.ok) {
+                const articles = await res.json();
+                const found = articles.find(a => a.description === description);
+                if (found) {
+                    currentBoxEquiv = found.box_equiv || 0;
+                    calculateBoxes();
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching article details", e);
+        }
+    }
+
+    function calculateBoxes() {
+        const units = parseFloat(document.getElementById('receivedQty').value) || 0;
+        const boxesInput = document.getElementById('totalBoxes');
+
+        if (currentBoxEquiv > 0 && units > 0) {
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        } else {
+            boxesInput.value = '';
+        }
+    }
+
+    document.getElementById('receivedQty').addEventListener('input', calculateBoxes);
+
+    function validateAndSubmit() {
+        const expected = parseFloat(document.getElementById('expectedUnits').value);
+        const received = parseFloat(document.getElementById('receivedQty').value);
+        const orderNum = document.getElementById('orderNumber').value;
+
+        if (isNaN(received)) {
+            alert("Ingrese la cantidad recibida");
+            return;
+        }
+
+        const diff = expected - received;
+
+        if (diff !== 0) {
+            // Show Alert Modal
+            const body = document.getElementById('emailBody');
+            body.value = `Se detectó una diferencia en la Orden ${orderNum}.\n\nEsperado: ${expected}\nRecibido: ${received}\nDiferencia: ${diff}\n\nPor favor verificar.`;
+
+            document.getElementById('alertModal').style.display = 'flex';
+        } else {
+            // Submit directly
+            submitForm();
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('alertModal').style.display = 'none';
+    }
+
+    async function submitForm(email = null) {
+        const formData = new FormData();
+        formData.append('production_id', document.getElementById('prodId').value);
+        formData.append('received_qty', document.getElementById('receivedQty').value);
+        if (email) formData.append('alert_email', email);
+
+        try {
+            const res = await fetch('/logistics/reception/confirm', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showSuccessModal();
+            } else {
+                alert("Error: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión");
+        }
+    }
+
+    function confirmWithAlert() {
+        const emailTo = document.getElementById('emailTo').value;
+        submitForm(emailTo);
+    }
+</script>
+
+<!-- Success Modal -->
+<div id="successModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+    <div class="card"
+        style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <button onclick="closeSuccessAndReload()" class="btn"
+            style="width: 100%; justify-content: center; background: var(--odoo-primary); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
+    </div>
+</div>
+<script>
+    function showSuccessModal() {
+        document.getElementById('successModal').style.display = 'flex';
+    }
+    function closeSuccessAndReload() {
+        window.location.reload();
+    }
+</script>
+
+{% endblock %}

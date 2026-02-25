@@ -1,0 +1,265 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="display: flex; height: calc(100vh - 60px); background: white;">
+
+    <!-- Sidebar -->
+    <div
+        style="width: 260px; background: #f9f9f9; border-right: 1px solid #dee2e6; display: flex; flex-direction: column;">
+        <div
+            style="padding: 15px; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; justify-content: space-between;">
+            <button
+                style="background: #714B67; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 500; font-size: 0.9rem; cursor: pointer; width: 100%;">
+                Iniciar reunión
+            </button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 10px 0;">
+            <!-- Menu Items -->
+            <div class="discuss-nav-item active" onclick="loadMessages('inbox')" id="nav-inbox">
+                <span style="font-size: 1.1rem; margin-right: 10px;">📥</span> Bandeja de entrada
+                <!-- Badge for count could go here -->
+            </div>
+            <div class="discuss-nav-item" onclick="loadMessages('starred')" id="nav-starred">
+                <span style="font-size: 1.1rem; margin-right: 10px;">⭐</span> Destacado
+            </div>
+            <div class="discuss-nav-item" onclick="loadMessages('history')" id="nav-history">
+                <span style="font-size: 1.1rem; margin-right: 10px;">🕒</span> Historial
+            </div>
+
+            <!-- Channels -->
+            <div
+                style="padding: 15px 15px 5px 15px; font-size: 0.8rem; font-weight: bold; color: #888; display: flex; justify-content: space-between; cursor: pointer;">
+                <span>CANALES</span>
+                <span>⚙️ +</span>
+            </div>
+            <div id="channelsList">
+                <div style="padding: 5px 15px; color: #666; font-size: 0.9rem;">Cargando...</div>
+            </div>
+
+            <!-- Direct Messages -->
+            <div
+                style="padding: 15px 15px 5px 15px; font-size: 0.8rem; font-weight: bold; color: #888; display: flex; justify-content: space-between; cursor: pointer;">
+                <span>MENSAJES DIRECTOS</span>
+            </div>
+            <div class="discuss-nav-item">
+                <img src="https://ui-avatars.com/api/?name=OdooBot&background=d1ecf1&color=0c5460"
+                    style="width: 20px; height: 20px; border-radius: 50%; margin-right: 8px;">
+                OdooBot
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div style="flex: 1; background: #fff; display: flex; flex-direction: column;">
+        <!-- Header -->
+        <div
+            style="height: 50px; border-bottom: 1px solid #eee; display: flex; align-items: center; padding: 0 20px; color: #444; font-weight: 500;">
+            <span id="currentViewTitle">📥 Bandeja de entrada</span>
+            <div style="margin-left: auto; display: flex;">
+                <input type="text" placeholder="Buscar..."
+                    style="border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px;">
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div id="messageContainer" style="flex: 1; overflow-y: auto; padding: 0;">
+            <!-- Messages go here -->
+            <div
+                style="display: flex; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #666;">
+                Loading...
+            </div>
+        </div>
+
+        <!-- Post Box (Only for Inbox/Channels) -->
+        <div style="border-top: 1px solid #eee; padding: 15px; background: #f8f9fa;">
+            <form onsubmit="postMessage(event)" style="display: flex; gap: 10px;">
+                <input type="hidden" id="postChannelId" value="1"> <!-- Default General? -->
+                <input type="text" id="postBody" placeholder="Escribe un mensaje..."
+                    style="flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 4px;" required>
+                <button type="submit" class="btn" style="background: #714B67; color: white;">Enviar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    .discuss-nav-item {
+        padding: 6px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        color: #4c4c4c;
+        font-size: 0.95rem;
+    }
+
+    .discuss-nav-item:hover {
+        background-color: #f1f1f1;
+    }
+
+    .discuss-nav-item.active {
+        background-color: #e9ecef;
+        font-weight: 500;
+        border-left: 3px solid #714B67;
+    }
+
+    .message-item {
+        padding: 10px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        gap: 15px;
+    }
+
+    .message-item:hover {
+        background: #f9f9f9;
+
+    }
+
+    .message-actions {
+        opacity: 0;
+        transition: opacity 0.2s;
+        margin-left: auto;
+        display: flex;
+        gap: 10px;
+    }
+
+    .message-item:hover .message-actions {
+        opacity: 1;
+    }
+
+    .action-icon {
+        cursor: pointer;
+        color: #adb5bd;
+    }
+
+    .action-icon:hover {
+        color: #714B67;
+    }
+
+    .action-icon.starred {
+        color: #f59e0b;
+    }
+</style>
+
+<script>
+    let currentView = 'inbox'; // inbox, starred, history
+
+    async function loadChannels() {
+        try {
+            const res = await fetch('/discuss/api/channels');
+            const data = await res.json();
+            const list = document.getElementById('channelsList');
+            list.innerHTML = '';
+            data.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'discuss-nav-item';
+                div.innerHTML = `<span style="color: #714B67; font-weight: bold; margin-right: 8px;">#</span> ${c.name}`;
+                div.onclick = () => { alert('Channel view not fully implemented yet, showing Inbox for demo'); loadMessages('inbox'); };
+                list.appendChild(div);
+            });
+        } catch (e) { console.error(e); }
+    }
+    loadChannels();
+
+    async function loadMessages(view) {
+        currentView = view;
+
+        // Update Title
+        const labels = { 'inbox': '📥 Bandeja de entrada', 'starred': '⭐ Destacado', 'history': '🕒 Historial' };
+        document.getElementById('currentViewTitle').textContent = labels[view];
+
+        // Update Sidebar Active
+        document.querySelectorAll('.discuss-nav-item').forEach(el => el.classList.remove('active'));
+        const navId = 'nav-' + view;
+        const navEl = document.getElementById(navId);
+        if (navEl) navEl.classList.add('active');
+
+        // Fetch
+        const container = document.getElementById('messageContainer');
+        container.innerHTML = '<div style="padding:20px; text-align:center;">Cargando...</div>';
+
+        try {
+            const res = await fetch(`/discuss/api/messages/${view}`);
+            const data = await res.json();
+
+            container.innerHTML = '';
+            if (data.length === 0) {
+                container.innerHTML = `
+                    <div style="display: flex; height: 100%; align-items: center; justify-content: center; flex-direction: column; color: #666;">
+                        <div style="font-size: 4rem; opacity: 0.2; margin-bottom: 20px;">${view === 'starred' ? '⭐' : '📥'}</div>
+                        <h3 style="margin: 0; color: #444;">${view === 'inbox' ? 'Bandeja vacía' : 'Sin mensajes'}</h3>
+                        <p style="color: #888; margin-top: 10px;">¡Estás al día!</p>
+                    </div>`;
+                return;
+            }
+
+            data.forEach(msg => {
+                const item = document.createElement('div');
+                item.className = 'message-item';
+
+                // Avatar
+                const avatar = `<img src="https://ui-avatars.com/api/?name=${msg.author}&background=random" style="width: 36px; height: 36px; border-radius: 50%;">`;
+
+                // Star Class
+                const starClass = msg.is_starred ? 'starred' : '';
+
+                // Actions based on view
+                let actionsHtml = '';
+                if (view === 'inbox') {
+                    actionsHtml += `<span class="action-icon" onclick="markRead(${msg.id})" title="Marcar como leído">✓</span>`;
+                }
+                actionsHtml += `<span class="action-icon ${starClass}" onclick="toggleStar(${msg.id})" title="Destacar">★</span>`;
+
+                item.innerHTML = `
+                    ${avatar}
+                    <div style="flex: 1;">
+                        <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                            <strong style="font-size: 0.95rem; color: #333;">${msg.author}</strong>
+                            <span style="font-size: 0.75rem; color: #888;">${msg.full_date} en <strong>${msg.channel}</strong></span>
+                        </div>
+                        <div style="font-size: 0.9rem; color: #444; margin-top: 4px;">
+                            ${msg.body}
+                        </div>
+                    </div>
+                    <div class="message-actions">
+                        ${actionsHtml}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = 'Error loading messages';
+        }
+    }
+
+    // Initial Load
+    loadMessages('inbox');
+
+    // Actions
+    async function markRead(id) {
+        await fetch(`/discuss/api/message/${id}/mark_read`, { method: 'POST' });
+        loadMessages(currentView); // Refresh
+    }
+
+    async function toggleStar(id) {
+        await fetch(`/discuss/api/message/${id}/star`, { method: 'POST' });
+        loadMessages(currentView); // Refresh
+    }
+
+    async function postMessage(e) {
+        e.preventDefault();
+        const body = document.getElementById('postBody').value;
+        const channelId = document.getElementById('postChannelId').value;
+
+        const fd = new FormData();
+        fd.append('body', body);
+        fd.append('channel_id', channelId);
+
+        await fetch('/discuss/api/message', { method: 'POST', body: fd });
+        document.getElementById('postBody').value = '';
+        loadMessages(currentView);
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="odoo-control-panel" style="margin-bottom: 0;">
+    <div class="odoo-breadcrumb">
+        <a href="/support" style="text-decoration: none; color: inherit;">Soporte</a>
+        <span style="color:#aaa">/</span>
+        <span class="active">Tickets</span>
+    </div>
+
+    <div class="odoo-search-view" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+        <!-- Text Search -->
+        <input type="text" id="searchInput" placeholder="Buscar ticket..."
+            style="border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px; width: 200px;">
+
+        <!-- Date Filters -->
+        <input type="date" id="dateFrom" title="Desde"
+            style="border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+        <input type="date" id="dateTo" title="Hasta" style="border: 1px solid #ddd; padding: 5px; border-radius: 4px;">
+
+        <!-- Status Filter -->
+        <select id="statusFilter" style="border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px;">
+            <option value="all">Estado: Todos</option>
+            <!-- Loaded via JS -->
+        </select>
+
+        <!-- Tech Filter -->
+        <select id="techFilter" style="border: 1px solid #ddd; padding: 5px 10px; border-radius: 4px;">
+            <option value="all">Técnico: Todos</option>
+            <!-- Loaded via JS -->
+        </select>
+
+        <a href="/support/create" class="btn-odoo-primary" style="text-decoration: none;">Crear</a>
+    </div>
+</div>
+
+<div class="odoo-sheet" style="max-width: 100%; margin: 0; padding: 0; box-shadow: none; border: none;">
+    <div class="table-responsive-wrapper">
+        <table class="odoo-list-view" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f1f1f1; text-align: left; font-size: 0.85rem; color: #666; font-weight: 600;">
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Código</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Fecha</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Asunto</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Depto / Tipo</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Usuario</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Prioridad</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Asignado a</th>
+                    <th style="padding: 10px; border-bottom: 2px solid #ddd;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="ticketsTableBody" style="font-size: 0.9rem; color: #333;">
+                <!-- JS Populated -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+    <div
+        style="background:white; padding:10px; max-width:90%; max-height:90%; overflow:auto; border-radius:4px; position:relative;">
+        <span onclick="closeModal()"
+            style="position:absolute; top:5px; right:10px; cursor:pointer; font-weight:bold; font-size:1.5rem;">&times;</span>
+        <img id="modalImage" src="" style="max-width:100%; display:block;">
+    </div>
+</div>
+
+<script>
+    let allStatus = [];
+    let allTechs = [];
+    let currentUserRole = {{ current_user.role }}; // 4=Admin
+
+    async function loadConfig() {
+        const res = await fetch('/api/support/config');
+        const data = await res.json();
+        allStatus = data.status;
+        allTechs = data.technicians;
+
+        // Populate Filters
+        const statusSel = document.getElementById('statusFilter');
+        allStatus.forEach(s => {
+            statusSel.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+        });
+
+        const techSel = document.getElementById('techFilter');
+        techSel.innerHTML += `<option value="unassigned">Sin Asignar</option>`;
+        allTechs.forEach(t => {
+            techSel.innerHTML += `<option value="${t.id}">${t.username}</option>`;
+        });
+    }
+
+    async function loadTickets() {
+        const q = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const tech = document.getElementById('techFilter').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        // Note: Filter logic for dates/techs needs backend support or client-side filtering. 
+        // Providing basics for now.
+        let url = `/api/support/tickets?q=${q}&status=${status}`;
+        if (tech !== 'all') url += `&tech_id=${tech}`;
+
+        const res = await fetch(url);
+        let tickets = await res.json();
+
+        // Client-side date filter (Optimization: move to backend later)
+        if (dateFrom) {
+            tickets = tickets.filter(t => t.created_at.split('T')[0] >= dateFrom);
+        }
+        if (dateTo) {
+            tickets = tickets.filter(t => t.created_at.split('T')[0] <= dateTo);
+        }
+
+        const tbody = document.getElementById('ticketsTableBody');
+        tbody.innerHTML = '';
+
+        tickets.forEach(t => {
+            // Build Status Select (Inline Edit)
+            let statusDisplay = '';
+            let statusColor = '#fff';
+
+            // Find current status color
+            const currS = allStatus.find(s => s.id === t.status_id);
+            if (currS) statusColor = currS.color_hex;
+
+            if (currentUserRole === 4) {
+                // Admin: Editable
+                let options = '';
+                allStatus.forEach(s => {
+                    const sel = (t.status_id === s.id) ? 'selected' : '';
+                    options += `<option value="${s.id}" ${sel}>${s.name}</option>`;
+                });
+                statusDisplay = `
+                    <select onchange="updateTicket(${t.id}, 'status_id', this.value)" 
+                        style="font-size: 0.85rem; padding: 2px 6px; border: 1px solid ${statusColor}; border-radius: 10px; background-color: ${statusColor}20; color: #333; font-weight:600;">
+                        ${options}
+                    </select>`;
+            } else {
+                // User: Read-only badge
+                statusDisplay = `
+                    <span style="font-size: 0.85rem; padding: 2px 8px; border-radius: 10px; background-color: ${statusColor}40; border: 1px solid ${statusColor}; font-weight: 600;">
+                        ${currS ? currS.name : 'Desc'}
+                    </span>`;
+            }
+
+            // Tech Select
+            let techDisplay = t.assigned_to_id ? 'Asignado' : 'Sin Asignar';
+            // Find tech name
+            const techObj = allTechs.find(u => u.id === t.assigned_to_id);
+            const techName = techObj ? techObj.username : '-';
+
+            if (currentUserRole === 4) {
+                let options = '<option value="">Sin Asignar</option>';
+                allTechs.forEach(u => {
+                    const sel = (t.assigned_to_id === u.id) ? 'selected' : '';
+                    options += `<option value="${u.id}" ${sel}>${u.username}</option>`;
+                });
+                techDisplay = `
+                    <select onchange="updateTicket(${t.id}, 'assigned_to_id', this.value)" 
+                        style="font-size: 0.85rem; padding: 2px; border: none; background: transparent;">
+                        ${options}
+                    </select>`;
+            } else {
+                techDisplay = techName;
+            }
+
+            // Description
+            const subject = t.description.split('\n')[0].substring(0, 50);
+
+            const row = `
+            <tr style="border-bottom: 1px solid #eee; background: white;">
+                <td style="padding: 10px; font-weight: 500; color: var(--odoo-primary);">
+                    ${t.code}
+                    ${t.attachment_url ? `<button onclick="viewImage('${t.attachment_url}')" title="Ver Adjunto" style="margin-left:5px; border:none; background:none; cursor:pointer;">📎</button>` : ''}
+                </td>
+                <td style="padding: 10px; color: #666;">${new Date(t.created_at).toLocaleDateString()}</td>
+                <td style="padding: 10px;">${subject}</td>
+                <td style="padding: 10px; font-size: 0.8rem;">
+                    ${t.department ? t.department.name : '-'} <br>
+                    <span style="color:#888;">${t.support_type ? t.support_type.name : '-'}</span>
+                </td>
+                <td style="padding: 10px; color: #666;">${t.created_by_username || 'N/A'}</td>
+                <td style="padding: 10px;">
+                    <span style="font-size: 0.8rem; padding: 2px 6px; background: #eee; border-radius: 10px;">
+                        ${t.priority ? t.priority.name : '-'}
+                    </span>
+                </td>
+                <td style="padding: 10px;">${techDisplay}</td>
+                <td style="padding: 10px;">${statusDisplay}</td>
+            </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    async function updateTicket(id, field, value) {
+        if (!value && field === 'status_id') return;
+
+        // Handle unassign (value "")
+        let val = value === "" ? null : parseInt(value);
+
+        const body = {};
+        body[field] = val;
+
+        try {
+            const res = await fetch(`/api/support/ticket/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) alert('Error actualizando ticket');
+            loadTickets();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function viewImage(url) {
+        document.querySelector('#imageModal img').src = url;
+        document.querySelector('#imageModal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.querySelector('#imageModal').style.display = 'none';
+    }
+
+    // Event Listeners
+    let timeout = null;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => loadTickets(), 300);
+    });
+
+    ['statusFilter', 'techFilter', 'dateFrom', 'dateTo'].forEach(id => {
+        document.getElementById(id).addEventListener('change', loadTickets);
+    });
+
+    // Init
+    loadConfig().then(() => loadTickets());
+</script>
+{% endblock %}

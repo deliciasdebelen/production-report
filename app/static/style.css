@@ -1,0 +1,610 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* --- Modern Palette (HSL) --- */
+    /* Odoo Colors */
+    --odoo-purple: #714B67;
+    --odoo-purple-dark: #5d3d54;
+
+    /* Primary: Deep Indigo/Blue */
+    --primary-h: 220;
+    --primary-s: 70%;
+    --primary-l: 50%;
+    --primary: hsl(var(--primary-h), var(--primary-s), var(--primary-l));
+    --primary-light: hsl(var(--primary-h), var(--primary-s), 95%);
+    --primary-dark: hsl(var(--primary-h), var(--primary-s), 40%);
+
+    /* Secondary: Vibrant Teal */
+    --secondary-h: 170;
+    --secondary-s: 70%;
+    --secondary-l: 45%;
+    --secondary: hsl(var(--secondary-h), var(--secondary-s), var(--secondary-l));
+
+    /* Surface & Backgrounds */
+    --bg-body: #f4f6f9;
+    --surface: #ffffff;
+    --surface-hover: #f8f9fa;
+
+    /* Text */
+    --text-main: #2c3e50;
+    --text-muted: #64748b;
+    --text-light: #94a3b8;
+
+    /* States */
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+
+    /* Borders & Decor */
+    --border: #e2e8f0;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+
+    /* Layout */
+    --header-height: 46px;
+    --sidebar-width: 260px;
+    --transition: all 0.25s ease-in-out;
+
+    /* Odoo Legacy vars (mapped) */
+    --odoo-primary: var(--odoo-purple);
+    --odoo-bg: var(--bg-body);
+    --odoo-border: var(--border);
+    --odoo-text: var(--text-main);
+    --odoo-danger-bg: #ffe4e4;
+    --odoo-link: #017e84;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    line-height: 1.6;
+    font-size: 0.9375rem;
+    /* 15px */
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- Layout --- */
+.layout-wrapper {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - var(--header-height));
+}
+
+.layout {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: var(--sidebar-width);
+    background: #1e293b;
+    color: #e2e8f0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.sidebar.collapsed {
+    width: 0;
+}
+
+.brand-text {
+    transition: opacity 0.2s, transform 0.2s;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.sidebar.collapsed .brand-text {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1.5rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    border-left: 3px solid transparent;
+    height: 48px;
+    overflow: hidden;
+}
+
+.nav-icon {
+    min-width: 24px;
+    text-align: center;
+    margin-right: 12px;
+    font-size: 1.1rem;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.nav-link.active {
+    background: rgba(var(--primary-h), var(--primary-s), 50%, 0.15);
+    color: #60a5fa;
+    border-left-color: #60a5fa;
+}
+
+.nav-section-title {
+    padding: 1.5rem 1.5rem 0.5rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: #475569;
+}
+
+/* Top Bar */
+.top-bar {
+    height: var(--header-height);
+    background: var(--odoo-purple);
+    color: white;
+    display: flex;
+    align-items: center;
+    padding: 0 1rem;
+    z-index: 20;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.odoo-btn-toggle {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    cursor: pointer;
+    font-size: 1.5rem;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s;
+    margin-right: 1rem;
+}
+
+.odoo-btn-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.top-bar-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin-right: auto;
+}
+
+.top-bar-menu {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    background-color: var(--bg-body);
+}
+
+.page-content {
+    padding: 2.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+/* Components */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow);
+    transform: translateY(-2px);
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4 {
+    color: var(--text-main);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+h1 {
+    font-size: 1.875rem;
+}
+
+h3 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+/* Buttons */
+.btn,
+.btn-odoo-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 1rem;
+    background-color: var(--odoo-purple);
+    color: white;
+    border: 1px solid var(--odoo-purple-dark);
+    border-radius: 4px;
+    font-weight: 500;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.btn:hover,
+.btn-odoo-primary:hover {
+    background-color: var(--odoo-purple-dark);
+}
+
+.btn-odoo-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"],
+input[type="password"],
+input[type="date"],
+input[type="email"],
+select,
+textarea,
+.odoo-input {
+    width: 100%;
+    padding: 0.5rem 0.8rem;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    transition: var(--transition);
+}
+
+.odoo-field input,
+.odoo-field select,
+.odoo-field textarea {
+    border: none;
+    border-bottom: 1px solid #ccc;
+    border-radius: 0;
+    padding: 2px 0;
+    background: transparent;
+}
+
+.odoo-field input:focus,
+.odoo-field select:focus,
+.odoo-field textarea:focus {
+    outline: none;
+    border-bottom-color: var(--odoo-purple);
+    box-shadow: none;
+}
+
+/* Control Panel */
+.odoo-control-panel {
+    background: white;
+    border-bottom: 1px solid var(--odoo-border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: -2.5rem -2.5rem 1.5rem -2.5rem;
+}
+
+.odoo-breadcrumb {
+    font-size: 1.1rem;
+    color: #017e84;
+    font-weight: 500;
+}
+
+.odoo-breadcrumb .active {
+    color: #212529;
+    font-weight: 700;
+}
+
+.odoo-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Status Bar */
+.odoo-statusbar {
+    background: white;
+    border: 1px solid var(--odoo-border);
+    padding: 5px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.odoo-statusbar-status {
+    display: flex;
+}
+
+.status-item {
+    padding: 5px 15px;
+    margin-left: -1px;
+    border: 1px solid var(--odoo-border);
+    background: white;
+    color: #666;
+    font-size: 0.85rem;
+    cursor: default;
+}
+
+.status-item.active {
+    background: #f0f0f0;
+    font-weight: 600;
+}
+
+/* Sheet */
+.odoo-sheet {
+    background: white;
+    border: 1px solid var(--odoo-border);
+    padding: 2rem 3rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 1140px;
+    margin: 0 auto;
+}
+
+.odoo-title-area h1 {
+    font-size: 2rem;
+    color: var(--odoo-purple);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Forms */
+.odoo-group {
+    display: flex;
+    gap: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.odoo-col {
+    flex: 1;
+}
+
+.odoo-field {
+    display: flex;
+    margin-bottom: 0.5rem;
+    align-items: baseline;
+}
+
+.odoo-field label {
+    width: 140px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4e4e4e;
+    padding-right: 10px;
+}
+
+/* Tabs */
+.odoo-notebook {
+    margin-top: 2rem;
+}
+
+.odoo-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--odoo-border);
+    margin-bottom: 1rem;
+}
+
+.odoo-tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.odoo-tab.active {
+    color: #212529;
+    border-bottom-color: var(--odoo-purple);
+}
+
+/* Utilities */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+/* Search */
+.odoo-search-view {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Tables */
+.odoo-list-view {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.odoo-list-view th {
+    background: #f1f1f1;
+    text-align: left;
+    font-size: 0.85rem;
+    color: #666;
+    font-weight: 600;
+    padding: 10px;
+    border-bottom: 2px solid #ddd;
+}
+
+.odoo-list-view td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+    .layout-wrapper {
+        flex-direction: column;
+        position: relative;
+    }
+
+    /* Mobile Sidebar */
+    .sidebar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 0;
+        z-index: 100;
+        box-shadow: none;
+    }
+
+    .sidebar.expanded-mobile {
+        width: 260px;
+        box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar-overlay {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 90;
+    }
+
+    .sidebar-overlay.active {
+        display: block;
+    }
+
+    .page-content {
+        padding: 1rem;
+        width: 100%;
+    }
+
+    /* Control Panel Stacking */
+    .odoo-control-panel {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem;
+        margin: -1rem -1rem 1rem -1rem;
+    }
+
+    .odoo-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Search View */
+    .odoo-search-view {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+    }
+
+    .odoo-search-view input,
+    .odoo-search-view select {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Forms */
+    .odoo-sheet {
+        padding: 1rem 1rem !important;
+    }
+
+    .odoo-group {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .odoo-field {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .odoo-field label {
+        width: 100%;
+        margin-bottom: 4px;
+        padding-right: 0;
+    }
+
+    /* Grids */
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    /* Tables */
+    .table-responsive-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .odoo-list-view {
+        min-width: 600px;
+        /* Force scroll */
+    }
+
+    /* Status Bar */
+    .odoo-statusbar {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .odoo-statusbar-status {
+        margin-top: 0.5rem;
+        width: 100%;
+        overflow-x: auto;
+    }
+}

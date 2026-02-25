@@ -1,0 +1,780 @@
+{% extends "layout.html" %}
+{% block title %}Semáforo de Ventas v2{% endblock %}
+
+{% block content %}
+<style>
+    /* ── TOKENS ─────────────────────────────────────────────────────*/
+    :root {
+        --sb-bg: #0f172a;
+        --sb-card: #1e293b;
+        --sb-card2: #1a2540;
+        --sb-line: #253047;
+        --teal: #06b6d4;
+        --blue: #3b82f6;
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #f59e0b;
+        --muted: #64748b;
+        --label: #94a3b8;
+        --text: #e2e8f0;
+        --sidebar-w: 220px;
+    }
+
+    /* Override layout background inside content */
+    .s2-wrap {
+        display: flex;
+        height: calc(100vh - 56px);
+        overflow: hidden;
+        background: var(--sb-bg);
+    }
+
+    /* ── SIDEBAR FILTROS ─────────────────────────────────────────────*/
+    .s2-sidebar {
+        width: var(--sidebar-w);
+        min-width: var(--sidebar-w);
+        background: #111827;
+        border-right: 1px solid var(--sb-line);
+        overflow-y: auto;
+        padding: 14px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .s2-brand {
+        background: linear-gradient(135deg, #0f2044 0%, #0d3068 100%);
+        border-radius: 10px;
+        padding: 12px 8px;
+        text-align: center;
+        border: 1px solid #253047;
+    }
+
+    .s2-brand .bn {
+        font-size: .95rem;
+        font-weight: 800;
+        color: var(--teal);
+        letter-spacing: .04em;
+    }
+
+    .s2-brand .bsb {
+        font-size: .6rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .1em;
+    }
+
+    .fg {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .fl {
+        font-size: .65rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+    }
+
+    .fi {
+        background: var(--sb-card2);
+        border: 1px solid var(--sb-line);
+        color: var(--text);
+        border-radius: 7px;
+        padding: 7px 9px;
+        font-size: .8rem;
+        width: 100%;
+        outline: none;
+        transition: border-color .2s;
+        font-family: inherit;
+    }
+
+    .fi:focus {
+        border-color: var(--teal);
+    }
+
+    .fi option {
+        background: #1c2333;
+    }
+
+    .dr {
+        display: flex;
+        gap: 3px;
+    }
+
+    .dr .fi {
+        font-size: .71rem;
+        padding: 6px 5px;
+    }
+
+    /* Tipo Venta buttons */
+    .tvb {
+        display: flex;
+        gap: 3px;
+    }
+
+    .tvb-btn {
+        flex: 1;
+        padding: 7px 3px;
+        border-radius: 6px;
+        border: 1px solid var(--sb-line);
+        background: var(--sb-card2);
+        color: var(--muted);
+        font-size: .69rem;
+        font-weight: 700;
+        cursor: pointer;
+        text-align: center;
+        transition: all .2s;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+        font-family: inherit;
+    }
+
+    .tvb-btn.act {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: #000;
+    }
+
+    .tvb-btn:hover:not(.act) {
+        border-color: var(--teal);
+        color: var(--teal);
+    }
+
+    .meta-w {
+        position: relative;
+    }
+
+    .meta-w .cur {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: .78rem;
+    }
+
+    .meta-w .fi {
+        padding-left: 20px;
+    }
+
+    .s2-div {
+        border: none;
+        border-top: 1px solid var(--sb-line);
+        margin: 2px 0;
+    }
+
+    .apply-btn {
+        background: linear-gradient(135deg, var(--teal), #2563eb);
+        color: #000;
+        font-weight: 800;
+        border: none;
+        border-radius: 8px;
+        padding: 10px;
+        width: 100%;
+        cursor: pointer;
+        font-size: .82rem;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        transition: opacity .2s;
+        font-family: inherit;
+    }
+
+    .apply-btn:hover {
+        opacity: .85;
+    }
+
+    .apply-btn:active {
+        opacity: .7;
+    }
+
+    .s2-upd {
+        font-size: .62rem;
+        color: var(--muted);
+        text-align: center;
+        margin-top: auto;
+        padding-top: 8px;
+    }
+
+    /* ── MAIN ────────────────────────────────────────────────────────*/
+    .s2-main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 14px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        color: var(--text);
+    }
+
+    /* Título + tabs */
+    .s2-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .s2-title {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--text);
+    }
+
+    .s2-sub {
+        font-size: .72rem;
+        color: var(--muted);
+        margin-top: 1px;
+    }
+
+    .tipo-tabs {
+        display: flex;
+        gap: 2px;
+        background: #1a2540;
+        border-radius: 8px;
+        padding: 3px;
+        width: fit-content;
+    }
+
+    .tt {
+        padding: 5px 16px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        transition: all .2s;
+        border: 1px solid transparent;
+    }
+
+    .tt.act {
+        background: var(--teal);
+        color: #000;
+    }
+
+    .tt:hover:not(.act) {
+        color: var(--teal);
+    }
+
+    /* KPI row */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+    }
+
+    .kpi {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-line);
+        border-radius: 10px;
+        padding: 11px 13px;
+    }
+
+    .kpi .kl {
+        font-size: .62rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-bottom: 3px;
+    }
+
+    .kpi .kv {
+        font-size: 1.35rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .kpi.k-meta .kv {
+        color: var(--text);
+    }
+
+    .kpi.k-cump .kv {
+        color: var(--yellow);
+    }
+
+    .kpi.k-proy .kv {
+        color: var(--blue);
+    }
+
+    .kpi.k-fact .kv {
+        color: var(--teal);
+    }
+
+    .kpi.k-pend .kv {
+        color: var(--yellow);
+    }
+
+    .kpi.k-total .kv {
+        color: var(--green);
+    }
+
+    /* Summary */
+    .sum-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+
+    .sum {
+        background: var(--sb-card2);
+        border: 1px solid var(--sb-line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        text-align: center;
+    }
+
+    .sum .sl {
+        font-size: .62rem;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: var(--muted);
+    }
+
+    .sum .sv {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--teal);
+        margin-top: 2px;
+    }
+
+    /* Charts */
+    .ch-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .ch {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-line);
+        border-radius: 10px;
+        padding: 13px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 210px;
+    }
+
+    .ch.full {
+        grid-column: 1/-1;
+    }
+
+    .ch-title {
+        font-size: .67rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--label);
+    }
+
+    .ch-inner {
+        flex: 1;
+        position: relative;
+    }
+
+    /* Bottom stats */
+    .bs-row {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+    }
+
+    .bs {
+        background: var(--sb-card);
+        border: 1px solid var(--sb-line);
+        border-radius: 8px;
+        padding: 10px 10px;
+        text-align: center;
+    }
+
+    .bs .bv {
+        font-size: 1.28rem;
+        font-weight: 800;
+        color: var(--text);
+    }
+
+    .bs .bl {
+        font-size: .6rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    /* Loader */
+    .s2-loader {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 15, 25, .88);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+        flex-direction: column;
+        gap: 12px;
+        backdrop-filter: blur(4px);
+    }
+
+    .s2-spin {
+        width: 38px;
+        height: 38px;
+        border: 3px solid var(--sb-line);
+        border-top-color: var(--teal);
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .s2-loader .lm {
+        color: var(--label);
+        font-size: .88rem;
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    @media(max-width:900px) {
+
+        .kpi-row,
+        .bs-row {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .sum-row {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .ch-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .s2-sidebar {
+            display: none;
+        }
+    }
+</style>
+
+<div class="s2-wrap">
+
+    <!-- SIDEBAR -->
+    <aside class="s2-sidebar">
+        <div class="s2-brand">
+            <div class="bn">🏭 LAS DELICIAS</div>
+            <div class="bsb">de Belén</div>
+        </div>
+
+        <div class="fg">
+            <div class="fl">Empresa</div>
+            <select class="fi" id="f-empresa">
+                <option value="">Todas</option>
+                <option value="LDB">Las Delicias de Belén</option>
+            </select>
+        </div>
+
+        <div class="fg">
+            <div class="fl">Fecha</div>
+            <div class="dr">
+                <input type="date" class="fi" id="f-fi">
+                <input type="date" class="fi" id="f-ff">
+            </div>
+        </div>
+
+        <div class="fg">
+            <div class="fl">Vendedor</div>
+            <select class="fi" id="f-ven">
+                <option value="">Todos</option>
+            </select>
+        </div>
+
+        <div class="fg">
+            <div class="fl">Tipo de Venta</div>
+            <div class="tvb">
+                <button class="tvb-btn act" data-t="" onclick="setTV(this)">Todos</button>
+                <button class="tvb-btn" data-t="consignacion" onclick="setTV(this)">Cons.</button>
+                <button class="tvb-btn" data-t="venta_firme" onclick="setTV(this)">Firme</button>
+            </div>
+        </div>
+
+        <hr class="s2-div">
+
+        <div class="fg">
+            <div class="fl">Meta del Período</div>
+            <div class="meta-w">
+                <span class="cur">$</span>
+                <input type="number" class="fi" id="f-meta" placeholder="0" step="1000" min="0">
+            </div>
+        </div>
+
+        <button class="apply-btn" onclick="load()">⚡ Actualizar</button>
+        <hr class="s2-div">
+        <div class="s2-upd" id="s2-upd">—</div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="s2-main">
+
+        <!-- Header -->
+        <div class="s2-header">
+            <div>
+                <div class="s2-title">Semáforo <span id="s2-periodo">—</span></div>
+                <div class="s2-sub">Tipo de Valor ↓</div>
+            </div>
+            <div class="tipo-tabs">
+                <div class="tt act" data-v="cajas" onclick="setTV2(this)">CAJAS</div>
+                <div class="tt" data-v="kilos" onclick="setTV2(this)">KILOS</div>
+                <div class="tt" data-v="toneladas" onclick="setTV2(this)">TONELADAS</div>
+                <div class="tt" data-v="unidades" onclick="setTV2(this)">UNIDADES</div>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-row">
+            <div class="kpi k-meta">
+                <div class="kl">Meta</div>
+                <div class="kv" id="k-meta">—</div>
+            </div>
+            <div class="kpi k-cump">
+                <div class="kl">Cumplimiento %</div>
+                <div class="kv" id="k-cump">—</div>
+            </div>
+            <div class="kpi k-proy">
+                <div class="kl">Proy. Cumpl. %</div>
+                <div class="kv" id="k-proy">—</div>
+            </div>
+            <div class="kpi k-fact">
+                <div class="kl">Fact. Neto USD</div>
+                <div class="kv" id="k-fact">—</div>
+            </div>
+            <div class="kpi k-pend">
+                <div class="kl">Pedidos Pend. USD</div>
+                <div class="kv" id="k-pend">—</div>
+            </div>
+            <div class="kpi k-total">
+                <div class="kl">Fact + Pedidos</div>
+                <div class="kv" id="k-total">—</div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="sum-row">
+            <div class="sum">
+                <div class="sl">Facturado</div>
+                <div class="sv" id="s-fact">—</div>
+            </div>
+            <div class="sum">
+                <div class="sl">Total Devolución</div>
+                <div class="sv" id="s-dev" style="color:var(--red)">—</div>
+            </div>
+            <div class="sum">
+                <div class="sl">Pedidos Pendientes</div>
+                <div class="sv" id="s-pend" style="color:var(--yellow)">—</div>
+            </div>
+            <div class="sum">
+                <div class="sl">Fact. Neto + Pedidos</div>
+                <div class="sv" id="s-tot" style="color:var(--green)">—</div>
+            </div>
+        </div>
+
+        <!-- Charts 3col -->
+        <div class="ch-grid">
+            <div class="ch">
+                <div class="ch-title">Resumen por Marca</div>
+                <div class="ch-inner"><canvas id="c-marca"></canvas></div>
+            </div>
+            <div class="ch">
+                <div class="ch-title">Corporativo vs Fuerza de Ventas</div>
+                <div class="ch-inner"><canvas id="c-canal"></canvas></div>
+            </div>
+            <div class="ch">
+                <div class="ch-title">Pedidos Pendientes por Tipo</div>
+                <div class="ch-inner"><canvas id="c-tipo"></canvas></div>
+            </div>
+            <div class="ch full">
+                <div class="ch-title">Resumen Diario de Facturación y Pedidos</div>
+                <div class="ch-inner"><canvas id="c-diario" height="60"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Bottom stats -->
+        <div class="bs-row">
+            <div class="bs">
+                <div class="bv" id="bs1">—</div>
+                <div class="bl">Días en Período</div>
+            </div>
+            <div class="bs">
+                <div class="bv" id="bs2">—</div>
+                <div class="bl">Días con Facturación</div>
+            </div>
+            <div class="bs">
+                <div class="bv" id="bs3">—</div>
+                <div class="bl">Prom. Día (Calendario)</div>
+            </div>
+            <div class="bs">
+                <div class="bv" id="bs4">—</div>
+                <div class="bl">Prom. Día (Activos)</div>
+            </div>
+            <div class="bs">
+                <div class="bv" id="bs5">—</div>
+                <div class="bl">Nº Facturas Únicas</div>
+            </div>
+            <div class="bs">
+                <div class="bv" id="bs6">—</div>
+                <div class="bl">Prom. Fact. Diaria</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Loader -->
+<div class="s2-loader" id="s2-loader">
+    <div class="s2-spin"></div>
+    <div class="lm" id="s2-lm">Consultando Carmal…</div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const $ = id => document.getElementById(id);
+    const fmt = (n, d = 2) => new Intl.NumberFormat('es-VE', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n || 0);
+    const fU = n => '$' + fmt(n);
+    const fPct = n => fmt(n, 2) + ' %';
+
+    let tipoVal = 'cajas', tipoVta = '', charts = {};
+
+    // Init
+    document.addEventListener('DOMContentLoaded', () => {
+        const hoy = new Date();
+        const ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const f = d => d.toISOString().slice(0, 10);
+        $('f-fi').value = f(ini);
+        $('f-ff').value = f(hoy);
+        cargarVendedores().then(() => load());
+    });
+
+    async function cargarVendedores() {
+        try {
+            const r = await fetch('/semaforo2/api/vendedores');
+            if (!r.ok) return;
+            const d = await r.json();
+            const s = $('f-ven');
+            d.forEach(v => { const o = document.createElement('option'); o.value = v.co_ven; o.textContent = v.ven_des; s.appendChild(o); });
+        } catch { }
+    }
+
+    function setTV(btn) { document.querySelectorAll('.tvb-btn').forEach(b => b.classList.remove('act')); btn.classList.add('act'); tipoVta = btn.dataset.t; }
+    function setTV2(tab) { document.querySelectorAll('.tt').forEach(t => t.classList.remove('act')); tab.classList.add('act'); tipoVal = tab.dataset.v; load(); }
+
+    async function load() {
+        $('s2-loader').style.display = 'flex'; $('s2-lm').textContent = 'Consultando Carmal…';
+        const p = new URLSearchParams({
+            fecha_ini: $('f-fi').value, fecha_fin: $('f-ff').value,
+            vendedor: $('f-ven').value, tipo_venta: tipoVta,
+            tipo_valor: tipoVal, meta: parseFloat($('f-meta').value) || 0
+        });
+        try {
+            const r = await fetch('/semaforo2/api/dashboard?' + p);
+            const d = await r.json();
+            render(d);
+            const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const dt = new Date($('f-fi').value + 'T00:00:00');
+            $('s2-periodo').textContent = meses[dt.getMonth()] + ' ' + dt.getFullYear();
+            $('s2-upd').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-VE');
+        } catch (e) { $('s2-lm').textContent = 'Error: ' + e.message; setTimeout(() => $('s2-loader').style.display = 'none', 3000); return; }
+        $('s2-loader').style.display = 'none';
+    }
+
+    function render(d) {
+        const k = d.kpis, st = d.stats;
+        $('k-meta').textContent = k.meta > 0 ? fmt(k.meta, 0) : 'Sin Meta';
+        $('k-cump').textContent = fPct(k.cumplimiento_pct);
+        $('k-proy').textContent = fPct(k.cumplimiento_proyectado_pct);
+        $('k-fact').textContent = fU(k.facturado_neto);
+        $('k-pend').textContent = fU(k.pedidos_usd);
+        $('k-total').textContent = fU(k.facturado_mas_pedidos);
+        $('s-fact').textContent = fmt(k.facturado_usd, 0);
+        $('s-dev').textContent = fmt(k.devolucion_usd, 0);
+        $('s-pend').textContent = fmt(k.pedidos_usd, 0);
+        $('s-tot').textContent = fmt(k.facturado_mas_pedidos, 0);
+        $('bs1').textContent = st.dias_periodo;
+        $('bs2').textContent = st.dias_con_facturacion;
+        $('bs3').textContent = fmt(st.promedio_dia_calendario, 0);
+        $('bs4').textContent = fmt(st.promedio_dia_activos, 0);
+        $('bs5').textContent = st.num_facturas;
+        $('bs6').textContent = fmt(st.promedio_fact_diaria, 2);
+        renderMarca(d.por_marca || []);
+        renderCanal(d.por_canal || []);
+        renderTipo(d.por_tipo_pedido || []);
+        renderDiario(d.diario || []);
+    }
+
+    const PAL = ['#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#0ea5e9', '#22d3ee', '#818cf8'];
+    const AX = () => ({ grid: { color: 'rgba(37,48,71,.5)' }, ticks: { color: '#64748b', font: { size: 10 } }, border: { color: '#253047' } });
+    const OPT = (lgd = true, idx = 'x') => ({
+        responsive: true, maintainAspectRatio: false, indexAxis: idx,
+        plugins: {
+            legend: { display: lgd, labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12 } },
+            tooltip: {
+                backgroundColor: '#1c2333', titleColor: '#e2e8f0', bodyColor: '#94a3b8', borderColor: '#253047', borderWidth: 1,
+                callbacks: { label: c => ` ${fmt(c.raw)}` }
+            }
+        }, scales: { x: AX(), y: AX() }
+    });
+
+    function mk(id, cfg) { if (charts[id]) charts[id].destroy(); const c = document.getElementById(id); if (c) charts[id] = new Chart(c, cfg); }
+
+    function renderMarca(d) {
+        if (!d.length) return; mk('c-marca', {
+            type: 'bar', data: {
+                labels: d.map(x => x.marca), datasets: [{ data: d.map(x => x.valor), backgroundColor: d.map((_, i) => PAL[i % PAL.length]), borderRadius: 4, borderSkipped: false }]
+            },
+            options: OPT(false, 'y')
+        });
+    }
+
+    function renderCanal(d) {
+        if (!d.length) return; mk('c-canal', {
+            type: 'bar', data: {
+                labels: d.map(x => x.canal), datasets: [
+                    { label: 'Monto', data: d.map(x => x.valor), backgroundColor: ['#3b82f6', '#06b6d4'], borderRadius: 4, yAxisID: 'y', order: 2 },
+                    { label: '%', data: d.map(x => x.pct), type: 'line', borderColor: '#f472b6', pointBackgroundColor: '#f472b6', borderWidth: 2, pointRadius: 5, yAxisID: 'y2', order: 1, fill: false }
+                ]
+            }, options: { ...OPT(true), scales: { x: AX(), y: AX(), y2: { ...AX(), position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%', color: '#64748b' } } } }
+        });
+    }
+
+    function renderTipo(d) {
+        if (!d.length) return; mk('c-tipo', {
+            type: 'bar', data: {
+                labels: d.map(x => x.tipo), datasets: [
+                    { label: 'Pedidos', data: d.map(x => x.pedidos), backgroundColor: ['#06b6d4', '#ef4444'], borderRadius: 4, yAxisID: 'y', order: 2 },
+                    { label: '%', data: d.map(x => x.pct), type: 'line', borderColor: '#f59e0b', pointBackgroundColor: '#f59e0b', borderWidth: 2, pointRadius: 5, yAxisID: 'y2', order: 1, fill: false }
+                ]
+            }, options: { ...OPT(true), scales: { x: AX(), y: AX(), y2: { ...AX(), position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%', color: '#64748b' } } } }
+        });
+    }
+
+    function renderDiario(d) {
+        if (!d.length) return; mk('c-diario', {
+            type: 'bar', data: {
+                labels: d.map(x => { const dt = new Date(x.dia + 'T00:00:00'); return dt.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' }); }),
+                datasets: [
+                    { label: 'Facturado', data: d.map(x => x.facturado), backgroundColor: 'rgba(6,182,212,.75)', borderRadius: 3, order: 2 },
+                    { label: 'Pedidos Pend.', data: d.map(x => x.pedidos_pendientes), type: 'line', borderColor: '#f59e0b', pointBackgroundColor: '#f59e0b', borderWidth: 2, pointRadius: 4, fill: false, order: 1 }
+                ]
+            }, options: { ...OPT(true), scales: { x: { ...AX(), ticks: { maxRotation: 45, font: { size: 10 }, color: '#64748b' } }, y: AX() } }
+        });
+    }
+
+    setInterval(load, 10 * 60 * 1000);
+</script>
+{% endblock %}

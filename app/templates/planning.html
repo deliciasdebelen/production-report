@@ -1,0 +1,665 @@
+{% extends "layout.html" %}
+
+{% block content %}
+
+
+<!-- Control Panel -->
+<div class="odoo-control-panel">
+    <div class="odoo-breadcrumb">
+        Órdenes de fabricación <span style="color:#aaa">/</span> <span class="active">Nuevo</span>
+    </div>
+    <div class="odoo-actions">
+        <!-- Not functional links, just for layout match -->
+    </div>
+</div>
+
+<form id="planningForm">
+    <!-- Status Bar -->
+    <div class="odoo-statusbar">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            {% if user.role == 3 or user.role == 4 %}
+            <button type="submit" id="btnConfirm" class="btn-odoo-primary">Confirmar</button>
+            <button type="button" id="btnEdit" class="btn-odoo-secondary" style="display: none;"
+                onclick="enableEdit()">Editar</button>
+            {% endif %}
+            <button type="button" class="btn-odoo-secondary" onclick="window.location.reload()">Descartar</button>
+            <!-- Navigation Moved Here -->
+            <!-- Premium Navigation -->
+            <div
+                style="margin-left: 20px; display: flex; border: 1px solid var(--odoo-border); border-radius: 4px; overflow: hidden;">
+                <button type="button" onclick="navigateRecord('prev')" class="btn-odoo-secondary"
+                    title="Registro Anterior"
+                    style="border: none; border-right: 1px solid var(--odoo-border); border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button type="button" onclick="navigateRecord('next')" class="btn-odoo-secondary"
+                    title="Siguiente Registro"
+                    style="border: none; border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="odoo-statusbar-status">
+            <!-- Borrador: Click to Edit. Red = New, Yellow = Edit -->
+            <div id="statusDraft" class="status-item active status-red" onclick="enableEdit()" style="cursor: pointer;">
+                Borrador</div>
+            <div id="statusConfirmed" class="status-item">Confirmado</div>
+        </div>
+    </div>
+
+    <!-- Sheet -->
+    <div class="odoo-sheet">
+        <!-- Title / Header -->
+        <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-bottom: 1.5rem;">
+            <!-- Left: Title -->
+            <h1 class="odoo-title" style="margin: 0;">Orden de Planificación</h1>
+
+            <!-- Center: Correlative ID -->
+            <div class="odoo-field" style="width: auto; display: flex; flex-direction: column; align-items: center;">
+                <label
+                    style="font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Documento
+                    #</label>
+                <input type="text" id="documentNumber" readonly
+                    style="font-weight: bold; font-size: 1.8rem; border: none; text-align: center; background: transparent; color: var(--odoo-primary); width: 220px;">
+            </div>
+
+            <!-- Right: Search Bar -->
+            <div style="justify-self: end; position: relative;">
+                <input type="text" id="searchCorrelative" placeholder="Buscar correlativo..."
+                    style="padding: 0.5rem 2rem 0.5rem 0.8rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 180px;"
+                    autocomplete="off">
+                <button type="button" onclick="searchPlan()"
+                    style="position: absolute; right: 5px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: #666;">
+                    🔍
+                </button>
+                <div id="searchSuggestions" class="results-dropdown"
+                    style="display:none; top: 100%; left: 0; width: 100%;"></div>
+            </div>
+        </div>
+
+        <div class="odoo-group">
+            <!-- Left Column -->
+            <div class="odoo-col">
+                <input type="hidden" name="plan_id" id="planId">
+                <div class="odoo-field">
+                    <label>Producto</label>
+                    <div class="search-container">
+                        <input type="text" id="articleSearch" placeholder="Producto a construir..."
+                            class="required-field" autocomplete="off">
+                        <input type="hidden" name="article" id="articleHidden" required>
+                        <div id="articleResults" class="results-dropdown"></div>
+                    </div>
+                </div>
+                <div class="odoo-field">
+                    <label>Cantidad</label>
+                    <div style="display:flex; gap: 5px; flex: 1;">
+                        <input type="number" name="batches" required placeholder="0.00" class="required-field"
+                            style="width: 80px; flex:none;">
+                        <span style="align-self: flex-end; color: #666; font-size: 0.9rem;">Batches (Por
+                            producir)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="odoo-col">
+                <div class="odoo-field">
+                    <label>Fecha programada</label>
+                    <input type="date" name="date" required style="font-weight: 600; color: var(--odoo-primary);">
+                </div>
+                <div class="odoo-field">
+                    <label>Responsable</label>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <img src="https://ui-avatars.com/api/?name=Admin&background=random"
+                            style="width: 24px; height: 24px; border-radius: 50%;">
+                        <span>Admin System</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notebook -->
+        <div class="odoo-notebook">
+            <div class="odoo-tabs">
+                <div class="odoo-tab active">Detalles de Producción</div>
+            </div>
+
+            <!-- Tab Content -->
+            <div style="padding: 1rem 0;">
+                <div class="table-responsive">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid #eee; text-align: left;">
+                                <th style="padding: 10px; font-weight: 600; color: #666;">Parámetro</th>
+                                <th style="padding: 10px; font-weight: 600; color: #666; text-align: left;">Valor</th>
+                                <th style="padding: 10px; font-weight: 600; color: #666;">Unidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Presentación</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" name="presentation" id="presentationInput" placeholder="Ej: 600G"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Texto</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Merma Estimada (%)</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="waste_percentage"
+                                        id="wastePercentageInput" placeholder="0.00"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Kg por Batch</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" id="kgPerBatch" placeholder="0.00"
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
+                            </tr>
+                            <tr style="background: #fcfcfc;">
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; font-weight: 600;">Total
+                                    Kilogramos
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="kg" id="totalKgInput" required readonly
+                                        style="border:none; width: 150px; background: transparent; font-weight: 700; color: var(--odoo-primary); text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Kg</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Unidades Esperadas</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="number" name="units" id="unitsInput" required
+                                        style="border:none; width: 150px; text-align: left;">
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Ud</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">Numero de Cajas</td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee;">
+                                    <input type="text" inputmode="decimal" name="boxes" id="boxesInput" required
+                                        style="border:none; width: 80px; text-align: left;">
+                                    <span id="boxesHelper" style="font-size: 0.75rem; color: #999;"></span>
+                                </td>
+                                <td style="padding: 10px; border-bottom: 1px solid #eee; color: #888;">Cajas</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="margin-top: 2rem;">
+                    <label
+                        style="font-weight: 600; color: #666; display: block; margin-bottom: 0.5rem;">Observaciones</label>
+                    <textarea name="notes" placeholder="Notas internas..."
+                        style="width: 100%; border: 1px solid #ddd; padding: 0.5rem; min-height: 80px; font-family: inherit; font-size: 0.95rem;"></textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 2rem; margin-bottom: 2rem;">
+        <button type="button" onclick="window.open('/maintenance/report/print?type=planning', '_blank')" class="btn"
+            style="color: var(--odoo-link); background: none; border: none; text-decoration: underline; cursor: pointer;">
+            🖨 Versión Imprimible PDF
+        </button>
+    </div>
+</form>
+
+<script>
+    // --- Global UI References (Declared at top to avoid TDZ) ---
+    const searchInput = document.getElementById('articleSearch');
+    const resultsDiv = document.getElementById('articleResults');
+    const hiddenInput = document.getElementById('articleHidden');
+
+    // Form Inputs
+    const documentNumberInput = document.getElementById('documentNumber');
+    const batchInput = document.querySelector('input[name="batches"]');
+    const kgPerBatchInput = document.getElementById('kgPerBatch');
+    const totalKgInput = document.getElementById('totalKgInput');
+    const wastePercentageInput = document.getElementById('wastePercentageInput');
+
+    const presentationInput = document.getElementById('presentationInput');
+    const unitsInput = document.getElementById('unitsInput');
+    const boxesInput = document.getElementById('boxesInput');
+
+    // Search Correlative
+    const searchInputCorr = document.getElementById('searchCorrelative');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+
+    // State
+    let articlesData = [];
+    let currentBoxEquiv = 0;
+
+    // --- Search & Edit Logic ---
+    async function searchPlan() {
+        const query = searchInputCorr.value;
+        if (!query) return;
+
+        try {
+            const res = await fetch(`/api/planning/search?query=${query}`);
+            if (!res.ok) throw new Error("No encontrado");
+            const plan = await res.json();
+            loadPlanIntoForm(plan);
+        } catch (e) {
+            alert("Documento no encontrado");
+        }
+    }
+
+    function loadPlanIntoForm(plan) {
+        // Set ID
+        document.getElementById('planId').value = plan.id;
+        documentNumberInput.value = plan.order_number.toString().padStart(8, '0');
+
+        // Populate Fields
+        searchInput.value = plan.article;
+        hiddenInput.value = plan.article;
+        batchInput.value = plan.batches;
+        document.querySelector('input[name="date"]').value = plan.date;
+        presentationInput.value = plan.presentation;
+        wastePercentageInput.value = plan.waste_percentage;
+        kgPerBatchInput.value = (plan.kg / plan.batches).toFixed(2);
+        totalKgInput.value = plan.kg;
+        unitsInput.value = plan.units;
+        boxesInput.value = plan.boxes;
+        document.querySelector('textarea[name="notes"]').value = plan.notes || "";
+
+        // UI State
+        setReadOnly(true);
+        document.getElementById('btnConfirm').style.display = 'none';
+
+        // Status Logic: Loaded = Green (Confirmed)
+        updateStatusUI('confirmed');
+    }
+
+    function updateStatusUI(state) {
+        const draft = document.getElementById('statusDraft');
+        const confirmed = document.getElementById('statusConfirmed');
+
+        // Reset classes
+        draft.classList.remove('active', 'status-red', 'status-yellow');
+        confirmed.classList.remove('active', 'status-green');
+
+        if (state === 'new') {
+            draft.classList.add('active', 'status-red');
+            document.getElementById('btnConfirm').style.display = 'inline-block';
+            document.getElementById('btnConfirm').textContent = "Confirmar";
+        } else if (state === 'edit') {
+            draft.classList.add('active', 'status-yellow');
+            document.getElementById('btnConfirm').style.display = 'inline-block';
+            document.getElementById('btnConfirm').textContent = "Guardar Cambios";
+        } else if (state === 'confirmed') {
+            confirmed.classList.add('active', 'status-green');
+        }
+    }
+
+    function setReadOnly(state) {
+        const inputs = document.querySelectorAll('#planningForm input:not(#searchCorrelative), #planningForm textarea');
+        inputs.forEach(input => {
+            if (input.id !== 'documentNumber') {
+                input.disabled = state;
+            }
+        });
+    }
+
+    function enableEdit() {
+        const planId = document.getElementById('planId').value;
+        setReadOnly(false);
+        updateStatusUI(planId ? 'edit' : 'new');
+    }
+
+    // Navigation
+    async function navigateRecord(direction) {
+        const planId = document.getElementById('planId').value;
+        let url;
+
+        if (!planId) {
+            if (direction === 'prev') {
+                url = '/api/planning/latest';
+            } else {
+                return;
+            }
+        } else {
+            url = `/api/planning/${planId}/navigate?direction=${direction}`;
+        }
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error("No hay más registros");
+            const plan = await res.json();
+            loadPlanIntoForm(plan);
+        } catch (e) {
+            console.log("Navigation limit reached");
+        }
+    }
+
+    // Autocomplete Logic
+    searchInputCorr.addEventListener('input', async (e) => {
+        const val = e.target.value;
+        if (val.length < 1) {
+            searchSuggestions.style.display = 'none';
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/planning/autosuggest?query=${val}`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.length > 0) {
+                    searchSuggestions.innerHTML = '';
+                    data.forEach(item => {
+                        const div = document.createElement('div');
+                        div.style.padding = '8px';
+                        div.style.cursor = 'pointer';
+                        div.style.borderBottom = '1px solid #eee';
+                        div.textContent = `Documento #${item.order_number}`;
+                        div.onmouseover = () => div.style.background = '#f9f9f9';
+                        div.onmouseout = () => div.style.background = 'white';
+                        div.onclick = () => {
+                            searchInputCorr.value = item.order_number;
+                            searchSuggestions.style.display = 'none';
+                            searchPlan();
+                        };
+                        searchSuggestions.appendChild(div);
+                    });
+                    searchSuggestions.style.display = 'block';
+                } else {
+                    searchSuggestions.style.display = 'none';
+                }
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchInputCorr.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+
+    searchInputCorr.addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') searchPlan();
+    });
+
+    // Fetch Next Correlative ID
+    async function loadNextId() {
+        try {
+            const res = await fetch('/api/next-id/planning');
+            const data = await res.json();
+            const nextId = data.next_id || 1;
+            documentNumberInput.value = nextId.toString().padStart(8, '0');
+        } catch (e) {
+            console.error("Failed to load next ID", e);
+            documentNumberInput.value = "00000000";
+        }
+    }
+
+    // Load Articles
+    async function loadArticles() {
+        try {
+            searchInput.placeholder = "Cargando artículos...";
+            const res = await fetch('/api/external/articles');
+            if (!res.ok) throw new Error('Error fetching articles');
+            articlesData = await res.json();
+            searchInput.placeholder = "Producto a construir...";
+        } catch (e) {
+            console.error(e);
+            searchInput.placeholder = "Error conexión";
+        }
+    }
+
+    // Progressive Search Logic
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        if (term.length < 1) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+
+        const filtered = articlesData.filter(a =>
+            a.description.toLowerCase().includes(term) || a.code.toLowerCase().includes(term)
+        );
+
+        if (filtered.length > 0) {
+            resultsDiv.innerHTML = '';
+            resultsDiv.style.display = 'block';
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.style.padding = '0.5rem';
+                div.style.cursor = 'pointer';
+                div.style.borderBottom = '1px solid #eee';
+                div.textContent = `${item.code} - ${item.description}`;
+                div.onmouseover = () => div.style.background = '#f1f1f1';
+                div.onmouseout = () => div.style.background = 'white';
+
+                div.onclick = () => {
+                    selectArticle(item);
+                };
+                resultsDiv.appendChild(div);
+            });
+        } else {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    function selectArticle(item) {
+        searchInput.value = item.description;
+        hiddenInput.value = item.description;
+        resultsDiv.style.display = 'none';
+
+        // Store equivalence
+        currentBoxEquiv = item.box_equiv || 0;
+
+        // Smart Extraction
+        const regex = /(\d+(?:\.|,)?\d*\s*(?:g|kg|ml|l|cc|gr|lb|oz|ton)\b)/i;
+        const match = item.description.match(regex);
+
+        if (match) {
+            presentationInput.value = match[1].replace(/\s+/g, '').toUpperCase();
+        } else {
+            presentationInput.value = "";
+        }
+
+        // Equivalence Feedback
+        const boxesHelper = document.getElementById('boxesHelper');
+        if (currentBoxEquiv > 0) {
+            boxesHelper.textContent = `(Factor: ${currentBoxEquiv} Und/Caja)`;
+            boxesHelper.style.color = '#16a34a'; // Green
+        } else {
+            boxesHelper.textContent = `(Factor: No definido)`;
+            boxesHelper.style.color = '#dc2626'; // Red
+        }
+
+        // Recalculate
+        calculateTotalKg();
+    }
+
+    // Calculators
+    function parseLocaleFloat(val) {
+        if (!val) return 0;
+        return parseFloat(val.toString().replace(',', '.')) || 0;
+    }
+
+    function calculateTotalKg() {
+        const batches = parseFloat(batchInput.value) || 0;
+        const kgBatch = parseLocaleFloat(kgPerBatchInput.value);
+        const wastePct = parseLocaleFloat(wastePercentageInput.value) || 0;
+
+        if (batches > 0 && kgBatch > 0) {
+            let grossTotal = batches * kgBatch;
+            let netTotal = grossTotal * (1 - (wastePct / 100));
+
+            totalKgInput.value = netTotal.toFixed(2).replace('.', ',');
+        }
+        calculateUnitsFromTotalKg();
+    }
+
+    batchInput.addEventListener('input', calculateTotalKg);
+    kgPerBatchInput.addEventListener('input', calculateTotalKg);
+    wastePercentageInput.addEventListener('input', calculateTotalKg);
+
+    function getPresentationWeightKg() {
+        const val = presentationInput.value.trim().toLowerCase();
+        const match = val.match(/([\d,\.]+)\s*(g|kg|ml|l|cc|gr|lb|oz|ton)\b/);
+
+        if (!match) return 0;
+
+        let num = parseFloat(match[1].replace(',', '.'));
+        let unit = match[2];
+
+        if (isNaN(num)) return 0;
+
+        switch (unit) {
+            case 'g':
+            case 'gr':
+            case 'ml':
+            case 'cc': return num / 1000;
+            case 'kg':
+            case 'l': return num;
+            case 'ton': return num * 1000;
+            case 'lb': return num * 0.453592;
+            case 'oz': return num * 0.0283495;
+            default: return 0;
+        }
+    }
+
+    function calculateUnitsFromTotalKg() {
+        const totalKg = parseLocaleFloat(totalKgInput.value);
+        const presKg = getPresentationWeightKg();
+
+        if (totalKg > 0 && presKg > 0) {
+            const units = Math.floor(totalKg / presKg);
+            unitsInput.value = units;
+            calculateBoxesFromUnits();
+        }
+    }
+
+    presentationInput.addEventListener('input', calculateUnitsFromTotalKg);
+
+    function calculateBoxesFromUnits() {
+        const units = parseFloat(unitsInput.value) || 0;
+
+        // Try to recover equiv if missing
+        if (currentBoxEquiv === 0) {
+            const currentDesc = searchInput.value.trim().toLowerCase();
+            const found = articlesData.find(a => a.description.toLowerCase() === currentDesc);
+            if (found) {
+                currentBoxEquiv = found.box_equiv || 0;
+            }
+        }
+
+        if (currentBoxEquiv > 0) {
+            boxesInput.value = (units / currentBoxEquiv).toFixed(2);
+        }
+    }
+
+    function calculateUnitsFromBoxes() {
+        const boxes = parseLocaleFloat(boxesInput.value);
+        if (currentBoxEquiv > 0 && boxes > 0) {
+            unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
+        }
+    }
+
+    boxesInput.addEventListener('input', calculateUnitsFromBoxes);
+    unitsInput.addEventListener('input', calculateBoxesFromUnits);
+
+    // Close dropdown
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    function calculateUnitsFromBoxes() {
+        const boxes = parseLocaleFloat(boxesInput.value);
+        if (currentBoxEquiv > 0 && boxes > 0) {
+            unitsInput.value = (boxes * currentBoxEquiv).toFixed(0);
+        }
+    }
+
+    // Close dropdown
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+
+    // Set default date to today
+    document.querySelector('input[name="date"]').valueAsDate = new Date();
+
+    loadArticles();
+    loadNextId();
+
+    document.getElementById('planningForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Sanitization
+        if (!data.article || data.article.trim() === "") {
+            alert("Por favor, seleccione un producto válido.");
+            return;
+        }
+
+        try {
+            data.kg = parseLocaleFloat(data.kg);
+            data.boxes = parseLocaleFloat(data.boxes);
+            data.batches = parseInt(data.batches) || 0;
+            data.kg = parseLocaleFloat(data.kg);
+            data.boxes = parseLocaleFloat(data.boxes);
+            data.batches = parseInt(data.batches) || 0;
+            data.units = parseInt(data.units) || 0;
+            data.waste_percentage = parseLocaleFloat(data.waste_percentage);
+        } catch (err) {
+            alert("Error en formato de números");
+            return;
+        }
+
+        const planId = document.getElementById('planId').value;
+        const method = planId ? 'PUT' : 'POST';
+        const url = planId ? `/api/planning/${planId}` : '/api/planning';
+
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            showSuccessModal();
+        } else {
+            alert('Error al guardar');
+        }
+    });
+</script>
+
+<!-- Success Modal -->
+<div id="successModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
+    <div class="card"
+        style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <button onclick="closeSuccessAndReload()" class="btn"
+            style="width: 100%; justify-content: center; background: var(--odoo-primary); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
+    </div>
+</div>
+<script>
+    function showSuccessModal() {
+        document.getElementById('successModal').style.display = 'flex';
+    }
+    function closeSuccessAndReload() {
+        window.location.reload();
+    }
+</script>
+
+{% endblock %}

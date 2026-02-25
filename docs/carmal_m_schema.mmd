@@ -1,0 +1,1307 @@
+erDiagram
+    adprorecepcion {
+        VARCHAR(100)_COLLATE_"Modern_Spanish_CI_AS" nopescac
+        VARCHAR(100)_COLLATE_"Modern_Spanish_CI_AS" nopesdes
+        DATETIME fecpescac
+        DATETIME fecpesdes
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" co_prov
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" tr
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" odc
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" fzacacsa
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" fzades
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" flemacac
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" flemades
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" centralvacio
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" centralleno
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" cacsalleno
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" cacsavacio
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" precintos
+        DATETIME horacacsa
+        DATETIME iniciodescarga
+        DATETIME finaldescarga
+        VARCHAR(50)_COLLATE_"Modern_Spanish_CI_AS" boletoproveedor
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" observaciones
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(150)_COLLATE_"Modern_Spanish_CI_AS" campo8
+    }
+    NSP_TMPCIERROP {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" cie_num
+    }
+    NSP_TMPDEVOLUCION {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" dev_num
+    }
+    NSP_TMPENTRPAR {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" num_ent
+    }
+    NSP_TMPREQUISICION {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" req_num
+    }
+    NSPActividad {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea PK
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" tarea
+        DECIMAL(18,_5) tiempo
+        BIT operador
+        BIT maquina
+        BIT inventario
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        BIT atributo
+    }
+    NSPActividad_AtribReng {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea PK
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" valor
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPActividad_MaquiReng {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea PK
+        INTEGER reng_num PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_maq
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPActividad_OperadoresReng {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea PK
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_perfil
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" valor
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPAtributo {
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_atributo PK
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" atributo
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPCierreOP {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" cie_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        SMALLDATETIME fec_emis
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_el
+        DATETIME fe_us_in
+        DATETIME fe_us_mo
+        DATETIME fe_us_el
+        BIT confirma
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" aju_num
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" ent_des
+        BIT anulado
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sub
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" comentario
+        SMALLDATETIME fec_conf
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        INTEGER numcom
+        SMALLDATETIME feccom
+        INTEGER seriales
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        DECIMAL(18,_5) asie_pt
+        DECIMAL(18,_5) asie_pm
+        DECIMAL(18,_5) asie_varcto
+        DECIMAL(18,_5) asie_mo
+        DECIMAL(18,_5) asie_gfd
+        DECIMAL(18,_5) asie_gfi
+        BIT contabilizada
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" TIEMPO_REAL
+        BIT USAR_TR
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_mone
+        DECIMAL(13,_8) tasa
+    }
+    NSPCierreOPReng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" cie_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        DECIMAL(18,_5) total_art
+        DECIMAL(18,_5) costo_uni
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" nro_lote
+        UNIQUEIDENTIFIER rowguid
+        SMALLDATETIME fec_lote
+        DECIMAL(18,_5) stotal_art
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        INTEGER numcom
+        SMALLDATETIME feccom
+        DECIMAL(18,_5) total_uni
+    }
+    NSPConsultaCosto {
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        CHAR(40)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tiempo
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" AlmacenPT
+        BIT fpredeterminada
+        CHAR(40)_COLLATE_"Modern_Spanish_CI_AS" co_artreg
+        INTEGER reng_num
+        VARCHAR(400)_COLLATE_"Modern_Spanish_CI_AS" art_des
+        DECIMAL(18,_5) merma
+        CHAR(128)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        CHAR(128)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        DECIMAL(18,_5) cantidad
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" co_perfil
+        DECIMAL(18,_5) sueldo
+        CHAR(2)_COLLATE_"Modern_Spanish_CI_AS" tiempo_uni
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_gas
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" gas_des
+        CHAR(12)_COLLATE_"Modern_Spanish_CI_AS" co_var
+        CHAR(120)_COLLATE_"Modern_Spanish_CI_AS" var_des
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" valor
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_art_for
+        NCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art_freg
+        VARCHAR(200)_COLLATE_"Modern_Spanish_CI_AS" descripcion_mno
+        DECIMAL(18,_5) tiempoxemple
+        DECIMAL(18,_5) cant_emple
+        DECIMAL(18,_5) tiempo_mno
+        DECIMAL(18,_5) tiempo_gas
+        DECIMAL(18,_5) cantidad_gas
+        DECIMAL(18,_5) monto
+        DECIMAL(18,_5) costo
+    }
+    NSPCorrelativos {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_correlativ PK
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" des_corretaliv
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" prefijo
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" sufijo
+        INTEGER longitud
+        INTEGER incluye_art
+        INTEGER incluye_sucu
+        INTEGER tipo
+        BIT reiniciar
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" desde_n
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" hasta_n
+        BIGINT desde_a
+        BIGINT hasta_a
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPCostocierre {
+        NCHAR(12)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        NCHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        DECIMAL(18,_5) cantidad
+        DECIMAL(18,_5) costo_uni
+        NCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" num_cierre
+        NCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" num_odp
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CO_UNI
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" NUM_LOTE
+    }
+    NSPCostoPorGasto {
+        INTEGER ID
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" cod_gas
+        VARCHAR(70)_COLLATE_"Modern_Spanish_CI_AS" Descripcion
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" tiempo
+        DECIMAL(18,_5) cantidad
+        DECIMAL(18,_5) total
+    }
+    NSPCostoPorOperador {
+        INTEGER ID
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_perfil
+        VARCHAR(400)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        DECIMAL(18,_5) sueldo
+        DECIMAL(18,_5) Total
+    }
+    NSPCostoxArticulo {
+        INTEGER ID
+        INTEGER reng_num
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_maq
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        DECIMAL(18,_5) cantidad
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        DECIMAL(18,_5) cant_max
+        DECIMAL(18,_5) tiempo_tar
+        DECIMAL(18,_5) merma
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_doc
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" tarea
+        VARCHAR(200)_COLLATE_"Modern_Spanish_CI_AS" desc_art
+        VARCHAR(3)_COLLATE_"Modern_Spanish_CI_AS" tp
+        DECIMAL(18,_5) costo_art
+        DECIMAL(18,_5) total
+        DECIMAL(18,_5) consumo
+    }
+    NSPDevolucion {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" dev_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        DATETIME fecha
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        XML dis_cen
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        BIT CONFIRMA
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" Status
+    }
+    NSPDevolucionReng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" dev_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_lote
+        DECIMAL(18,_5) cant_dev
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" alma_ori
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" alma_des
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" num_envio
+        UNIQUEIDENTIFIER Rowguid_tras_reng
+    }
+    NSPEntrePar {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" ent_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        SMALLDATETIME fec_emis
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_el
+        DATETIME fe_us_in
+        DATETIME fe_us_mo
+        DATETIME fe_us_el
+        BIT confirma
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" aju_num
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" ent_des
+        BIT anulado
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sub
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" comentario
+        SMALLDATETIME fec_conf
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        INTEGER numcom
+        SMALLDATETIME feccom
+        INTEGER seriales
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_mone
+        DECIMAL(13,_8) tasa
+    }
+    NSPEntreParReng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" ent_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        DECIMAL(18,_5) total_art
+        DECIMAL(18,_5) costo_uni
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" nro_lote
+        UNIQUEIDENTIFIER rowguid
+        SMALLDATETIME fec_lote
+        DECIMAL(18,_5) stotal_art
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        INTEGER numcom
+        SMALLDATETIME feccom
+        DECIMAL(18,_5) total_uni
+    }
+    NSPExplosion {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" numero PK
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        DATETIME fec_emi
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" status
+        INTEGER anulado
+        XML dis_cen
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPExplosionreng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" numero PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        DECIMAL(18,_5) cantidad
+        UNIQUEIDENTIFIER rowguid_doc
+        XML dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" formulaS
+    }
+    NSPExplosionreng_ALMA {
+        UNIQUEIDENTIFIER rowguid_reng PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma PK
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" des_alma
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPExplosionreng_SE {
+        UNIQUEIDENTIFIER rowguid_reng PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_formula
+        DECIMAL(18,_5) cantidad
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPExplosionrengEX {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" numero
+        INTEGER reng_num
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        DECIMAL(18,_5) existencia
+        DECIMAL(18,_5) requerido
+        DECIMAL(18,_5) faltante
+        DECIMAL(18,_5) UltimoCosto
+        DECIMAL(18,_5) CostoProm
+        DECIMAL(18,_5) StockxLlegar
+        XML dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+    }
+    NSPExplosionrengTEMP {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" numero
+        INTEGER reng_num
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        DECIMAL(18,_5) cantidad
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+    }
+    NSPFormula {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tiempo
+        DECIMAL(18,_5) cantMax
+        DECIMAL(18,_5) cantMin
+        DECIMAL(18,_5) intv
+        DATETIME fec_emi
+        DATETIME fec_ent
+        DATETIME fec_proc
+        DATETIME fec_cie
+        DATETIME fec_umod
+        DATETIME fec_usmod
+        INTEGER anulado
+        XML dis_cen
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" ruta
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" AlmacenPT
+        DECIMAL(18,_5) Tlote
+        BIT fpredeterminada
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_turno
+    }
+    NSPFormula_Group {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_group
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPFormulaGas {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for PK
+        INTEGER reng_num PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_gas
+        DECIMAL(18,_5) cantidad
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPFormulaOper {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for PK
+        INTEGER reng_num PK
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_perfil
+        INTEGER cant_emple
+        DECIMAL(18,_5) tiempoxemple
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" tiempo_uni
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPFormulareng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for PK
+        INTEGER reng_num PK
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        CHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_maq
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" variabilidad
+        DECIMAL(18,_5) cantidad
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        DECIMAL(18,_5) cant_max
+        DECIMAL(18,_5) tiempo_tar
+        DECIMAL(18,_5) merma
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_doc
+        UNIQUEIDENTIFIER rowguid_doc
+        XML dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" co_ruta
+        BIT TP
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tarea
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" desc_art
+        BIT sub_emsamble
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_forsub
+        DECIMAL(18,_5) costo
+    }
+    NSPFormulaVar {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for PK
+        INTEGER reng_num PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_var
+        DECIMAL(18,_5) valor
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPGastos {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_gas PK
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" gas_des
+        DECIMAL(18,_5) monto
+        DECIMAL(18,_5) tiempo
+        BIT tipo
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_mone
+    }
+    NSPLinea {
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" ruta PK
+        NCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" maquina
+        NCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tarea
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" capacidad
+        DECIMAL(18,_5) tiempo
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" Descripcion
+    }
+    NSPLinea_ActReng {
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" ruta PK
+        INTEGER reng_num PK
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPLog {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_error
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" des_error
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" modulo
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPMantenimiento {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" AjusEnt
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" AjusSal
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont1
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont2
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont3
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont4
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont5
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" CuentaCont6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" almacenTEMP
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" almacenPP
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" AjustSalPT
+        INTEGER Count_Reng
+    }
+    NSPMapa {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_mapa PK
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" des_mapa
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" producto
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" procesos
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" tablas
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" reportes
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" mantenimiento
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" ayuda
+        VARCHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_idioma
+        BIT liquidar
+        CHAR(7)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        CHAR(7)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        DATETIME fe_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" planificacion
+    }
+    NSPMaquinaria {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_maq PK
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" maquina
+        BIT operador
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" capacidad
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" turno
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        BIT activa
+    }
+    NSPMaquinaria_AtribReng {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_maquina PK
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" valor
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPOdpAsoc {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" req_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" cie_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" dev_num
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" ent_num
+    }
+    NSPOperadores {
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_perfil PK
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" capacidad
+        DECIMAL(18,_5) sueldo
+        DECIMAL(18,_5) tiempo
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPOrdenplanificacion {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        DATETIME fecha
+        DATETIME fec_ini
+        DATETIME fec_fin
+        CHAR(32)_COLLATE_"Modern_Spanish_CI_AS" status
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" prioridad
+        DECIMAL(18,_5) cantidad
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" almacendest
+        XML dis_cen
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_lote
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" TiempoT
+    }
+    NSPOrdenplanificacionreng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_maq
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        CHAR(17)_COLLATE_"Modern_Spanish_CI_AS" co_empleado
+        DECIMAL(18,_5) requerida
+        DECIMAL(18,_5) solicitada
+        DECIMAL(18,_5) recibida
+        DECIMAL(18,_5) faltante
+        DECIMAL(18,_5) devuelta
+        DECIMAL(18,_5) cantmax
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_doc
+        UNIQUEIDENTIFIER rowguid_doc
+        XML dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        DECIMAL(18,_5) T_proceso
+        DECIMAL(18,_5) costo
+        DATETIME fecha
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" Estatus
+    }
+    NSPOrdenproduccion {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        DATETIME fecha
+        DATETIME fec_ini
+        DATETIME fec_fin
+        CHAR(32)_COLLATE_"Modern_Spanish_CI_AS" status
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" prioridad
+        DECIMAL(18,_5) cantidad
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" almacendest
+        XML dis_cen
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_lote
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" TiempoT
+    }
+    NSPOrdenproduccionGas {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        INTEGER reng_num PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_gas
+        DECIMAL(18,_5) cantidad
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPOrdenproduccionOper {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        INTEGER reng_num PK
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        VARCHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_perfil
+        INTEGER cant_emple
+        DECIMAL(18,_5) tiempoxemple
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" tiempo_uni
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPOrdenproduccionreng {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_uni
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" co_tarea
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_atributo
+        CHAR(16)_COLLATE_"Modern_Spanish_CI_AS" co_maq
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_alma
+        CHAR(17)_COLLATE_"Modern_Spanish_CI_AS" co_empleado
+        DECIMAL(18,_5) requerida
+        DECIMAL(18,_5) solicitada
+        DECIMAL(18,_5) recibida
+        DECIMAL(18,_5) faltante
+        DECIMAL(18,_5) devuelta
+        DECIMAL(18,_5) cantmax
+        VARCHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_doc
+        UNIQUEIDENTIFIER rowguid_doc
+        XML dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        DECIMAL(18,_5) T_proceso
+        DECIMAL(18,_5) costo
+    }
+    NSPOrdenproduccionvar {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num PK
+        INTEGER reng_num PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_var
+        DECIMAL(18,_5) valor
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPPar_emp {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" aju_tipoent
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" aju_tiposal
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_pttemp
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_mptemp
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_varcosto
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_mo
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_gfd
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" cta_gfi
+    }
+    NSPPista {
+        DATETIME fecha
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" tablaOri
+        UNIQUEIDENTIFIER rowguidOri
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" usuario_id
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" tipo_op
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" maquina
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" campos
+        DECIMAL(18,_5) aux01
+        VARCHAR(30)_COLLATE_"Modern_Spanish_CI_AS" aux02
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid PK
+    }
+    NSPReglaInt {
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_reg PK
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" des_reg
+        CHAR(4)_COLLATE_"Modern_Spanish_CI_AS" tipo
+        BIT inactivo
+        INTEGER debehaber
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" aplica
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" monto
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" gasto
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" distri
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" descrip
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" cuenta
+        VARCHAR_COLLATE_"Modern_Spanish_CI_AS" encabezado
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        CHAR(4)_COLLATE_"Modern_Spanish_CI_AS" version
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPRequisicion {
+        INTEGER req_num PK
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" odp_num
+        DATETIME fecha
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        XML dis_cen
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" tras_num
+        BIT CONFIRMA
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" ESTATUS
+    }
+    NSPRequisicionreng {
+        INTEGER req_num PK
+        INTEGER reng_num PK
+        CHAR(30)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" unidad
+        CHAR(20)_COLLATE_"Modern_Spanish_CI_AS" num_lote
+        DECIMAL(18,_5) requerida
+        DECIMAL(18,_5) solicitada
+        DECIMAL(18,_5) entregada
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" alma_ori
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" alma_des
+        TEXT(16)_COLLATE_"Modern_Spanish_CI_AS" dis_cen
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        UNIQUEIDENTIFIER rowguid
+        DECIMAL(18,_5) recibida
+        VARCHAR(32)_COLLATE_"Modern_Spanish_CI_AS" num_envio
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" lote_rowguid
+    }
+    NSPSubensamble {
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" num_odp
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_for
+        VARCHAR(12)_COLLATE_"Modern_Spanish_CI_AS" co_art
+        DECIMAL(18,_5) cantidad
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_forsub
+    }
+    NSPSucursal {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucur PK
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" sucur_des
+        BIT enable
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPTiempo {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tipo
+        VARCHAR(256)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        INTEGER hora
+        INTEGER dia
+        INTEGER Semana
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPTipo {
+        VARCHAR(64)_COLLATE_"Modern_Spanish_CI_AS" tipo
+        VARCHAR(128)_COLLATE_"Modern_Spanish_CI_AS" descripcion
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPTurno {
+        CHAR(10)_COLLATE_"Modern_Spanish_CI_AS" co_turno PK
+        CHAR(40)_COLLATE_"Modern_Spanish_CI_AS" desc_turno
+        INTEGER horas_turno
+        INTEGER cantxdia_turno
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPUser {
+        VARCHAR(6)_COLLATE_"Modern_Spanish_CI_AS" id
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" profituser
+        BIT procesos
+        BIT tablas
+        BIT reportes
+        BIT mantenimiento
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR(6)_COLLATE_"Modern_Spanish_CI_AS" Mapa
+    }
+    NSPUser_Group {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_group PK
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" des_group
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPUser_Join_Group {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us PK
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_group
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+    }
+    NSPVariables {
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_var PK
+        CHAR(60)_COLLATE_"Modern_Spanish_CI_AS" var_des
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo1
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo2
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo3
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo4
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo5
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo6
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo7
+        VARCHAR(60)_COLLATE_"Modern_Spanish_CI_AS" campo8
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_in
+        DATETIME fe_us_in
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_us_mo
+        CHAR(6)_COLLATE_"Modern_Spanish_CI_AS" co_sucu_mo
+        DATETIME fe_us_mo
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" revisado
+        CHAR(1)_COLLATE_"Modern_Spanish_CI_AS" trasnfe
+        TIMESTAMP validador
+        UNIQUEIDENTIFIER rowguid
+        VARCHAR(10)_COLLATE_"Modern_Spanish_CI_AS" valor
+        INTEGER frecuencia
+    }
+    NSPActividad ||--o{ NSPActividad_AtribReng : "has"
+    NSPAtributo ||--o{ NSPActividad_AtribReng : "has"
+    NSPMaquinaria ||--o{ NSPActividad_MaquiReng : "has"
+    NSPActividad ||--o{ NSPActividad_MaquiReng : "has"
+    NSPActividad ||--o{ NSPActividad_OperadoresReng : "has"
+    NSPOperadores ||--o{ NSPActividad_OperadoresReng : "has"
+    NSPOrdenproduccion ||--o{ NSPCierreOP : "has"
+    NSPCierreOP ||--o{ NSPCierreOPReng : "has"
+    NSPOrdenproduccion ||--o{ NSPDevolucion : "has"
+    NSPDevolucion ||--o{ NSPDevolucionReng : "has"
+    NSPOrdenproduccion ||--o{ NSPEntrePar : "has"
+    NSPEntrePar ||--o{ NSPEntreParReng : "has"
+    NSPExplosion ||--o{ NSPExplosionreng : "has"
+    NSPFormula ||--o{ NSPFormulaGas : "has"
+    NSPGastos ||--o{ NSPFormulaGas : "has"
+    NSPFormula ||--o{ NSPFormulaOper : "has"
+    NSPOperadores ||--o{ NSPFormulaOper : "has"
+    NSPActividad ||--o{ NSPFormulaOper : "has"
+    NSPFormula ||--o{ NSPFormulareng : "has"
+    NSPActividad ||--o{ NSPFormulareng : "has"
+    NSPFormula ||--o{ NSPFormulaVar : "has"
+    NSPVariables ||--o{ NSPFormulaVar : "has"
+    NSPLinea ||--o{ NSPLinea_ActReng : "has"
+    NSPActividad ||--o{ NSPLinea_ActReng : "has"
+    NSPAtributo ||--o{ NSPMaquinaria_AtribReng : "has"
+    NSPFormula ||--o{ NSPOrdenplanificacion : "has"
+    NSPActividad ||--o{ NSPOrdenplanificacionreng : "has"
+    NSPFormula ||--o{ NSPOrdenproduccion : "has"
+    NSPGastos ||--o{ NSPOrdenproduccionGas : "has"
+    NSPOrdenproduccion ||--o{ NSPOrdenproduccionGas : "has"
+    NSPOperadores ||--o{ NSPOrdenproduccionOper : "has"
+    NSPOrdenproduccion ||--o{ NSPOrdenproduccionOper : "has"
+    NSPActividad ||--o{ NSPOrdenproduccionOper : "has"
+    NSPActividad ||--o{ NSPOrdenproduccionreng : "has"
+    NSPOrdenproduccion ||--o{ NSPOrdenproduccionvar : "has"
+    NSPVariables ||--o{ NSPOrdenproduccionvar : "has"
+    NSPOrdenproduccion ||--o{ NSPRequisicion : "has"
+    NSPRequisicion ||--o{ NSPRequisicionreng : "has"

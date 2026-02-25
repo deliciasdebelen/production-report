@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<form id="ticketForm" class="p-4" style="max-width: 1200px; margin: 0 auto;" enctype="multipart/form-data">
+    <!-- Control Panel -->
+    <div class="odoo-control-panel">
+        <div class="odoo-breadcrumb">
+            <a href="/support" style="text-decoration: none; color: inherit;">Soporte</a>
+            <span style="color:#aaa">/</span>
+            <span class="active">Nuevo Ticket</span>
+        </div>
+        <div class="odoo-actions">
+            <!-- Save / Discard -->
+            <button type="submit" class="btn-odoo-primary">Guardar</button>
+            <a href="/support" class="btn-odoo-secondary" style="text-decoration: none;">Descartar</a>
+        </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="odoo-statusbar">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="submit" class="btn-odoo-primary">Guardar</button>
+            <a href="/support" class="btn-odoo-secondary" style="text-decoration: none;">Descartar</a>
+
+            <!-- Navigation (Visual Match) -->
+            <div
+                style="margin-left: 20px; display: flex; border: 1px solid var(--odoo-border); border-radius: 4px; overflow: hidden;">
+                <button type="button" class="btn-odoo-secondary" disabled
+                    style="border: none; border-right: 1px solid var(--odoo-border); border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center; opacity: 0.5; background: #f9f9f9;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <button type="button" class="btn-odoo-secondary" disabled
+                    style="border: none; border-radius: 0; padding: 0.4rem 0.8rem; display: flex; align-items: center; opacity: 0.5; background: #f9f9f9;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div class="odoo-statusbar-status">
+            <!-- Just New for Creation -->
+            <div class="status-item active status-blue">Nuevo</div>
+            <div class="status-item">En Proceso</div>
+            <div class="status-item">Resuelto</div>
+            <div class="status-item">Cancelado</div>
+        </div>
+    </div>
+
+    <!-- Sheet -->
+    <div class="odoo-sheet">
+        <!-- Header: Title & ID -->
+        <div style="display: grid; grid-template-columns: 1fr auto; align-items: center; margin-bottom: 1.5rem;">
+            <div class="odoo-title-area" style="margin:0;">
+                <label style="color: var(--odoo-primary); font-weight: 600;">Asunto / Título</label>
+                <h1 style="border-bottom: 1px solid #ccc; padding-bottom: 5px; margin:0;">
+                    <input type="text" id="description" name="description"
+                        placeholder="Ej: No puedo acceder al sistema..." required
+                        style="width: 100%; border: none; font-size: 2rem; font-weight: 500; outline: none;">
+                </h1>
+            </div>
+
+            <!-- Ticket # Display -->
+            <div style="display: flex; flex-direction: column; align-items: center; margin-left: 2rem;">
+                <span style="font-size: 0.85rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px;">Ticket
+                    #</span>
+                <span style="font-weight: bold; font-size: 1.8rem; color: var(--odoo-primary);">Nuevo</span>
+            </div>
+        </div>
+
+        <div class="odoo-group">
+            <!-- Left Column -->
+            <div class="odoo-col">
+                <div class="odoo-field">
+                    <label>Tipo de Ticket</label>
+                    <select id="type_id" name="type_id" required>
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="odoo-field">
+                    <label>Prioridad</label>
+                    <select id="priority_id" name="priority_id" required>
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="odoo-field">
+                    <label>Adjunto (Imagen)</label>
+                    <input type="file" id="file" name="file" accept="image/*">
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="odoo-col">
+                <div class="odoo-field">
+                    <label>Departamento</label>
+                    <select id="department_id" name="department_id" required>
+                        <option value="">Seleccione...</option>
+                    </select>
+                </div>
+                <div class="odoo-field">
+                    <label>Asignado a</label>
+                    <div style="padding: 2px 0; color: #888; font-style: italic;">
+                        Autosignado al crear...
+                    </div>
+                </div>
+                <div class="odoo-field">
+                    <label>Email Contacto</label>
+                    <input type="email" id="contact_email" name="contact_email"
+                        value="{{ current_user.username if '@' in current_user.username else '' }}"
+                        placeholder="usuario@ejemplo.com">
+                </div>
+            </div>
+        </div>
+
+        <!-- Notebook -->
+        <div class="odoo-notebook">
+            <div class="odoo-tabs">
+                <div class="odoo-tab active" onclick="switchTab('desc')">Descripción Detallada</div>
+                <!-- <div class="odoo-tab" onclick="switchTab('other')">Otra Información</div> -->
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tab-desc" style="padding: 1rem 0;">
+                <textarea id="detailed_description" rows="8"
+                    placeholder="Describa el problema con el mayor detalle posible..."
+                    style="width: 100%; border: 1px solid #eee; padding: 1rem; border-radius: 4px; resize: vertical;"></textarea>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        // Load Config
+        try {
+            const res = await fetch('/api/support/config');
+            const data = await res.json();
+
+            const deptSel = document.getElementById('department_id');
+            data.departments.forEach(d => {
+                deptSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+
+            const typeSel = document.getElementById('type_id');
+            data.types.forEach(d => {
+                typeSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+
+            const prioSel = document.getElementById('priority_id');
+            data.priorities.forEach(d => {
+                prioSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+            });
+
+        } catch (e) {
+            console.error("Error loading config", e);
+        }
+
+        // Handle Submit
+        document.getElementById('ticketForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const title = document.getElementById('description').value;
+            const details = document.getElementById('detailed_description').value;
+            const finalDesc = details ? `${title}\n\n${details}` : title;
+
+            const formData = new FormData();
+            formData.append('department_id', document.getElementById('department_id').value);
+            formData.append('type_id', document.getElementById('type_id').value);
+            formData.append('priority_id', document.getElementById('priority_id').value);
+            formData.append('contact_email', document.getElementById('contact_email').value);
+            formData.append('description', finalDesc);
+
+            const fileInput = document.getElementById('file');
+            if (fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+
+            try {
+                const res = await fetch('/api/support/ticket', {
+                    method: 'POST',
+                    body: formData // No Content-Type header with FormData, let browser set boundary
+                });
+
+                if (res.ok) {
+                    const ticket = await res.json();
+                    alert(`Ticket creado con éxito: ${ticket.code}`);
+                    window.location.href = '/support/tickets'; // Go to list
+                } else {
+                    alert('Error al crear ticket');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de red');
+            }
+        });
+    });
+</script>
+{% endblock %}

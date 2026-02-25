@@ -1,0 +1,229 @@
+
+/* --- Odoo Design System (Migrated) --- */
+:root {
+    --odoo-primary: #714B67;
+    --odoo-primary-dark: #5d3d54;
+    --odoo-bg: #f9f9f9;
+    --odoo-border: #d3d3d3;
+    --odoo-text: #4e4e4e;
+    --odoo-danger-bg: #ffe4e4;
+    --odoo-link: #017e84;
+}
+
+body.odoo-theme {
+    background-color: var(--odoo-bg);
+}
+
+.odoo-control-panel {
+    background: white;
+    border-bottom: 1px solid var(--odoo-border);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: -1.5rem -1.5rem 1.5rem -1.5rem; /* Negate layout padding if needed */
+}
+
+.odoo-breadcrumb {
+    font-size: 1.1rem;
+    color: var(--odoo-link);
+    font-weight: 500;
+}
+
+.odoo-breadcrumb .active {
+    color: #212529;
+    font-weight: 700;
+}
+
+.odoo-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-odoo-primary {
+    background-color: var(--odoo-primary);
+    color: white;
+    border: 1px solid var(--odoo-primary-dark);
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-odoo-primary:hover {
+    background-color: var(--odoo-primary-dark);
+}
+
+.btn-odoo-secondary {
+    background-color: white;
+    color: var(--odoo-text);
+    border: 1px solid var(--odoo-border);
+    padding: 0.4rem 1rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Status Bar */
+.odoo-statusbar {
+    background: white;
+    border: 1px solid var(--odoo-border);
+    padding: 5px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+}
+
+.odoo-statusbar-status {
+    display: flex;
+}
+
+.status-item {
+    padding: 5px 15px;
+    margin-left: -1px;
+    border: 1px solid var(--odoo-border);
+    background: white;
+    color: #666;
+    font-size: 0.85rem;
+    position: relative;
+    cursor: default;
+}
+
+.status-item.active {
+    background: #f0f0f0;
+    font-weight: 600;
+}
+
+.status-red {
+    color: #d9534f;
+    border-bottom: 3px solid #d9534f !important;
+}
+
+.status-yellow {
+    color: #f0ad4e;
+    border-bottom: 3px solid #f0ad4e !important;
+}
+
+.status-green {
+    color: #5cb85c;
+    border-bottom: 3px solid #5cb85c !important;
+}
+
+/* Main Sheet */
+.odoo-sheet {
+    background: white;
+    border: 1px solid var(--odoo-border);
+    padding: 2rem 3rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    max-width: 1140px;
+    margin: 0 auto;
+}
+
+.odoo-title-area {
+    margin-bottom: 1.5rem;
+}
+
+.odoo-title-area h1 {
+    font-size: 2rem;
+    color: var(--odoo-primary);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Form Layout */
+.odoo-group {
+    display: flex;
+    gap: 3rem;
+    margin-bottom: 1.5rem;
+}
+
+.odoo-col {
+    flex: 1;
+}
+
+.odoo-field {
+    display: flex;
+    margin-bottom: 0.5rem;
+    align-items: baseline;
+}
+
+.odoo-field label {
+    width: 140px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #4e4e4e;
+    border-right: 2px solid transparent;
+    padding-right: 10px;
+}
+
+.odoo-field input, .odoo-field select, .odoo-field textarea {
+    flex: 1;
+    border: none;
+    border-bottom: 1px solid #ccc;
+    padding: 2px 0;
+    font-size: 0.95rem;
+    color: #333;
+    border-radius: 0; 
+    background: transparent;
+}
+
+.odoo-field input:focus, .odoo-field select:focus, .odoo-field textarea:focus {
+    outline: none;
+    border-bottom-color: var(--odoo-primary);
+    box-shadow: none;
+}
+
+.odoo-field input.required-field {
+    background-color: var(--odoo-danger-bg) !important;
+    padding-left: 5px;
+}
+
+/* Notebook / Tabs */
+.odoo-notebook {
+    margin-top: 2rem;
+}
+
+.odoo-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--odoo-border);
+    margin-bottom: 1rem;
+}
+
+.odoo-tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.odoo-tab.active {
+    color: #212529;
+    border-bottom-color: var(--odoo-primary);
+}
+
+/* Special Inputs */
+.search-container {
+    position: relative;
+    flex: 1;
+}
+
+.results-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+}

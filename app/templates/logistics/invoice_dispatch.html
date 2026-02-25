@@ -1,0 +1,379 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .dropdown-item:hover {
+        background-color: #f1f5f9 !important;
+    }
+
+    .dropdown-item.selected {
+        background-color: #eff6ff !important;
+        border-left: 4px solid #3b82f6;
+    }
+
+    #resultsDropdown {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+    }
+</style>
+<div class="flex-between" style="margin-bottom: 2rem;">
+    <div>
+        <h1 style="margin-bottom: 0.5rem;">Registro de Despacho de Facturas</h1>
+        <p style="color: var(--text-muted);">Actualización de fecha de recepción en sistema externo.</p>
+    </div>
+    <a href="/logistics" class="btn"
+        style="background: var(--surface); color: var(--text-main); border: 1px solid var(--border);">
+        <span style="margin-right: 0.5rem;">⬅</span> Volver
+    </a>
+</div>
+
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div style="margin-bottom: 2rem;">
+        <!-- Header / Toggle -->
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1.5rem;">
+            <div>
+                <button type="button" id="btnDocToggle" onclick="toggleDocType()"
+                    style="display: inline-block; font-size: 0.75rem; padding: 2px 8px; margin-bottom: 0.5rem; cursor: pointer; border: 1px solid var(--border); background: #f1f5f9; border-radius: 4px; color: var(--text-muted);">
+                    🔄 Cambiar a Nota de Entrega
+                </button>
+                <h3 style="margin: 0; color: var(--primary);" id="lblTitle">Buscar Factura</h3>
+            </div>
+            <div id="statusBadge"
+                style="display: none; padding: 0.25rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.85rem;">
+            </div>
+        </div>
+
+        <!-- Search Input -->
+        <div class="input-group" style="position: relative; margin-bottom: 1rem;">
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+                <input type="text" class="form-control" id="searchInput" placeholder="Escriba número o cliente..."
+                    autocomplete="off"
+                    style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;"
+                    oninput="handleInput(this.value)" onkeydown="handleKeyDown(event)">
+                <button type="button" onclick="searchDocument()" class="btn"
+                    style="background:#3b82f6; color:white; border-radius:8px; padding: 0 1.5rem;">🔍</button>
+            </div>
+
+            <!-- Custom Results Dropdown -->
+            <div id="resultsDropdown"
+                style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); z-index: 1000; max-height: 300px; overflow-y: auto; margin-top: 0.25rem;">
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Section (Hidden until selected) -->
+    <div id="detailsSection" style="display: none; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Cliente</label>
+                <div id="detClient" style="font-weight: 600; font-size: 1.1rem;"></div>
+            </div>
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Documento</label>
+                <div id="detDoc" style="font-weight: 600; font-size: 1.1rem;"></div>
+            </div>
+            <div>
+                <label
+                    style="display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.25rem;">Monto
+                    Total</label>
+                <div id="detAmount" style="font-weight: 600; font-size: 1.1rem; color: var(--text-main);"></div>
+            </div>
+        </div>
+
+        <!-- Form for Date Update -->
+        <form id="updateForm" onsubmit="submitUpdate(event)"
+            style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+            <input type="hidden" name="doc_type" id="formDocType">
+            <input type="hidden" name="doc_num" id="formDocNum">
+
+            <div class="grid-2" style="gap: 1.5rem;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Fecha
+                        de Recepción *</label>
+                    <input type="date" name="reception_date" id="receptionDate" required
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;">
+                </div>
+                <div>
+                    <label
+                        style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-muted);">Nro.
+                        Guía (Opcional)</label>
+                    <input type="text" name="guide_num" id="guideNum" placeholder="Ej: 10500"
+                        style="width: 100%; padding: 0.5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 1rem;">
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 1.5rem;">
+                <button type="submit" class="btn"
+                    style="background: #10b981; color: white; padding: 0.75rem 2rem; border-radius: 6px; font-weight: 600; border: none; cursor: pointer; font-size: 1rem;">
+                    💾 Guardar Fecha
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let currentDocType = 'invoice';
+    let searchDebounce;
+    let selectedIndex = -1;
+
+    // Set default date to today
+    document.getElementById('receptionDate').valueAsDate = new Date();
+
+    function toggleDocType() {
+        const btn = document.getElementById('btnDocToggle');
+        const lbl = document.getElementById('lblTitle');
+        const input = document.getElementById('searchInput');
+
+        if (currentDocType === 'invoice') {
+            currentDocType = 'delivery_note';
+            btn.innerHTML = '🔄 Cambiar a Factura';
+            lbl.innerText = 'Buscar Nota de Entrega';
+            input.placeholder = 'Buscar Nota...';
+        } else {
+            currentDocType = 'invoice';
+            btn.innerHTML = '🔄 Cambiar a Nota de Entrega';
+            lbl.innerText = 'Buscar Factura';
+            input.placeholder = 'Buscar Factura...';
+        }
+
+        // Reset
+        input.value = '';
+        input.focus();
+        document.getElementById('detailsSection').style.display = 'none';
+        hideDropdown();
+    }
+
+    function hideDropdown() {
+        const dropdown = document.getElementById('resultsDropdown');
+        dropdown.style.display = 'none';
+        selectedIndex = -1;
+    }
+
+    function handleKeyDown(e) {
+        const dropdown = document.getElementById('resultsDropdown');
+        const items = dropdown.querySelectorAll('.dropdown-item');
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (dropdown.style.display === 'none' && document.getElementById('searchInput').value.length >= 2) {
+                handleInput(document.getElementById('searchInput').value);
+            }
+            selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+            updateSelection(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = Math.max(selectedIndex - 1, 0);
+            updateSelection(items);
+        } else if (e.key === 'Enter') {
+            if (dropdown.style.display !== 'none' && selectedIndex > -1 && items[selectedIndex]) {
+                e.preventDefault();
+                items[selectedIndex].click();
+            } else {
+                // If dropdown is closed or nothing selected, trigger searchDocument
+                searchDocument();
+            }
+        } else if (e.key === 'Escape') {
+            hideDropdown();
+        }
+    }
+
+    function updateSelection(items) {
+        items.forEach((item, index) => {
+            if (index === selectedIndex) {
+                item.classList.add('selected');
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    function handleInput(val) {
+        const dropdown = document.getElementById('resultsDropdown');
+
+        if (val.length < 2) {
+            hideDropdown();
+            return;
+        }
+
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(async () => {
+            try {
+                // Unified search endpoint
+                const res = await fetch(`/logistics/api/external/documents/search?q=${encodeURIComponent(val)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    dropdown.innerHTML = '';
+
+                    if (data.length === 0) {
+                        dropdown.style.display = 'none';
+                        return;
+                    }
+
+                    data.forEach((item, index) => {
+                        // Populate custom dropdown for rich details
+                        const div = document.createElement('div');
+                        div.className = 'dropdown-item';
+                        div.style.padding = '0.75rem 1rem';
+                        div.style.cursor = 'pointer';
+                        div.style.borderBottom = '1px solid #f1f5f9';
+                        div.style.display = 'flex';
+                        div.style.justifyContent = 'space-between';
+                        div.style.alignItems = 'center';
+                        div.style.transition = 'background 0.2s';
+
+                        const typeLabel = item.doc_type === 'invoice' ? 'FACT' : 'NOTA';
+                        const typeColor = item.doc_type === 'invoice' ? '#3b82f6' : '#8b5cf6';
+
+                        div.innerHTML = `
+                            <div>
+                                <span style="font-weight: 600; color: ${typeColor}; margin-right: 0.5rem;">${typeLabel} ${item.doc_num}</span>
+                                <span style="font-size: 0.9rem; color: var(--text-main);">${item.client}</span>
+                            </div>
+                            <span style="font-size: 0.75rem; color: var(--text-muted); opacity: 0.5;">ENTER</span>
+                        `;
+
+                        div.onclick = () => {
+                            document.getElementById('searchInput').value = item.display;
+                            hideDropdown();
+                            selectAndSearch(item.doc_num, item.doc_type);
+                        };
+
+                        div.onmouseover = () => {
+                            selectedIndex = index;
+                            updateSelection(dropdown.querySelectorAll('.dropdown-item'));
+                        };
+
+                        dropdown.appendChild(div);
+                    });
+
+                    dropdown.style.display = 'block';
+                }
+            } catch (err) {
+                console.error("Autocomplete error", err);
+            }
+        }, 150); // Reduced debounce for snappier feel
+    }
+
+    // Trigger search after selecting from dropdown
+    async function selectAndSearch(docNum, docType) {
+        // We reuse the search logic but passing params directly
+        await performSearch(docNum, docType);
+    }
+
+    // Unified search logic
+    async function searchDocument() {
+        const input = document.getElementById('searchInput');
+        let displayVal = input.value.trim();
+        if (!displayVal) return;
+
+        // Attempt to parse number if it's in "TYPE NUM - CLIENT" format
+        let docNum = displayVal;
+        let docType = currentDocType;
+
+        if (displayVal.includes(' - ')) {
+            const parts = displayVal.split(' - ');
+            const left = parts[0].trim();
+            docNum = left.replace(/^(FACT:|NOTA:)\s*/, '');
+            docType = left.startsWith('NOTA:') ? 'delivery_note' : 'invoice';
+        }
+
+        await performSearch(docNum, docType);
+    }
+
+    async function performSearch(docNum, docType) {
+        const input = document.getElementById('searchInput');
+        input.disabled = true;
+
+        try {
+            // Set visuals
+            currentDocType = docType;
+            const btn = document.getElementById('btnDocToggle');
+            const lbl = document.getElementById('lblTitle');
+
+            if (docType === 'delivery_note') {
+                btn.innerHTML = '🔄 Cambiar a Factura';
+                lbl.innerText = 'Nota de Entrega Detectada';
+            } else {
+                btn.innerHTML = '🔄 Cambiar a Nota de Entrega';
+                lbl.innerText = 'Factura Detectada';
+            }
+
+            const endpoint = docType === 'invoice'
+                ? `/logistics/api/external/invoice/${encodeURIComponent(docNum)}/items/no-check`
+                : `/logistics/api/external/delivery_note/${encodeURIComponent(docNum)}/items`;
+
+            const res = await fetch(endpoint);
+            const data = await res.json();
+
+            if (!Array.isArray(data) || data.length === 0) {
+                alert("Documento no encontrado o no tiene renglones pendientes.");
+                input.disabled = false;
+                return;
+            }
+
+            // Populate Details
+            const first = data[0];
+            document.getElementById('detClient').innerText = first.client_name || first.client || 'Desconocido';
+            document.getElementById('detDoc').innerText = `${docType === 'invoice' ? 'FACT' : 'NOTA'} ${docNum}`;
+
+            const amt = first.invoice_total || 0;
+            document.getElementById('detAmount').innerText = amt.toLocaleString('es-VE', { style: 'currency', currency: 'USD' });
+
+            // Prepare Form
+            document.getElementById('formDocType').value = docType;
+            document.getElementById('formDocNum').value = docNum;
+
+            // Show Section
+            document.getElementById('detailsSection').style.display = 'block';
+
+        } catch (e) {
+            console.error(e);
+            alert("Error consultando documento");
+        } finally {
+            input.disabled = false;
+        }
+    }
+
+    async function submitUpdate(e) {
+        e.preventDefault();
+
+        if (!confirm("¿Está seguro de actualizar la fecha de recepción para este documento?")) return;
+
+        const form = document.getElementById('updateForm');
+        const formData = new FormData(form);
+        const btn = form.querySelector('button[type="submit"]');
+
+        btn.disabled = true;
+        btn.innerText = "Guardando...";
+
+        try {
+            const res = await fetch('/logistics/api/external/update-reception-date', {
+                method: 'POST',
+                body: formData
+            });
+            const result = await res.json();
+
+            if (result.status === 'success') {
+                alert("✅ Actualización Exitosa");
+                // Reset UI
+                document.getElementById('searchInput').value = '';
+                document.getElementById('detailsSection').style.display = 'none';
+                document.getElementById('searchInput').focus();
+            } else {
+                alert("❌ Error: " + (result.message || "Desconocido"));
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert("Error de conexión");
+        } finally {
+            btn.disabled = false;
+            btn.innerText = "💾 Guardar Fecha";
+        }
+    }
+</script>
+{% endblock %}

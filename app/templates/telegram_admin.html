@@ -1,0 +1,341 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="padding: 0;">
+
+    <!-- Header -->
+    <div
+        style="background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; align-items: center; gap: 12px;">
+        <div style="flex: 1;">
+            <h2 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 700;">📱 Administración —
+                Notificaciones Telegram</h2>
+            <p style="margin: 2px 0 0; font-size: 0.78rem; color: #64748b;">Gestiona los números o Chat IDs que reciben
+                las alertas diarias de MP</p>
+        </div>
+        <button onclick="openAddModal()"
+            style="background: #714B67; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: 600;">
+            ➕ Agregar Número
+        </button>
+        <button onclick="sendAllNow()"
+            style="background: #0891b2; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            📡 Enviar Reporte Ahora
+        </button>
+    </div>
+
+    <div style="padding: 20px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start;">
+
+        <!-- Tabla de Suscriptores -->
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div
+                style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 0.9rem; color: #374151; font-weight: 600;">Suscriptores Activos</h3>
+                <span id="contadorSubs"
+                    style="background: #f1f5f9; padding: 3px 10px; border-radius: 12px; font-size: 0.78rem; color: #64748b;">0
+                    registros</span>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                <thead>
+                    <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                        <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Nombre</th>
+                        <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Chat ID /
+                            Número</th>
+                        <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">Tipo</th>
+                        <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">Estado
+                        </th>
+                        <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">Acciones
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="tbodySubs">
+                    <tr>
+                        <td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">Cargando...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Panel de ayuda lateral -->
+        <div>
+            <!-- Info token -->
+            <div
+                style="background: #fffbeb; border: 1px solid #fcd34d; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                <h4
+                    style="margin: 0 0 8px; font-size: 0.85rem; color: #92400e; display: flex; align-items: center; gap: 6px;">
+                    ⚠️ Configuración de Bot Telegram</h4>
+                <p style="margin: 0 0 8px; font-size: 0.8rem; color: #78350f; line-height: 1.5;">
+                    Para que el bot funcione debes tener configurada la variable de entorno en el servidor:
+                </p>
+                <code
+                    style="background: #1e293b; color: #86efac; padding: 8px 12px; border-radius: 4px; font-size: 0.78rem; display: block; word-break: break-all;">
+                    TELEGRAM_BOT_TOKEN=tu_token_del_botfather
+                </code>
+            </div>
+
+            <!-- Cómo obtener el Chat ID -->
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+                <h4 style="margin: 0 0 10px; font-size: 0.85rem; color: #374151; font-weight: 600;">ℹ️ ¿Cómo obtener el
+                    Chat ID?</h4>
+                <ol style="margin: 0; padding-left: 16px; font-size: 0.8rem; color: #4b5563; line-height: 1.8;">
+                    <li>Abre Telegram y busca <strong>@userinfobot</strong></li>
+                    <li>Escríbele <code>/start</code></li>
+                    <li>Te responderá con tu Chat ID numérico</li>
+                    <li>Usa ese número en el campo "Chat ID / Número"</li>
+                </ol>
+                <div
+                    style="margin-top: 12px; padding: 10px; background: #f0fdf4; border-radius: 6px; font-size: 0.78rem; color: #166534;">
+                    💡 También puedes usar el número de teléfono con código de país:<br>
+                    <strong>+584126036358</strong>
+                </div>
+            </div>
+
+            <!-- Tipos de reporte -->
+            <div
+                style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-top: 16px;">
+                <h4 style="margin: 0 0 8px; font-size: 0.85rem; color: #374151; font-weight: 600;">📋 Tipos de Reporte
+                </h4>
+                <div style="font-size: 0.8rem; color: #4b5563; line-height: 2;">
+                    <div>🧮 <strong>MP</strong> — Análisis Materia Prima vs Compras</div>
+                    <div>📦 <strong>Stock</strong> — Alertas de stock bajo mínimo</div>
+                    <div>📊 <strong>General</strong> — Todos los reportes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agregar/Editar -->
+<div id="modalSub"
+    style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; display:flex; align-items:center; justify-content:center;">
+    <div
+        style="background:white; border-radius:10px; padding:24px; width:420px; max-width:95vw; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <h3 id="modalTitle" style="margin:0 0 18px; font-size:1rem; color:#1e293b; font-weight:700;">Agregar Suscriptor
+        </h3>
+        <input type="hidden" id="editId">
+
+        <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:0.82rem; color:#374151; font-weight:600; margin-bottom:5px;">Nombre
+                descriptivo *</label>
+            <input id="inputName" type="text" placeholder="Ej: Gerencia, Control MP..."
+                style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:5px; font-size:0.85rem; box-sizing:border-box;">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:0.82rem; color:#374151; font-weight:600; margin-bottom:5px;">Chat ID
+                o Número de Teléfono *</label>
+            <input id="inputChatId" type="text" placeholder="Ej: +584126036358 o 123456789"
+                style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:5px; font-size:0.85rem; box-sizing:border-box;">
+            <small style="color:#64748b; font-size:0.75rem;">Número con código de país (+58...) o Chat ID numérico de
+                Telegram</small>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+            <label style="display:block; font-size:0.82rem; color:#374151; font-weight:600; margin-bottom:5px;">Tipo de
+                Reporte</label>
+            <select id="inputType"
+                style="width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:5px; font-size:0.85rem;">
+                <option value="MP">🧮 MP — Materia Prima vs Compras</option>
+                <option value="Stock">📦 Stock — Stock bajo mínimo</option>
+                <option value="General">📊 General — Todos los reportes</option>
+            </select>
+        </div>
+
+        <div style="margin-bottom: 18px; display:flex; align-items:center; gap:8px;">
+            <input id="inputActive" type="checkbox" checked style="width:16px; height:16px; cursor:pointer;">
+            <label for="inputActive" style="font-size:0.85rem; color:#374151; cursor:pointer;">Activo (recibe
+                notificaciones)</label>
+        </div>
+
+        <div style="display:flex; gap:10px; justify-content:flex-end;">
+            <button onclick="closeModal()"
+                style="padding:8px 18px; border:1px solid #ddd; border-radius:5px; background:white; cursor:pointer; font-size:0.85rem; color:#374151;">Cancelar</button>
+            <button onclick="saveSub()"
+                style="padding:8px 20px; background:#714B67; color:white; border:none; border-radius:5px; cursor:pointer; font-size:0.85rem; font-weight:600;">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"
+    style="display:none; position:fixed; bottom:20px; right:20px; background:#1e293b; color:white; padding:12px 20px; border-radius:8px; font-size:0.85rem; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // ── Init ─────────────────────────────────────────────────────
+    // Fix modal display style
+    document.getElementById('modalSub').style.display = 'none';
+
+    window.addEventListener('DOMContentLoaded', loadSubscribers);
+
+    async function loadSubscribers() {
+        try {
+            const res = await fetch('/telegram-admin/api/subscribers');
+            const data = await res.json();
+            renderTable(data);
+        } catch (e) {
+            showToast('❌ Error cargando suscriptores', 4000);
+        }
+    }
+
+    function renderTable(subs) {
+        const tbody = document.getElementById('tbodySubs');
+        document.getElementById('contadorSubs').textContent = subs.length + ' registro(s)';
+
+        if (!subs.length) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:#94a3b8;">
+                <div style="font-size:1.5rem;">📱</div>No hay suscriptores. ¡Agrega el primero!</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = subs.map(s => {
+            const activeLabel = s.is_active
+                ? '<span style="background:#dcfce7; color:#16a34a; padding:2px 8px; border-radius:12px; font-size:0.75rem; font-weight:600;">✓ Activo</span>'
+                : '<span style="background:#f1f5f9; color:#94a3b8; padding:2px 8px; border-radius:12px; font-size:0.75rem;">Inactivo</span>';
+            const typeColor = { 'MP': '#6366f1', 'Stock': '#f59e0b', 'General': '#10b981' }[s.report_type] || '#64748b';
+            const typeBg = { 'MP': '#eef2ff', 'Stock': '#fffbeb', 'General': '#f0fdf4' }[s.report_type] || '#f1f5f9';
+
+            return `<tr style="border-bottom:1px solid #f1f5f9;" 
+                        onmouseover="this.style.background='#f8fafc'" 
+                        onmouseout="this.style.background='white'">
+                <td style="padding:10px 12px; color:#1e293b; font-weight:600;">${escHtml(s.name)}</td>
+                <td style="padding:10px 12px; font-family:monospace; color:#374151; font-size:0.83rem;">${escHtml(s.chat_id)}</td>
+                <td style="padding:10px 12px; text-align:center;">
+                    <span style="background:${typeBg}; color:${typeColor}; padding:2px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;">${s.report_type}</span>
+                </td>
+                <td style="padding:10px 12px; text-align:center;">${activeLabel}</td>
+                <td style="padding:10px 12px; text-align:center; display:flex; gap:6px; justify-content:center;">
+                    <button onclick="testSend(${s.id})" title="Enviar mensaje de prueba"
+                        style="padding:4px 10px; background:#0891b2; color:white; border:none; border-radius:4px; cursor:pointer; font-size:0.75rem;">📨 Test</button>
+                    <button onclick="editSub(${JSON.stringify(s).replace(/"/g, '&quot;')})" title="Editar"
+                        style="padding:4px 10px; background:#f1f5f9; color:#374151; border:1px solid #e2e8f0; border-radius:4px; cursor:pointer; font-size:0.75rem;">✏️</button>
+                    <button onclick="deleteSub(${s.id})" title="Eliminar"
+                        style="padding:4px 10px; background:#fee2e2; color:#dc2626; border:1px solid #fca5a5; border-radius:4px; cursor:pointer; font-size:0.75rem;">🗑️</button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    // ── Modal ────────────────────────────────────────────────────
+    function openAddModal() {
+        document.getElementById('modalTitle').textContent = 'Agregar Suscriptor';
+        document.getElementById('editId').value = '';
+        document.getElementById('inputName').value = '';
+        document.getElementById('inputChatId').value = '';
+        document.getElementById('inputType').value = 'MP';
+        document.getElementById('inputActive').checked = true;
+        document.getElementById('modalSub').style.display = 'flex';
+    }
+
+    function editSub(s) {
+        document.getElementById('modalTitle').textContent = 'Editar Suscriptor';
+        document.getElementById('editId').value = s.id;
+        document.getElementById('inputName').value = s.name;
+        document.getElementById('inputChatId').value = s.chat_id;
+        document.getElementById('inputType').value = s.report_type;
+        document.getElementById('inputActive').checked = s.is_active;
+        document.getElementById('modalSub').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('modalSub').style.display = 'none';
+    }
+
+    async function saveSub() {
+        const id = document.getElementById('editId').value;
+        const payload = {
+            name: document.getElementById('inputName').value.trim(),
+            chat_id: document.getElementById('inputChatId').value.trim(),
+            report_type: document.getElementById('inputType').value,
+            is_active: document.getElementById('inputActive').checked
+        };
+
+        if (!payload.name || !payload.chat_id) {
+            showToast('⚠️ Nombre y Chat ID son obligatorios', 3000);
+            return;
+        }
+
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/telegram-admin/api/subscribers/${id}` : '/telegram-admin/api/subscribers';
+
+        try {
+            const res = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (res.ok) {
+                closeModal();
+                showToast(id ? '✅ Suscriptor actualizado' : '✅ Suscriptor agregado', 3000);
+                loadSubscribers();
+            } else {
+                const err = await res.json();
+                showToast('❌ Error: ' + (err.detail || 'Desconocido'), 4000);
+            }
+        } catch (e) {
+            showToast('❌ Error de conexión', 4000);
+        }
+    }
+
+    async function deleteSub(id) {
+        if (!confirm('¿Eliminar este suscriptor?')) return;
+        try {
+            const res = await fetch(`/telegram-admin/api/subscribers/${id}`, { method: 'DELETE' });
+            if (res.ok) {
+                showToast('🗑️ Suscriptor eliminado', 3000);
+                loadSubscribers();
+            }
+        } catch (e) {
+            showToast('❌ Error al eliminar', 4000);
+        }
+    }
+
+    async function testSend(id) {
+        showToast('📨 Enviando mensaje de prueba...', 3000);
+        try {
+            const res = await fetch(`/telegram-admin/api/test-send/${id}`, { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Mensaje enviado a ${data.name} (${data.chat_id})`, 5000);
+            } else {
+                showToast(`⚠️ ${data.message || 'Error al enviar'} — Verifica TELEGRAM_BOT_TOKEN en el servidor`, 7000);
+            }
+        } catch (e) {
+            showToast('❌ Error de conexión', 4000);
+        }
+    }
+
+    async function sendAllNow() {
+        if (!confirm('¿Generar y enviar el reporte MP a TODOS los suscriptores activos ahora?')) return;
+        showToast('📡 Generando y enviando reporte...', 4000);
+        try {
+            const res = await fetch('/telegram-admin/api/send-all-now', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ Enviado: ${data.result.sent} OK, ${data.result.errors} error(es). ${data.articulos_analizados} artículos analizados.`, 8000);
+            } else {
+                showToast('❌ Error: ' + (data.error || 'Desconocido'), 7000);
+            }
+        } catch (e) {
+            showToast('❌ Error de conexión', 5000);
+        }
+    }
+
+    // Cerrar modal con click fuera
+    document.getElementById('modalSub').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('modalSub')) closeModal();
+    });
+
+    function escHtml(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(msg, dur = 3000) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(() => t.style.display = 'none', dur);
+    }
+</script>
+{% endblock %}
