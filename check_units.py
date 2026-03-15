@@ -1,24 +1,25 @@
-
-from sqlalchemy import text
-from app.external_db import engine_a
+from check_reng_neto_audit import engine, text
 
 def check_units():
-    with engine_a.connect() as conn:
+    with engine.connect() as conn:
+        print("--- Revisando Configuración de Unidades de Venta ---")
         q = text("""
-            SELECT co_art, COUNT(*) as cnt
-            FROM saArtUnidad
-            WHERE uni_principal = 1
-            GROUP BY co_art
-            HAVING COUNT(*) > 1
+        SELECT TOP 10 
+            RTRIM(a.co_art) as co_art, 
+            RTRIM(a.art_des) as art_des, 
+            RTRIM(a.uni_venta) as uni_venta, 
+            RTRIM(a.suni_venta) as suni_venta,
+            (SELECT MAX(equivalencia) FROM saArtUnidad u WHERE u.co_art = a.co_art AND u.co_uni = a.suni_venta) as equiv_suni
+        FROM saArticulo a
+        WHERE a.suni_venta IS NOT NULL AND RTRIM(a.suni_venta) <> ''
         """)
-        results = conn.execute(q).fetchall()
         
-        if results:
-            print(f"FOUND {len(results)} articles with multiple MAIN units!")
-            for row in results:
-                print(f"Art: {row.co_art} - Count: {row.cnt}")
-        else:
-            print("No duplicate Main Units found in saArtUnidad.")
+        try:
+            res = conn.execute(q).fetchall()
+            for r in res:
+                print(dict(r._mapping))
+        except Exception as e:
+            print("Error:", e)
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     check_units()

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import re
 
 from ..dependencies import get_db, templates, get_current_user, get_current_active_user
+from app.cache_utils import cache_response
 from ..models import LogisticsReceptionProduction, LogisticsReceptionMerchandise, LogisticsDispatch, User, ProductionReport, LogisticsRoute
 from .. import schemas, models
 from ..services.auditor import audit_dispatch_task
@@ -291,6 +292,7 @@ async def search_invoices(
         return []
 
 @router.get("/api/external/invoice/{doc_num}/items")
+@cache_response(ttl=120)
 async def get_invoice_items(
     doc_num: str,
     user: User = Depends(get_current_user),
@@ -299,143 +301,215 @@ async def get_invoice_items(
 ):
     """
     Get items for a SPECIFIC invoice using V2 SP.
-    Validates if invoice is already dispatched.
+    Used by /dispatch — validates that the invoice is NOT already in a saved guide.
     """
     try:
-        # 1. Global Validation: Check if invoice already dispatched
-        # Check against LogisticsDispatch items_json
-        # Performance: Ideally we index this, but for now we scan recent or all? 
-        # Using LIKE is risky if format differs. 
-        # Better: Check 'document_ref' if we store it there? No, document_ref is the Guide Number.
-        # We store invoices in items_json OR in the document_ref string sometimes.
-        # Let's check distinct invoices in the timeframe or global? 
-        # User said "no puedes agregar una factura ya incluida en una guia guardada".
-        
-        # Optimized approach: Search text in items_json.
-        # Note: This might be slow if table grows huge.
-        # Safe limit: Last 12 months? Or just all.
-        
+        # Validate: Check if invoice already dispatched and NOT annulled
         already_dispatched = local_db.query(LogisticsDispatch).filter(
-            LogisticsDispatch.items_json.like(f'%\"fact\": \"{doc_num}\"%') 
-            | LogisticsDispatch.items_json.like(f'%\"fact\": \"{doc_num.strip()}\"%')
+            LogisticsDispatch.is_annulled == False,
+            (LogisticsDispatch.items_json.like(f'%"fact": "{doc_num}"%')
+            | LogisticsDispatch.items_json.like(f'%"fact": "{doc_num.strip()}"%'))
         ).first()
-        
+
         if already_dispatched:
-             return {"error": f"La factura {doc_num} ya fue despachada en la Guía {already_dispatched.document_ref}"}
+            return {"error": f"La factura {doc_num} ya fue despachada en la Guía {already_dispatched.document_ref}"}
 
-        # 2. Execute SP V2
-        # Param: doc_num? User said "en vez de co_cli, sera por el doc_num".
-        # Assumption: Param is named @doc_num based on standard.
-        sql = text("EXEC SP_CRM_FacturasPendientesPorClienteV2 @doc_num = :d")
-        result_proxy = db.execute(sql, {"d": doc_num})
-        result = result_proxy.fetchall()
-        
-        if not result:
-            return [] # No items found or invalid invoice
-
-        def get_col(row_map, candidates):
-            for c in candidates:
-                if c in row_map: return row_map[c]
-            keys = list(row_map.keys())
-            for c in candidates:
-                for k in keys:
-                     # Exact match first, then partial?
-                    if c.lower() == k.lower(): return row_map[k]
-            for c in candidates:
-                for k in keys:
-                    if c.lower() in k.lower(): return row_map[k]
-            return None
-
-        final_items = []
-        aggregated = {}
-        
-        # Meta info from first row (assuming uniform)
-        client_name = ""
-        total_factura = 0.0 # From SP column if available, or sum? 
-        # User said "crea un campo en el total al para mostrar el monto total factura" -> in the report?
-        # But implies backend should return it.
-        # Check if SP returns 'monto_total' or similar?
-        # We can sum it up or look for column.
-        
-        for row in result:
-             row_map = row._mapping
-             
-             # Extract Columns
-             fact_num_row = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "").strip()
-             if fact_num_row and fact_num_row != doc_num: pass # Should match if SP filters correctly
-             
-             co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
-             art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
-             co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'units']) or "UNI").strip()
-             num_lote = str(get_col(row_map, ['numero_lote', 'num_lote', 'lote', 'nro_lote', 'Lote']) or "").strip()
-             
-             client_name = str(get_col(row_map, ['Cliente', 'cli_des', 'Nombre Cliente']) or "Cliente Desconocido").strip()
-             
-             # Amounts/Weights
-             raw_units = get_col(row_map, ['Total Articulo', 'total_articulo'])
-             raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas'])
-             raw_net_weight = get_col(row_map, ['Peso', 'peso_neto', 'peso']) # Weight per unit or total? Usually per unit in master, or total in row?
-             # User said: "ajusta el calculo de peso Unidades * el peso en la descripcion del articulo" context: Consolidated Report.
-             # But here we might get it.
-             
-             # Price/Total Amount for Invoice Total
-             # Look for 'monto_total', 'total_neto', 'precio'?
-             # Assuming row has line total.
-             raw_line_total = get_col(row_map, ['monto_renglon', 'total_renglon', 'precio_total']) 
-             if raw_line_total:
-                 try: total_text = float(raw_line_total)
-                 except: total_text = 0.0
-                 total_factura += total_text
-             
-             try: units = float(raw_units) if raw_units is not None else 1.0
-             except: units = 1.0
-             try: boxes = float(raw_boxes) if raw_boxes is not None else 0.0
-             except: boxes = 0.0
-
-             if not co_art: continue
-
-             # Key by (SKU, Batch) to separate batches in list
-             key = (co_art, num_lote)
-             if key not in aggregated:
-                 aggregated[key] = {
-                     "fact_num": fact_num_row, 
-                     "co_art": co_art,
-                     "art_des": art_des,
-                     "co_uni": co_uni, 
-                     "num_lote": num_lote,
-                     "total_articulo": 0.0,
-                     "total_cajas": 0.0,
-                     "unidad_cajas": "CAJ", # Default or extract
-                     "client_name": client_name,
-                     "weight_base": 0.0 # Placeholder
-                 }
-             aggregated[key]['total_articulo'] += units
-             aggregated[key]['total_cajas'] += boxes
-        
-        # If 'total_factura' was effectively 0 (no column), try to get from Header or ignore?
-        # Maybe the SP returns a column 'total_factura' repeated? 
-        # Check one row
-        if result:
-            first = result[0]._mapping
-            # Add 'Total Factura' (from debug) and 'total_neto' (from table default)
-            raw_inv_total = get_col(first, ['Total Factura', 'total_factura', 'monto_total', 'total_final', 'total_neto'])
-            if raw_inv_total:
-                 try: total_factura = float(raw_inv_total)
-                 except: pass
-
-        # Flatten
-        response_list = []
-        for v in aggregated.values():
-            v['total_cajas'] = round(v['total_cajas'], 2)
-            v['invoice_total'] = total_factura # Embed in every item or just use frontend logic? 
-            # Frontend needs it once per invoice.
-            response_list.append(v)
-            
-        return response_list
+        return await _get_invoice_items_data(doc_num, db)
 
     except Exception as e:
-        print(f"Error fetching invoice items V2: {e}")
+        print(f"Error fetching invoice items: {e}")
         return {"error": str(e)}
+
+
+@router.get("/api/external/invoice/{doc_num}/items/no-check")
+async def get_invoice_items_no_check(
+    doc_num: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_external_db),
+):
+    """
+    Get items for a SPECIFIC invoice using V2 SP.
+    Used by /invoice-dispatch — NO restriction on already-dispatched guides.
+    Availability is controlled solely by campo5 (filtered in the search query).
+    """
+    try:
+        return await _get_invoice_items_data(doc_num, db)
+    except Exception as e:
+        print(f"Error fetching invoice items (no-check): {e}")
+        return {"error": str(e)}
+
+
+async def _get_invoice_items_data(doc_num: str, db):
+    """Shared logic: executes SP and returns item list for an invoice."""
+    sql = text("EXEC SP_CRM_FacturasPendientesPorClienteV2 @doc_num = :d")
+    result_proxy = db.execute(sql, {"d": doc_num})
+    result = result_proxy.fetchall()
+
+    if not result:
+        return []
+
+    def get_col(row_map, candidates):
+        for c in candidates:
+            if c in row_map: return row_map[c]
+        keys = list(row_map.keys())
+        for c in candidates:
+            for k in keys:
+                if c.lower() == k.lower(): return row_map[k]
+        for c in candidates:
+            for k in keys:
+                if c.lower() in k.lower(): return row_map[k]
+        return None
+
+    aggregated = {}
+    client_name = ""
+    total_factura = 0.0
+
+    for row in result:
+        row_map = row._mapping
+        fact_num_row = str(get_col(row_map, ['Número Factura', 'fact_num', 'Numero Factura']) or "").strip()
+        co_art = str(get_col(row_map, ['Código Artículo', 'co_art', 'Codigo Articulo']) or "").strip()
+        art_des = str(get_col(row_map, ['Descripción Artículo', 'art_des', 'Descripcion Articulo']) or "").strip()
+        co_uni = str(get_col(row_map, ['Unidad', 'co_uni', 'units']) or "UNI").strip()
+        num_lote = str(get_col(row_map, ['numero_lote', 'num_lote', 'lote', 'nro_lote', 'Lote']) or "").strip()
+        client_name = str(get_col(row_map, ['Cliente', 'cli_des', 'Nombre Cliente']) or "Cliente Desconocido").strip()
+        raw_units = get_col(row_map, ['Total Articulo', 'total_articulo'])
+        raw_boxes = get_col(row_map, ['Cantidad Cajas', 'cantidad_cajas'])
+        raw_line_total = get_col(row_map, ['monto_renglon', 'total_renglon', 'precio_total'])
+        if raw_line_total:
+            try: total_factura += float(raw_line_total)
+            except: pass
+        try: units = float(raw_units) if raw_units is not None else 1.0
+        except: units = 1.0
+        try: boxes = float(raw_boxes) if raw_boxes is not None else 0.0
+        except: boxes = 0.0
+        if not co_art: continue
+        key = (co_art, num_lote)
+        if key not in aggregated:
+            aggregated[key] = {
+                "fact_num": fact_num_row,
+                "co_art": co_art,
+                "art_des": art_des,
+                "co_uni": co_uni,
+                "num_lote": num_lote,
+                "total_articulo": 0.0,
+                "total_cajas": 0.0,
+                "unidad_cajas": "CAJ",
+                "client_name": client_name,
+                "weight_base": 0.0
+            }
+        aggregated[key]['total_articulo'] += units
+        aggregated[key]['total_cajas'] += boxes
+
+    # Try to get invoice total from a header column if available
+    if result:
+        first = result[0]._mapping
+        raw_inv_total = get_col(first, ['Total Factura', 'total_factura', 'monto_total', 'total_final', 'total_neto'])
+        if raw_inv_total:
+            try: total_factura = float(raw_inv_total)
+            except: pass
+
+    response_list = []
+    for v in aggregated.values():
+        v['total_cajas'] = round(v['total_cajas'], 2)
+        v['invoice_total'] = total_factura
+        response_list.append(v)
+
+    return response_list
+
+
+
+@router.get("/api/external/documents/search")
+async def search_documents(
+    q: str,
+    doc_type: Optional[str] = None,
+    db: Session = Depends(get_external_db)
+):
+    """
+    Search both invoices and delivery notes by partial number or client name.
+    Filters by campo5 being empty (NULL or empty string).
+    If doc_type is provided, only searches that specific document type.
+    """
+    if not q or len(q) < 2: return []
+    
+    try:
+        search_val = f"%{q}%"
+        dialect = db.bind.dialect.name
+        
+        # Condition for campo5 is empty (NULL or empty string)
+        # Using LTRIM/RTRIM for extra safety in MSSQL
+        campo5_cond = "(campo5 IS NULL OR LTRIM(RTRIM(campo5)) = '')"
+        
+        results_list = []
+        inv_results = []
+        ne_results = []
+        
+        if dialect == "mssql":
+            # 1. Search Invoices
+            if not doc_type or doc_type == 'invoice':
+                inv_query = text(f"""
+                    SELECT TOP 20 'invoice' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                    FROM saFacturaVenta f
+                    LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (f.campo5 IS NULL OR LTRIM(RTRIM(f.campo5)) = '')
+                    ORDER BY f.doc_num DESC
+                """)
+                inv_results = db.execute(inv_query, {"q": search_val}).fetchall()
+            
+            # 2. Search Delivery Notes
+            if not doc_type or doc_type == 'delivery_note':
+                ne_query = text(f"""
+                    SELECT TOP 20 'delivery_note' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                    FROM saNotaEntregaVenta f
+                    LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (f.campo5 IS NULL OR LTRIM(RTRIM(f.campo5)) = '')
+                    ORDER BY f.doc_num DESC
+                """)
+                ne_results = db.execute(ne_query, {"q": search_val}).fetchall()
+        else:
+            # Fallback for SQLite/others
+            if not doc_type or doc_type == 'invoice':
+                inv_query = text(f"""
+                    SELECT 'invoice' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                    FROM saFacturaVenta f
+                    LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (campo5 IS NULL OR campo5 = '')
+                    ORDER BY f.doc_num DESC
+                    LIMIT 20
+                """)
+                inv_results = db.execute(inv_query, {"q": search_val}).fetchall()
+                
+            if not doc_type or doc_type == 'delivery_note':
+                ne_query = text(f"""
+                    SELECT 'delivery_note' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
+                    FROM saNotaEntregaVenta f
+                    LEFT JOIN saCliente c ON f.co_cli = c.co_cli
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (campo5 IS NULL OR campo5 = '')
+                    ORDER BY f.doc_num DESC
+                    LIMIT 20
+                """)
+                ne_results = db.execute(ne_query, {"q": search_val}).fetchall()
+            
+        for r in inv_results:
+            results_list.append({
+                "doc_type": "invoice",
+                "doc_num": r.doc_num.strip(),
+                "client": r.client_name.strip() if r.client_name else "CLIENTE DESCONOCIDO",
+                "display": f"FACT: {r.doc_num.strip()} - {r.client_name.strip() if r.client_name else '...'}"
+            })
+            
+        for r in ne_results:
+            results_list.append({
+                "doc_type": "delivery_note",
+                "doc_num": r.doc_num.strip(),
+                "client": r.client_name.strip() if r.client_name else "CLIENTE DESCONOCIDO",
+                "display": f"NOTA: {r.doc_num.strip()} - {r.client_name.strip() if r.client_name else '...'}"
+            })
+            
+        return results_list
+        
+    except Exception as e:
+        print(f"Error in unified search: {e}")
+        return []
 
 @router.get("/api/external/delivery_notes/search")
 async def search_delivery_notes(
@@ -451,22 +525,23 @@ async def search_delivery_notes(
     try:
         # Determine SQL dialect for limit syntax
         dialect = db.bind.dialect.name
+        campo5_cond = "(campo5 IS NULL OR LTRIM(RTRIM(campo5)) = '')"
         
         if dialect == "mssql":
-            query = text("""
+            query = text(f"""
                 SELECT TOP 20 f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
                 FROM saNotaEntregaVenta f
                 LEFT JOIN saCliente c ON f.co_cli = c.co_cli
-                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND {campo5_cond}
                 ORDER BY f.doc_num DESC
             """)
         else:
             # Fallback for SQLite/others
-            query = text("""
+            query = text(f"""
                 SELECT f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
-                FROM saNotadentregaventa f
+                FROM saNotaEntregaVenta f
                 LEFT JOIN saCliente c ON f.co_cli = c.co_cli
-                WHERE f.doc_num LIKE :q OR c.cli_des LIKE :q
+                WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND {campo5_cond}
                 ORDER BY f.doc_num DESC
                 LIMIT 20
             """)
@@ -477,8 +552,8 @@ async def search_delivery_notes(
         for r in results:
             data.append({
                 "doc_num": r.doc_num.strip(),
-                "client": r.client_name.strip(),
-                "display": f"{r.doc_num.strip()} - {r.client_name.strip()}"
+                "client": r.client_name.strip() if r.client_name else "CLIENTE DESCONOCIDO",
+                "display": f"{r.doc_num.strip()} - {r.client_name.strip() if r.client_name else '...'}"
             })
             
         return data
@@ -487,6 +562,7 @@ async def search_delivery_notes(
         return []
 
 @router.get("/api/external/delivery_note/{doc_num}/items")
+@cache_response(ttl=120)
 async def get_delivery_note_items(
     doc_num: str,
     user: User = Depends(get_current_user),
@@ -587,6 +663,7 @@ async def get_delivery_note_items(
         return {"error": str(e)}
 
 @router.get("/api/external/client/{co_cli}/pending-invoices")
+@cache_response(ttl=120)
 async def get_pending_invoices(
     co_cli: str,
     user: User = Depends(get_current_user),
@@ -598,9 +675,10 @@ async def get_pending_invoices(
     Returns list of items pending to be dispatched, grouped by Article.
     """
     try:
-        # Check Local History for Duplicate Invoices
+        # Check Local History for Duplicate Invoices (excluding annulled)
         dispatches = local_db.query(LogisticsDispatch.document_ref)\
             .filter(LogisticsDispatch.document_ref.isnot(None))\
+            .filter(LogisticsDispatch.is_annulled == False)\
             .filter(LogisticsDispatch.client_destination.contains(co_cli))\
             .order_by(desc(LogisticsDispatch.date)).limit(200).all()
             
@@ -701,7 +779,8 @@ async def get_pending_invoices(
 
 # ... existing code ...
 
-@router.get("/api/production/pending")
+@router.get("/api/external/pending-production")
+@cache_response(ttl=120)
 async def get_pending_production(
     order_id: Optional[str] = None,
     date_start: Optional[str] = None,
@@ -1327,8 +1406,6 @@ async def search_guides(
     query = query.order_by(LogisticsDispatch.date.desc()).limit(200)
         
     results = query.all()
-        
-    results = query.all()
     
     guides = []
     for r in results:
@@ -1339,10 +1416,33 @@ async def search_guides(
             "document_ref": r.document_ref,
             "guide_number": ref_clean,
             "date": r.date.strftime('%d/%m/%Y'),
-            "client": r.client_destination
+            "client": r.client_destination,
+            "is_annulled": r.is_annulled
         })
         
     return guides
+
+@router.post("/api/dispatch/{dispatch_id}/annul")
+async def annul_dispatch(
+    dispatch_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if not user: raise HTTPException(401)
+    if user.role not in [1, 4]: # Logic or Admin ONLY
+        raise HTTPException(status_code=403, detail="No tiene permisos para anular despachos")
+        
+    dispatch = db.query(LogisticsDispatch).filter(LogisticsDispatch.id == dispatch_id).first()
+    if not dispatch:
+        raise HTTPException(status_code=404, detail="Guía no encontrada")
+        
+    if dispatch.is_annulled:
+        return {"status": "success", "message": "Esta guía ya estaba anulada."}
+        
+    dispatch.is_annulled = True
+    db.commit()
+    
+    return {"status": "success", "message": f"Guía {dispatch.document_ref} anulada exitosamente."}
 
 @router.get("/api/consolidated_report")
 async def get_consolidated_report(
@@ -1683,7 +1783,7 @@ async def update_reception_date(
         
         update_sql = f"""
             UPDATE {table_name}
-            SET campo4 = :date
+            SET campo5 = :date
         """
         
         params = {"date": reception_date, "doc": doc_num}

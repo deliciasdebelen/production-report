@@ -28,8 +28,16 @@ def create_tarball(output_filename):
 
         tar.add("app", arcname="app", filter=filter_func)
         tar.add("scripts", arcname="scripts", filter=filter_func)
-        if os.path.exists("migrate_ai.py"):
-            tar.add("migrate_ai.py", arcname="migrate_ai.py") # Still adding root one? No, remove this check or keep as fallback
+        tar.add("requirements.txt", arcname="requirements.txt")
+        tar.add("Dockerfile", arcname="Dockerfile")
+        tar.add("docker-compose.yml", arcname="docker-compose.yml")
+        tar.add(".dockerignore", arcname=".dockerignore")
+        if os.path.exists("migrate_db.py"):
+            tar.add("migrate_db.py", arcname="migrate_db.py")
+        if os.path.exists("init_support_data.py"):
+            tar.add("init_support_data.py", arcname="init_support_data.py")
+        if os.path.exists("sync_profit_replica.py"):
+            tar.add("sync_profit_replica.py", arcname="sync_profit_replica.py")
         
         # We don't need to add it explicitly if it's in app/ and app/ is added recursively.
         # But 'app' dir logic: tar.add("app", arcname="app", filter=filter_func)
@@ -66,19 +74,39 @@ def deploy():
             return out, err
 
         # Chain commands to preserve Directory context
+        # Chain commands to preserve Directory context
+        print("Starting Deployment Sequence...")
         full_deployment_cmd = (
             f"cd {REMOTE_DIR} && "
             f"tar -xzf {tar_name} && "
-            f"docker-compose down && "
-            f"docker-compose up -d --build && "
-            f"sleep 10 && " # Wait for startup
-            f"docker-compose exec -T web python -m app.migrate_ai"
+            f"echo 'Building images...' && "
+            f"docker-compose build && "
+            f"echo 'Starting Services...' && "
+            f"docker-compose up -d"
         )
         
         run_cmd(full_deployment_cmd)
-            
+        
+        # Note: setup_remote_backups.py is designed to run locally on the server or via paramiko.
+        # But we bundled it in 'scripts/'. If we run it via 'docker exec web', it needs paramiko installed in the container
+        # OR we run it directly via the SSH client we already have open here.
+        # The script uses paramiko to SSH into... localhost? No, the script expects to run from an external machine OR locally.
+        # Let's check setup_remote_backups.py... it connects to HOSTNAME (192.168.1.79).
+        # So it's meant to run from the DEPLOYMENT MACHINE (Laptop), not the server.
+        
+        # CORRECTING STRATEGY: Run setup_backups locally on the laptop after deployment.
+        
         client.close()
         print("Deployment finished successfully.")
+        
+        # Run Backup Setup from Local
+        try:
+             import sys
+             sys.path.append(os.getcwd())
+             from scripts.setup_remote_backups import setup_backups
+             setup_backups()
+        except Exception as e:
+             print(f"Warning: Backup setup failed locally: {e}")
         
         # Cleanup local
         if os.path.exists(tar_name):

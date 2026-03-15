@@ -1,0 +1,130 @@
+﻿======== CUSTOM TRIGGERS ========
+\n--- TR_saDevolucionCliente_CalcularNeto ---
+CREATE TRIGGER TR_saDevolucionCliente_CalcularNeto
+
+ON saDevolucionCliente
+
+AFTER INSERT, UPDATE
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+
+
+    -- Validamos que la actualizaci¾n no haya sido disparada por este mismo trigger
+
+    IF NOT UPDATE(total_bruto) AND NOT UPDATE(monto_imp)
+
+        RETURN;
+
+
+
+    -- Actualizamos basßndonos en los registros de la tabla l¾gica 'inserted'
+
+    UPDATE d
+
+    SET 
+
+        d.total_neto = i.total_bruto + i.monto_imp,
+
+        d.saldo = i.total_bruto + i.monto_imp
+
+    FROM saDevolucionCliente d
+
+    INNER JOIN inserted i ON d.doc_num = i.doc_num
+
+    -- Solo actualizamos si el resultado actual es diferente al cßlculo
+
+    WHERE d.total_neto <> (i.total_bruto + i.monto_imp) 
+
+       OR d.saldo <> (i.total_bruto + i.monto_imp);
+
+END;
+\n--- TR_ForzarTotalesEnDetalle ---
+CREATE TRIGGER [dbo].[TR_ForzarTotalesEnDetalle]
+
+ON [dbo].[saDevolucionClienteReng]
+
+AFTER INSERT, UPDATE
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+    
+
+    -- 1. ACTUALIZACIËN DE RENGLONES (DETALLE)
+
+    -- Ajustamos el reng_neto basßndonos en la factura de origen, 
+
+    -- sin importar si es una devoluci¾n total o parcial.
+
+    UPDATE dvr
+
+    SET 
+
+        -- Forzamos el neto del rengl¾n basado en el precio de la factura original
+
+        dvr.prec_vta = far.prec_vta,
+
+        dvr.reng_neto = (far.prec_vta * dvr.total_art) 
+
+    FROM saDevolucionClienteReng dvr
+
+    INNER JOIN inserted i ON dvr.doc_num = i.doc_num AND dvr.reng_num = i.reng_num
+
+    INNER JOIN saFacturaVentaReng far 
+
+        ON RTRIM(far.doc_num) = RTRIM(dvr.num_doc) 
+
+        AND RTRIM(far.co_art) = RTRIM(dvr.co_art)
+
+    WHERE dvr.num_doc IS NOT NULL; -- Solo si hay una factura de origen
+
+
+
+    -- 2. ACTUALIZACIËN DE CABECERA (TOTALES)
+
+    -- Recalculamos la cabecera sumando los renglones actualizados
+
+    -- Esto garantiza que el total de la devoluci¾n sea coherente con sus partes.
+
+    UPDATE dv
+
+    SET 
+
+        dv.total_bruto = res.nuevo_bruto,
+
+        dv.total_neto = res.nuevo_neto,
+
+        dv.saldo = res.nuevo_neto
+
+    FROM saDevolucionCliente dv
+
+    INNER JOIN (
+
+        SELECT 
+
+            doc_num, 
+
+            SUM(total_art * prec_vta) as nuevo_bruto,
+
+            SUM(reng_neto) as nuevo_neto
+
+        FROM saDevolucionClienteReng
+
+        WHERE doc_num IN (SELECT DISTINCT doc_num FROM inserted)
+
+        GROUP BY doc_num
+
+    ) res ON dv.doc_num = res.doc_num;
+
+
+
+END;
+\n======== TRIGGERS ON saDocumentoVenta ========

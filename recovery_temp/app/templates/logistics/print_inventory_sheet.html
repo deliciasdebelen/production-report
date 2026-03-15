@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Hoja de Toma de Inventario</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            font-size: 12px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f3f3f3;
+        }
+
+        .signature {
+            margin-top: 50px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .line {
+            border-top: 1px solid #000;
+            width: 200px;
+            text-align: center;
+            padding-top: 5px;
+        }
+
+        @media print {
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="no-print" style="margin-bottom: 1rem; text-align: right;">
+        <button onclick="window.print()" style="padding: 10px 20px; font-weight: bold;">🖨️ Imprimir / Guardar
+            PDF</button>
+    </div>
+
+    <div class="header">
+        <h2>DELICIAS DE BELÉN</h2>
+        <h3>HOJA DE TOMA DE INVENTARIO FÍSICO</h3>
+        {% if header %}
+        <p>
+            <strong>Documento:</strong> {{ header.correlative }} <br>
+            <strong>Fecha:</strong> {{ header.date.strftime('%d/%m/%Y') }} &nbsp;&nbsp;&nbsp;
+            <strong>Estado:</strong> {{ header.status }}
+        </p>
+        <p><strong>Notas:</strong> {{ header.notes or '---' }}</p>
+        {% else %}
+        <p>Fecha: ________________________ &nbsp;&nbsp;&nbsp; Departamento: ________________________</p>
+        {% endif %}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 10%;">Código</th>
+                <th style="width: 40%;">Descripción</th>
+                {% if header %}
+                <th style="width: 15%;">Lote</th>
+                <th style="width: 15%;">Cantidad</th>
+                {% else %}
+                <th style="width: 10%;">Unidad</th>
+                <th style="width: 15%;">Conteo 1</th>
+                <th style="width: 15%;">Conteo 2</th>
+                {% endif %}
+                <th style="width: 10%;">Obs</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if header %}
+            {% for line in header.lines %}
+            <tr>
+                <td>{{ line.article_code }}</td>
+                <td>{{ line.article_description }}</td>
+                <td>{{ line.batch }}</td>
+                <td style="text-align: right;">{{ line.quantity }}</td>
+                <td></td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            {% for item in articles %}
+            <tr>
+                <td>{{ item.code }}</td>
+                <td>{{ item.description }}</td>
+                <td style="text-align: center;">{{ item.unit }}</td>
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <div class="signature">
+        <div>
+            <div class="line">Realizado Por</div>
+        </div>
+        <div>
+            <div class="line">Verificado Por</div>
+        </div>
+        <div>
+            <div class="line">Supervisor</div>
+        </div>
+    </div>
+</body>
+
+</html>

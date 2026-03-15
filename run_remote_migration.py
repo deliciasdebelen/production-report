@@ -1,37 +1,43 @@
-
 import paramiko
+import sys
 
+# Configuration
 HOSTNAME = "192.168.1.79"
 USERNAME = "administrador"
 PASSWORD = "GRW7czL3*"
 PORT = 22
 REMOTE_DIR = "/home/administrador/apps/production-report"
 
-def run_remote():
+def run_remote_migration():
+    print(f"Connecting to {HOSTNAME}...")
     client = paramiko.SSHClient()
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     try:
-        client.connect(HOSTNAME, port=PORT, username=USERNAME, password=PASSWORD)
+        client.connect(HOSTNAME, PORT, USERNAME, PASSWORD)
         
-        # Upload
-        sftp = client.open_sftp()
-        sftp.put("add_status_col.py", f"{REMOTE_DIR}/add_status_col_remote.py")
-        sftp.close()
+        cmd = (
+            f"cd {REMOTE_DIR} && "
+            f"docker-compose run --rm web python /app/scripts/migrate_to_pg.py postgresql://app_user:production_password@db:5432/production_db"
+        )
         
-        # Exec
-        cmd = f"cd {REMOTE_DIR} && docker cp add_status_col_remote.py production-report:/app/add_status_col_remote.py && docker exec production-report python /app/add_status_col_remote.py"
+        print(f"Executing: {cmd}")
         stdin, stdout, stderr = client.exec_command(cmd)
         
-        print(stdout.read().decode())
-        print(stderr.read().decode())
-        
-        # Cleanup
-        # client.exec_command(f"rm {REMOTE_DIR}/add_status_col_remote.py")
-
+        # Stream output
+        while True:
+            line = stdout.readline()
+            if not line:
+                break
+            print(line.strip())
+            
+        err = stderr.read().decode()
+        if err:
+            print(f"STDERR: {err}")
+            
     except Exception as e:
         print(f"Error: {e}")
     finally:
         client.close()
 
 if __name__ == "__main__":
-    run_remote()
+    run_remote_migration()

@@ -1,0 +1,91 @@
+# docker-compose.ollama.yml — OPTIMIZADO para 2x Xeon Gold 6130 (48 cores)
+# Servidor: 192.168.1.193 | 48 núcleos | 98GB RAM
+# Actualizado: 2026-02-23
+
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      # Red
+      - OLLAMA_HOST=0.0.0.0:11434
+
+      # ── OPTIMIZACIÓN CPU (2x Xeon Gold 6130 = 48 núcleos) ──
+      # Usar todos los núcleos disponibles para inferencia
+      - OLLAMA_NUM_THREADS=48
+
+      # Mantener modelo en RAM entre peticiones (evita recarga de 40GB)
+      # -1 = mantener indefinidamente (recomendado con 98GB RAM)
+      - OLLAMA_KEEP_ALIVE=-1
+
+      # Peticiones paralelas simultáneas
+      - OLLAMA_NUM_PARALLEL=4
+
+      # Máximo de modelos cargados al mismo tiempo en RAM
+      # belen (42GB) + belen_fast (5GB) = 47GB → caben los dos
+      - OLLAMA_MAX_LOADED_MODELS=2
+
+      # Flash attention para optimizar memoria durante inferencia CPU
+      - OLLAMA_FLASH_ATTENTION=1
+
+      # No purgar modelos del cache
+      - OLLAMA_NOPRUNE=1
+
+    # 2x Xeon: 48 vCPUs disponibles → sin límite de CPU
+    # RAM: 90GB para Ollama (deja 8GB para el resto del sistema)
+    deploy:
+      resources:
+        limits:
+          memory: 90g
+        reservations:
+          memory: 45g
+
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/version" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ai-network
+
+  # Open WebUI — interfaz web para chatear
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - "3000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_SECRET_KEY=prod_secret_webui_belen
+      - WEBUI_AUTH=False
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - ai-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  ollama_models:
+    driver: local
+  open_webui_data:
+    driver: local
+
+networks:
+  ai-network:
+    driver: bridge

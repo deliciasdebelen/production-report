@@ -1,0 +1,516 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Use a wrapper to force dark theme specific to this page if global theme is light -->
+<div class="visor-wrapper">
+    <div class="dashboard-header">
+        <div class="header-left">
+            <h1 class="brand-title">VISOR DE <span class="highlight">PROCESOS</span></h1>
+            <div class="live-indicator">
+                <span class="dot"></span> EN VIVO
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="clock" id="clock">--:--</div>
+            <div class="date" id="date">--/--/----</div>
+        </div>
+    </div>
+
+    <div class="grid-container">
+        <!-- COLUMN 1: PLANNING (AMBER) -->
+        <div class="visor-col col-planning">
+            <div class="glass-card">
+                <div class="card-header-accent accent-warning">
+                    <div class="header-icon"><i class="fas fa-calendar-alt"></i></div>
+                    <div class="header-title">PLANIFICACIÓN</div>
+                    <div class="header-count" id="count-planning">0</div>
+                </div>
+                <div class="card-content custom-scrollbar">
+                    <table class="visor-table">
+                        <thead>
+                            <tr>
+                                <th>ORDEN</th>
+                                <th>ARTÍCULO</th>
+                                <th class="text-center">ESTADO</th>
+                                <th class="text-right">UNIDADES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-planning"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 2: PRODUCTION (GREEN) -->
+        <div class="visor-col col-production">
+            <div class="glass-card">
+                <div class="card-header-accent accent-success">
+                    <div class="header-icon"><i class="fas fa-industry"></i></div>
+                    <div class="header-title">PRODUCCIÓN</div>
+                    <div class="header-count" id="count-production">0</div>
+                </div>
+                <div class="card-content custom-scrollbar">
+                    <table class="visor-table">
+                        <thead>
+                            <tr>
+                                <th>LOTE/DOC</th>
+                                <th>ARTÍCULO</th>
+                                <th class="text-center">ESTADO</th>
+                                <th class="text-right">UNIDADES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-production"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- COLUMN 3: LOGISTICS (CYAN) -->
+        <div class="visor-col col-logistics">
+            <div class="glass-card">
+                <div class="card-header-accent accent-info">
+                    <div class="header-icon"><i class="fas fa-truck-loading"></i></div>
+                    <div class="header-title">LOGÍSTICA</div>
+                    <div class="header-count" id="count-reception">0</div>
+                </div>
+                <div class="card-content custom-scrollbar">
+                    <table class="visor-table">
+                        <thead>
+                            <tr>
+                                <th>REF</th>
+                                <th>PROVEEDOR</th>
+                                <th class="text-center">ESTADO</th>
+                                <th class="text-right">ITEMS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-reception"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* 
+     * MODERN WHITE FACTORY VISOR 
+     * Clean, Bright, Color-Coded
+     */
+    :root {
+        --bg-light: #f1f5f9;
+        /* Slate 100 */
+        --card-bg: #ffffff;
+        --text-primary: #1e293b;
+        /* Slate 800 */
+        --text-secondary: #64748b;
+        /* Slate 500 */
+        --border-color: #e2e8f0;
+    }
+
+    .visor-wrapper {
+        background-color: var(--bg-light);
+        min-height: calc(100vh - 80px);
+        color: var(--text-primary);
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        padding: 1rem;
+    }
+
+    /* HEADER */
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .brand-title {
+        font-size: 2rem;
+        font-weight: 800;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+        margin: 0;
+        color: #0f172a;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .brand-title .highlight {
+        color: #3b82f6;
+        /* Blue brand */
+    }
+
+    .live-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(220, 38, 38, 0.1);
+        color: #dc2626;
+        padding: 4px 10px;
+        border-radius: 99px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        margin-left: 15px;
+    }
+
+    .dot {
+        width: 8px;
+        height: 8px;
+        background-color: #dc2626;
+        border-radius: 50%;
+        animation: pulse 1.5s infinite;
+    }
+
+    .header-right {
+        text-align: right;
+    }
+
+    .clock {
+        font-size: 2.2rem;
+        font-weight: 300;
+        letter-spacing: -0.05em;
+        line-height: 1;
+        font-feature-settings: "tnum";
+        color: #334155;
+    }
+
+    .date {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+    }
+
+    /* GRID */
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        flex: 1;
+        min-height: 0;
+        /* Prevent overflow issues */
+    }
+
+    .visor-col {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        min-height: 0;
+    }
+
+    /* CARDS */
+    .glass-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* HEADER ACCENTS */
+    .card-header-accent {
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #f1f5f9;
+        background: #fff;
+    }
+
+    .accent-warning {
+        border-bottom-color: #f59e0b;
+    }
+
+    .accent-success {
+        border-bottom-color: #10b981;
+    }
+
+    .accent-info {
+        border-bottom-color: #06b6d4;
+    }
+
+    .header-icon {
+        font-size: 1.5rem;
+        opacity: 0.8;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #f8fafc;
+        color: #475569;
+    }
+
+    .header-title {
+        font-size: 1.1rem;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        color: #475569;
+        text-transform: uppercase;
+        flex: 1;
+        margin-left: 1rem;
+    }
+
+    .header-count {
+        font-size: 1.8rem;
+        font-weight: 700;
+        font-feature-settings: "tnum";
+        color: #0f172a;
+    }
+
+    /* TABLE */
+    .card-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+    }
+
+    .visor-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .visor-table thead th {
+        position: sticky;
+        top: 0;
+        background: #f8fafc;
+        color: #64748b;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .visor-table thead th.text-right {
+        text-align: right;
+    }
+
+    /* ROW STYLING WITH DYNAMIC BORDER */
+    .visor-row {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.2s;
+    }
+
+    .visor-row td {
+        padding: 1rem;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        vertical-align: middle;
+    }
+
+    .visor-row td.qty {
+        font-weight: 700;
+        font-size: 1.1rem;
+        text-align: right;
+    }
+
+    .order-tag {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #fff;
+        background: #94a3b8;
+        /* Default fallback */
+    }
+
+    /* ANIMATION */
+    @keyframes pulse {
+        0% {
+            opacity: 1;
+            box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4);
+        }
+
+        70% {
+            opacity: 0.5;
+            box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+        }
+
+        100% {
+            opacity: 1;
+            box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+        }
+    }
+
+    /* SCROLLBAR */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* RESPONSIVE BREAKPOINTS */
+    @media (max-width: 1024px) {
+        .grid-container {
+            /* Keep grid but perhaps tighten gaps */
+            gap: 1rem;
+        }
+
+        .brand-title {
+            font-size: 1.5rem;
+        }
+
+        .clock {
+            font-size: 1.8rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .visor-wrapper {
+            padding: 0.5rem;
+            min-height: auto;
+            /* Allow scrolling on long mobile */
+        }
+
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .header-right {
+            align-self: flex-end;
+            text-align: right;
+            margin-top: -3.5rem;
+            /* Tuck next to title if space */
+        }
+
+        .grid-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visor-col {
+            min-height: 400px;
+            /* Force visual height for each section */
+        }
+
+        /* Adjust headers for mobile */
+        .brand-title {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+<!-- Ensure Icons work if valid key, otherwise assume user has FA -->
+<!-- If no FA key, we can rely on text or simple SVG, but let's assume project has it or add CDN for Free version -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script>
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('clock').textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('date').textContent = now.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    async function loadVisorData() {
+        try {
+            const res = await fetch('/api/visor/dashboard-data');
+            if (!res.ok) throw new Error("Error fetching data");
+            const data = await res.json();
+            console.log("Visor Payload:", data);
+
+            // 1. Planning (Planning Items)
+            // Adapter: map API fields to UI fields
+            const planningItems = data.pending.map(i => ({
+                col1: `<span class="primary-text">#${i.order_number || i.id}</span>
+                       <span class="sub-text">${i.date}</span>`,
+                col2: `<span class="primary-text" title="${i.article}">${i.article_short || i.article}</span>
+                       <span class="sub-text">${i.presentation} | ${i.batches} Batches</span>`,
+                colStatus: `<span class="order-tag">${i.status || 'Pendiente'}</span>`,
+                col3: `<span class="primary-text">${(i.units_pending || i.units || 0).toLocaleString()}</span>`
+            }));
+            renderTable('table-planning', planningItems, 'count-planning', data.pending.length);
+
+            // 2. Production (Processed Items)
+            const productionItems = data.processed.map(i => ({
+                col1: `<span class="primary-text">#${i.order_number || i.id}</span>
+                       <span class="sub-text">${i.date || new Date(i.created_at).toLocaleDateString()}</span>`,
+                col2: `<span class="primary-text" title="${i.article}">${i.article_short || i.article || i.article_type}</span>
+                       <span class="sub-text">${i.presentation} | ${i.boxes || 0} Cajas</span>`,
+                colStatus: `<span class="order-tag" style="background:#10b981;">${i.status || 'Procesado'}</span>`,
+                col3: `<span class="primary-text" style="color:SpringGreen;">+${(i.pt_units || 0).toLocaleString()}</span>`
+            }));
+            renderTable('table-production', productionItems, 'count-production', data.processed.length);
+
+            // 3. Logistics (Reception)
+            const receptionItems = data.reception.map(i => {
+                let count = 0;
+                try { count = JSON.parse(i.items_json).length; } catch (e) { }
+
+                // Logic to handle both Production (Internal) and Merchandise (External) if mixed in future
+                // Currently API only returns ProductionReceptions which have: order_number, product_name, quantity
+                const ref = i.document_ref || (i.order_number ? 'Ord #' + i.order_number : 'S/N');
+                const title = i.supplier || i.product_name || 'Desconocido';
+                const qtyDisplay = i.quantity ? `${i.quantity} Unds` : `${count} Items`;
+                const status = i.status || 'Confirmado';
+                const dateObj = i.created_at ? new Date(i.created_at) : new Date();
+
+                return {
+                    col1: `<span class="primary-text">${ref}</span>
+                           <span class="sub-text">${dateObj.toLocaleDateString()}</span>`,
+                    col2: `<span class="primary-text">${title}</span>`,
+                    colStatus: `<span class="order-tag" style="background:#06b6d4;">${status}</span>`,
+                    col3: `<span class="primary-text">${qtyDisplay}</span>`
+                };
+            });
+            renderTable('table-reception', receptionItems, 'count-reception', data.reception.length);
+
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function renderTable(tbodyId, items, countId, count) {
+        document.getElementById(countId).innerText = count;
+        const tbody = document.getElementById(tbodyId);
+
+        if (items.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding: 2rem; color: rgba(255,255,255,0.3);">Sin actividad reciente</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = items.map(item => `
+            <tr>
+                <td>${item.col1}</td>
+                <td>${item.col2}</td>
+                <td class="text-center">${item.colStatus}</td>
+                <td class="text-right">${item.col3}</td>
+            </tr>
+        `).join('');
+    }
+
+    loadVisorData();
+    setInterval(loadVisorData, 10000); // 10s fast refresh for live feel
+</script>
+{% endblock %}

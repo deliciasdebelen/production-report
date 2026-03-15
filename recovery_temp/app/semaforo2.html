@@ -1,0 +1,968 @@
+{% extends "base.html" %}
+{% block title %}Semáforo de Ventas v2{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    /* ── RESET & TOKENS ─────────────────────────────────────────────*/
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    :root {
+        --bg: #0d1117;
+        --sidebar: #111827;
+        --card: #161d2a;
+        --card2: #1c2333;
+        --border: #253047;
+        --teal: #06b6d4;
+        --teal-dim: rgba(6, 182, 212, .15);
+        --blue: #3b82f6;
+        --green: #22c55e;
+        --red: #ef4444;
+        --yellow: #eab308;
+        --text: #e2e8f0;
+        --muted: #64748b;
+        --label: #94a3b8;
+        --sidebar-w: 230px;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        font-size: 13px;
+        min-height: 100vh;
+    }
+
+    /* ── LAYOUT ─────────────────────────────────────────────────────*/
+    .s2-wrap {
+        display: flex;
+        height: calc(100vh - 56px);
+        overflow: hidden;
+    }
+
+    .s2-sidebar {
+        width: var(--sidebar-w);
+        min-width: var(--sidebar-w);
+        background: var(--sidebar);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow-y: auto;
+        padding: 16px 12px;
+        gap: 14px;
+    }
+
+    .s2-main {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    /* ── SIDEBAR ────────────────────────────────────────────────────*/
+    .brand-logo {
+        background: linear-gradient(135deg, #0f2044, #0d3068);
+        border-radius: 10px;
+        padding: 14px 10px;
+        text-align: center;
+        border: 1px solid var(--border);
+    }
+
+    .brand-logo .brand-name {
+        font-size: 1rem;
+        font-weight: 800;
+        letter-spacing: .04em;
+        color: var(--teal);
+    }
+
+    .brand-logo .brand-sub {
+        font-size: .65rem;
+        color: var(--muted);
+        letter-spacing: .1em;
+        text-transform: uppercase;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .filter-label {
+        font-size: .68rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+    }
+
+    .filter-input {
+        background: var(--card2);
+        border: 1px solid var(--border);
+        color: var(--text);
+        border-radius: 6px;
+        padding: 7px 10px;
+        font-size: .82rem;
+        width: 100%;
+        outline: none;
+        transition: border-color .2s;
+    }
+
+    .filter-input:focus {
+        border-color: var(--teal);
+    }
+
+    .filter-input option {
+        background: #1c2333;
+    }
+
+    .filter-date-row {
+        display: flex;
+        gap: 4px;
+    }
+
+    .filter-date-row .filter-input {
+        font-size: .76rem;
+        padding: 6px 6px;
+    }
+
+    .tipo-venta-btns {
+        display: flex;
+        gap: 4px;
+    }
+
+    .tipo-btn {
+        flex: 1;
+        padding: 7px 4px;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: var(--card2);
+        color: var(--label);
+        font-size: .72rem;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        transition: all .2s;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .tipo-btn.active {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: #000;
+    }
+
+    .tipo-btn:hover:not(.active) {
+        border-color: var(--teal);
+        color: var(--teal);
+    }
+
+    .meta-input-wrap {
+        position: relative;
+    }
+
+    .meta-input-wrap .currency {
+        position: absolute;
+        left: 9px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--muted);
+        font-size: .8rem;
+    }
+
+    .meta-input-wrap .filter-input {
+        padding-left: 22px;
+    }
+
+    .s2-divider {
+        border: none;
+        border-top: 1px solid var(--border);
+        margin: 4px 0;
+    }
+
+    .apply-btn {
+        background: linear-gradient(135deg, var(--teal), var(--blue));
+        color: #000;
+        font-weight: 700;
+        border: none;
+        border-radius: 8px;
+        padding: 10px;
+        width: 100%;
+        cursor: pointer;
+        font-size: .85rem;
+        letter-spacing: .04em;
+        transition: opacity .2s;
+        text-transform: uppercase;
+    }
+
+    .apply-btn:hover {
+        opacity: .85;
+    }
+
+    .apply-btn:active {
+        opacity: .7;
+    }
+
+    .sidebar-footer {
+        margin-top: auto;
+        padding-top: 8px;
+    }
+
+    .last-update {
+        font-size: .68rem;
+        color: var(--muted);
+        text-align: center;
+    }
+
+    /* ── HEADER TÍTULO ──────────────────────────────────────────────*/
+    .dash-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+        letter-spacing: .02em;
+    }
+
+    .dash-subtitle {
+        font-size: .78rem;
+        color: var(--muted);
+    }
+
+    /* ── TABS TIPO VALOR ────────────────────────────────────────────*/
+    .tipo-tabs {
+        display: flex;
+        gap: 2px;
+        background: var(--card2);
+        border-radius: 8px;
+        padding: 3px;
+        width: fit-content;
+    }
+
+    .tipo-tab {
+        padding: 6px 18px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: .75rem;
+        font-weight: 600;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        transition: all .2s;
+        border: 1px solid transparent;
+    }
+
+    .tipo-tab.active {
+        background: var(--teal);
+        color: #000;
+    }
+
+    .tipo-tab:hover:not(.active) {
+        color: var(--teal);
+    }
+
+    /* ── CARDS KPI TOP ──────────────────────────────────────────────*/
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 8px;
+    }
+
+    .kpi-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 12px 14px;
+    }
+
+    .kpi-card .kpi-label {
+        font-size: .66rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        margin-bottom: 4px;
+    }
+
+    .kpi-card .kpi-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        line-height: 1;
+    }
+
+    .kpi-card .kpi-pct {
+        font-size: .72rem;
+        color: var(--muted);
+        margin-top: 3px;
+    }
+
+    .kpi-card.meta .kpi-value {
+        color: var(--text);
+    }
+
+    .kpi-card.cump .kpi-value {
+        color: var(--yellow);
+    }
+
+    .kpi-card.proy .kpi-value {
+        color: var(--blue);
+    }
+
+    .kpi-card.fact .kpi-value {
+        color: var(--teal);
+    }
+
+    .kpi-card.pend .kpi-value {
+        color: var(--yellow);
+    }
+
+    .kpi-card.total .kpi-value {
+        color: var(--green);
+    }
+
+    /* ── SUMMARY CARDS ──────────────────────────────────────────────*/
+    .summary-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
+    }
+
+    .sum-card {
+        background: var(--card2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 14px;
+        text-align: center;
+    }
+
+    .sum-card .sum-label {
+        font-size: .66rem;
+        text-transform: uppercase;
+        letter-spacing: .07em;
+        color: var(--muted);
+    }
+
+    .sum-card .sum-val {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--teal);
+        margin-top: 2px;
+    }
+
+    /* ── CHARTS GRID ────────────────────────────────────────────────*/
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+    }
+
+    .chart-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 220px;
+    }
+
+    .chart-card.wide {
+        grid-column: 1 / -1;
+    }
+
+    .chart-title {
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .08em;
+        color: var(--label);
+    }
+
+    .chart-wrap {
+        flex: 1;
+        position: relative;
+    }
+
+    /* ── BOTTOM STATS ───────────────────────────────────────────────*/
+    .bottom-stats {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 8px;
+    }
+
+    .stat-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        text-align: center;
+    }
+
+    .stat-card .stat-val {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text);
+    }
+
+    .stat-card .stat-label {
+        font-size: .62rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+
+    /* ── LOADER / ERROR ─────────────────────────────────────────────*/
+    .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(13, 17, 23, .85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        flex-direction: column;
+        gap: 12px;
+        backdrop-filter: blur(4px);
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border);
+        border-top-color: var(--teal);
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .overlay-text {
+        color: var(--label);
+        font-size: .9rem;
+    }
+
+    /* ── RESPONSIVE ─────────────────────────────────────────────────*/
+    @media (max-width: 900px) {
+        .s2-sidebar {
+            display: none;
+        }
+
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-row {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .bottom-stats {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="s2-wrap">
+
+    <!-- ═══════ SIDEBAR ══════════════════════════════════════════ -->
+    <aside class="s2-sidebar">
+        <div class="brand-logo">
+            <div class="brand-name">🏭 LAS DELICIAS</div>
+            <div class="brand-sub">de Belén</div>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Empresa</div>
+            <select class="filter-input" id="f-empresa">
+                <option value="">Todas</option>
+                <option value="LDB">Las Delicias de Belén</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Fecha</div>
+            <div class="filter-date-row">
+                <input type="date" class="filter-input" id="f-fecha-ini">
+                <input type="date" class="filter-input" id="f-fecha-fin">
+            </div>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Vendedor</div>
+            <select class="filter-input" id="f-vendedor">
+                <option value="">Todos</option>
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <div class="filter-label">Tipo de Venta</div>
+            <div class="tipo-venta-btns">
+                <button class="tipo-btn active" data-tipo="" onclick="setTipoVenta(this)">Todos</button>
+                <button class="tipo-btn" data-tipo="consignacion" onclick="setTipoVenta(this)">Cons.</button>
+                <button class="tipo-btn" data-tipo="venta_firme" onclick="setTipoVenta(this)">Firme</button>
+            </div>
+        </div>
+
+        <hr class="s2-divider">
+
+        <div class="filter-group">
+            <div class="filter-label">Meta del Período</div>
+            <div class="meta-input-wrap">
+                <span class="currency">$</span>
+                <input type="number" class="filter-input" id="f-meta" placeholder="0.00" step="100" min="0">
+            </div>
+        </div>
+
+        <button class="apply-btn" onclick="aplicarFiltros()">⚡ Actualizar</button>
+
+        <hr class="s2-divider">
+
+        <div class="sidebar-footer">
+            <div class="last-update" id="last-update">—</div>
+        </div>
+    </aside>
+
+    <!-- ═══════ MAIN ═════════════════════════════════════════════ -->
+    <main class="s2-main">
+
+        <!-- Título + Tabs -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="dash-title" id="dash-titulo">Semáforo <span id="periodo-label">—</span></div>
+                <div class="dash-subtitle">Tipo de Valor →</div>
+            </div>
+            <div class="tipo-tabs" id="tipo-tabs">
+                <div class="tipo-tab active" data-val="cajas" onclick="setTipoValor(this)">CAJAS</div>
+                <div class="tipo-tab" data-val="kilos" onclick="setTipoValor(this)">KILOS</div>
+                <div class="tipo-tab" data-val="toneladas" onclick="setTipoValor(this)">TONELADAS</div>
+                <div class="tipo-tab" data-val="unidades" onclick="setTipoValor(this)">UNIDADES</div>
+            </div>
+        </div>
+
+        <!-- KPIs principales -->
+        <div class="kpi-row">
+            <div class="kpi-card meta">
+                <div class="kpi-label">Meta</div>
+                <div class="kpi-value" id="k-meta">—</div>
+            </div>
+            <div class="kpi-card cump">
+                <div class="kpi-label">Cumplimiento %</div>
+                <div class="kpi-value" id="k-cump">—</div>
+            </div>
+            <div class="kpi-card proy">
+                <div class="kpi-label">Cumplimiento Proyectado %</div>
+                <div class="kpi-value" id="k-proy">—</div>
+            </div>
+            <div class="kpi-card fact">
+                <div class="kpi-label">Facturado Neto USD</div>
+                <div class="kpi-value" id="k-fact">—</div>
+            </div>
+            <div class="kpi-card pend">
+                <div class="kpi-label">Pedidos Pendientes USD</div>
+                <div class="kpi-value" id="k-pend">—</div>
+            </div>
+            <div class="kpi-card total">
+                <div class="kpi-label">Fact. + Pedidos Pend.</div>
+                <div class="kpi-value" id="k-total">—</div>
+            </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="summary-row">
+            <div class="sum-card">
+                <div class="sum-label">Facturado</div>
+                <div class="sum-val" id="s-fact">—</div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-label">Total Devolución</div>
+                <div class="sum-val" id="s-dev" style="color:var(--red)">—</div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-label">Pedidos Pendientes</div>
+                <div class="sum-val" id="s-pend" style="color:var(--yellow)">—</div>
+            </div>
+            <div class="sum-card">
+                <div class="sum-label">Fact. Neto + Pedidos</div>
+                <div class="sum-val" id="s-total" style="color:var(--green)">—</div>
+            </div>
+        </div>
+
+        <!-- Gráficos: 3 columnas -->
+        <div class="charts-grid">
+            <!-- Resumen por Marca -->
+            <div class="chart-card">
+                <div class="chart-title">Resumen por Marca</div>
+                <div class="chart-wrap"><canvas id="chart-marca"></canvas></div>
+            </div>
+
+            <!-- Corporativo vs FDV -->
+            <div class="chart-card">
+                <div class="chart-title">Corporativo vs Fuerza de Ventas</div>
+                <div class="chart-wrap"><canvas id="chart-canal"></canvas></div>
+            </div>
+
+            <!-- Pedidos por tipo -->
+            <div class="chart-card">
+                <div class="chart-title">Pedidos Pendientes por Tipo</div>
+                <div class="chart-wrap"><canvas id="chart-tipo"></canvas></div>
+            </div>
+
+            <!-- Diario — ancho completo -->
+            <div class="chart-card wide">
+                <div class="chart-title">Resumen Diario de Facturación y Pedidos</div>
+                <div class="chart-wrap"><canvas id="chart-diario" height="70"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Bottom stats -->
+        <div class="bottom-stats">
+            <div class="stat-card">
+                <div class="stat-val" id="bs-dias-periodo">—</div>
+                <div class="stat-label">Días en Período</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="bs-dias-fact">—</div>
+                <div class="stat-label">Días con Facturación</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="bs-prom-cal">—</div>
+                <div class="stat-label">Promedio Día (Calendario)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="bs-prom-act">—</div>
+                <div class="stat-label">Promedio Día (Activos)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="bs-facturas">—</div>
+                <div class="stat-label">Nº de Facturas Únicas</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-val" id="bs-prom-fact">—</div>
+                <div class="stat-label">Promedio Facturación Diaria</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Loader -->
+<div class="overlay" id="loader">
+    <div class="spinner"></div>
+    <div class="overlay-text" id="loader-msg">Conectando con Carmal…</div>
+</div>
+
+<script>
+    // ── Estado global ────────────────────────────────────────────────
+    let state = {
+        tipoValor: 'cajas',
+        tipoVenta: '',
+        charts: {}
+    };
+    const fmt = (n, d = 2) => new Intl.NumberFormat('es-VE', { minimumFractionDigits: d, maximumFractionDigits: d }).format(n || 0);
+    const fmtUSD = (n) => '$' + fmt(n);
+    const fmtPct = (n) => fmt(n, 2) + ' %';
+
+    // ── Inicialización ───────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        initFechas();
+        await cargarVendedores();
+        await aplicarFiltros();
+    });
+
+    function initFechas() {
+        const hoy = new Date();
+        const ini = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        const fmt = d => d.toISOString().slice(0, 10);
+        document.getElementById('f-fecha-ini').value = fmt(ini);
+        document.getElementById('f-fecha-fin').value = fmt(hoy);
+    }
+
+    async function cargarVendedores() {
+        try {
+            const r = await fetch('/semaforo2/api/vendedores');
+            if (!r.ok) return;
+            const data = await r.json();
+            const sel = document.getElementById('f-vendedor');
+            data.forEach(v => {
+                const opt = document.createElement('option');
+                opt.value = v.co_ven;
+                opt.textContent = v.ven_des;
+                sel.appendChild(opt);
+            });
+        } catch { }
+    }
+
+    function setTipoVenta(btn) {
+        document.querySelectorAll('.tipo-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.tipoVenta = btn.dataset.tipo;
+    }
+
+    function setTipoValor(tab) {
+        document.querySelectorAll('.tipo-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        state.tipoValor = tab.dataset.val;
+        aplicarFiltros();
+    }
+
+    async function aplicarFiltros() {
+        showLoader('Consultando datos en Carmal…');
+
+        const fi = document.getElementById('f-fecha-ini').value;
+        const ff = document.getElementById('f-fecha-fin').value;
+        const ven = document.getElementById('f-vendedor').value;
+        const meta = parseFloat(document.getElementById('f-meta').value) || 0;
+
+        const params = new URLSearchParams({
+            fecha_ini: fi, fecha_fin: ff,
+            vendedor: ven, tipo_venta: state.tipoVenta,
+            tipo_valor: state.tipoValor, meta: meta
+        });
+
+        try {
+            const r = await fetch(`/semaforo2/api/dashboard?${params}`);
+            const data = await r.json();
+            renderDashboard(data);
+            document.getElementById('last-update').textContent =
+                'Última actualización: ' + new Date().toLocaleTimeString('es-VE');
+            // Periodo label
+            const meses = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+            const d = new Date(fi + 'T00:00:00');
+            document.getElementById('periodo-label').textContent =
+                meses[d.getMonth()] + ' ' + d.getFullYear();
+        } catch (e) {
+            console.error(e);
+            showLoader('Error de conexión — ' + e.message, true);
+            return;
+        }
+
+        hideLoader();
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────────
+    function renderDashboard(data) {
+        const k = data.kpis;
+        const st = data.stats;
+
+        // KPIs
+        document.getElementById('k-meta').textContent = k.meta > 0 ? fmt(k.meta, 0) : 'Sin Meta';
+        document.getElementById('k-cump').textContent = fmtPct(k.cumplimiento_pct);
+        document.getElementById('k-proy').textContent = fmtPct(k.cumplimiento_proyectado_pct);
+        document.getElementById('k-fact').textContent = fmtUSD(k.facturado_neto);
+        document.getElementById('k-pend').textContent = fmtUSD(k.pedidos_usd);
+        document.getElementById('k-total').textContent = fmtUSD(k.facturado_mas_pedidos);
+
+        // Summary
+        document.getElementById('s-fact').textContent = fmt(k.facturado_usd, 0);
+        document.getElementById('s-dev').textContent = fmt(k.devolucion_usd, 0);
+        document.getElementById('s-pend').textContent = fmt(k.pedidos_usd, 0);
+        document.getElementById('s-total').textContent = fmt(k.facturado_mas_pedidos, 0);
+
+        // Bottom stats
+        document.getElementById('bs-dias-periodo').textContent = st.dias_periodo;
+        document.getElementById('bs-dias-fact').textContent = st.dias_con_facturacion;
+        document.getElementById('bs-prom-cal').textContent = fmt(st.promedio_dia_calendario, 0);
+        document.getElementById('bs-prom-act').textContent = fmt(st.promedio_dia_activos, 0);
+        document.getElementById('bs-facturas').textContent = st.num_facturas;
+        document.getElementById('bs-prom-fact').textContent = fmt(st.promedio_fact_diaria, 2);
+
+        // Charts
+        renderMarcas(data.por_marca);
+        renderCanal(data.por_canal);
+        renderTipo(data.por_tipo_pedido);
+        renderDiario(data.diario);
+    }
+
+    // Paleta de azules/teals
+    const PALETTE = ['#06b6d4', '#3b82f6', '#6366f1', '#8b5cf6', '#0ea5e9', '#22d3ee', '#818cf8'];
+
+    function mkChart(id, config) {
+        if (state.charts[id]) state.charts[id].destroy();
+        const ctx = document.getElementById(id);
+        if (!ctx) return;
+        state.charts[id] = new Chart(ctx, config);
+    }
+
+    function renderMarcas(data) {
+        if (!data?.length) return;
+        mkChart('chart-marca', {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.marca),
+                datasets: [{
+                    data: data.map(d => d.valor),
+                    backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
+                    borderRadius: 4, borderSkipped: false
+                }]
+            },
+            options: chartOpts({ legend: false, indexAxis: 'y' })
+        });
+    }
+
+    function renderCanal(data) {
+        if (!data?.length) return;
+        mkChart('chart-canal', {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.canal),
+                datasets: [
+                    {
+                        label: 'Fact. Neto + Pedidos',
+                        data: data.map(d => d.valor),
+                        backgroundColor: ['#3b82f6', '#06b6d4'],
+                        borderRadius: 4, yAxisID: 'y', order: 2
+                    },
+                    {
+                        label: '%',
+                        data: data.map(d => d.pct),
+                        type: 'line',
+                        borderColor: '#f472b6', pointBackgroundColor: '#f472b6',
+                        borderWidth: 2, pointRadius: 5,
+                        yAxisID: 'y2', order: 1, fill: false
+                    }
+                ]
+            },
+            options: {
+                ...chartOpts({ legend: true }),
+                scales: {
+                    x: darkAxis(),
+                    y: darkAxis(),
+                    y2: { ...darkAxis(), position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%', color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function renderTipo(data) {
+        if (!data?.length) return;
+        mkChart('chart-tipo', {
+            type: 'bar',
+            data: {
+                labels: data.map(d => d.tipo),
+                datasets: [
+                    {
+                        label: 'Pedidos',
+                        data: data.map(d => d.pedidos),
+                        backgroundColor: ['#06b6d4', '#ef4444'],
+                        borderRadius: 4, yAxisID: 'y', order: 2
+                    },
+                    {
+                        label: '%',
+                        data: data.map(d => d.pct),
+                        type: 'line',
+                        borderColor: '#f59e0b', pointBackgroundColor: '#f59e0b',
+                        borderWidth: 2, pointRadius: 5,
+                        yAxisID: 'y2', order: 1, fill: false
+                    }
+                ]
+            },
+            options: {
+                ...chartOpts({ legend: true }),
+                scales: {
+                    x: darkAxis(),
+                    y: darkAxis(),
+                    y2: { ...darkAxis(), position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => v + '%', color: '#64748b' } }
+                }
+            }
+        });
+    }
+
+    function renderDiario(data) {
+        if (!data?.length) return;
+        mkChart('chart-diario', {
+            type: 'bar',
+            data: {
+                labels: data.map(d => {
+                    const dt = new Date(d.dia + 'T00:00:00');
+                    return dt.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit' });
+                }),
+                datasets: [
+                    {
+                        label: 'Facturado',
+                        data: data.map(d => d.facturado),
+                        backgroundColor: 'rgba(6,182,212,.75)',
+                        borderRadius: 3, order: 2
+                    },
+                    {
+                        label: 'Pedidos Pendientes',
+                        data: data.map(d => d.pedidos_pendientes),
+                        type: 'line',
+                        borderColor: '#f59e0b', pointBackgroundColor: '#f59e0b',
+                        borderWidth: 2, pointRadius: 4, fill: false, order: 1
+                    },
+                    {
+                        label: 'Total Devolución',
+                        data: data.map(d => 0), // placeholder — backend puede añadir
+                        type: 'line',
+                        borderColor: '#ef4444', pointBackgroundColor: '#ef4444',
+                        borderWidth: 1.5, pointRadius: 3, fill: false, order: 1
+                    }
+                ]
+            },
+            options: {
+                ...chartOpts({ legend: true }),
+                scales: {
+                    x: { ...darkAxis(), ticks: { maxRotation: 45, font: { size: 10 }, color: '#64748b' } },
+                    y: darkAxis()
+                }
+            }
+        });
+    }
+
+    // ── Chart helpers ────────────────────────────────────────────────
+    function darkAxis() {
+        return {
+            grid: { color: 'rgba(37,48,71,.6)' },
+            ticks: { color: '#64748b', font: { size: 10 } },
+            border: { color: '#253047' }
+        };
+    }
+
+    function chartOpts({ legend = true, indexAxis = 'x' } = {}) {
+        return {
+            responsive: true, maintainAspectRatio: false,
+            indexAxis,
+            plugins: {
+                legend: { display: legend, labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12 } },
+                tooltip: {
+                    backgroundColor: '#1c2333', titleColor: '#e2e8f0', bodyColor: '#94a3b8',
+                    borderColor: '#253047', borderWidth: 1,
+                    callbacks: { label: ctx => ` ${fmt(ctx.raw)}` }
+                }
+            },
+            scales: { x: darkAxis(), y: darkAxis() }
+        };
+    }
+
+    // ── Loader ───────────────────────────────────────────────────────
+    function showLoader(msg = '', isError = false) {
+        const el = document.getElementById('loader');
+        el.style.display = 'flex';
+        document.getElementById('loader-msg').textContent = msg;
+        if (isError) {
+            el.querySelector('.spinner').style.display = 'none';
+            setTimeout(hideLoader, 3000);
+        }
+    }
+    function hideLoader() {
+        const el = document.getElementById('loader');
+        el.style.display = 'none';
+        el.querySelector('.spinner').style.display = 'block';
+    }
+
+    // Auto-refresh cada 10 minutos
+    setInterval(aplicarFiltros, 10 * 60 * 1000);
+</script>
+{% endblock %}

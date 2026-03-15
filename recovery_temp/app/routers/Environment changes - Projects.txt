@@ -1,0 +1,31 @@
+# Terminal Environment Changes
+
+## Extension: vscode.git
+
+Enables the following features: git auth provider
+
+- `GIT_ASKPASS=c:\Users\ovargas\AppData\Local\Programs\Antigravity\resources\app\extensions\git\dist\askpass.sh`
+- `VSCODE_GIT_ASKPASS_NODE=C:\Users\ovargas\AppData\Local\Programs\Antigravity\Antigravity.exe`
+- `VSCODE_GIT_ASKPASS_EXTRA_ARGS=`
+- `VSCODE_GIT_ASKPASS_MAIN=c:\Users\ovargas\AppData\Local\Programs\Antigravity\resources\app\extensions\git\dist\askpass-main.js`
+- `VSCODE_GIT_IPC_HANDLE=\\.\pipe\vscode-git-e3ecc50540-sock`
+
+## Extension: vscjava.vscode-java-debug
+
+- `VSCODE_JDWP_ADAPTER_ENDPOINTS=c:\Users\ovargas\.antigravity\extensions\vscjava.vscode-java-debug-0.58.3-universal\.noConfigDebugAdapterEndpoints\endpoint-fd9b924e4d7057e9.txt`
+- `VSCODE_JAVA_EXEC=C:\Program Files\Java\jdk-21\bin\java`
+- `PATH=${env:PATH};c:\Users\ovargas\.antigravity\extensions\vscjava.vscode-java-debug-0.58.3-universal\bundled\scripts\noConfigScripts`
+
+## Extension: ms-python.debugpy
+
+Enables use of [no-config debugging](https://github.com/microsoft/vscode-python-debugger/wiki/No%E2%80%90Config-Debugging), `debugpy <script.py>`, in the terminal.
+
+- `PYDEVD_DISABLE_FILE_VALIDATION=1`
+- `VSCODE_DEBUGPY_ADAPTER_ENDPOINTS=c:\Users\ovargas\.antigravity\extensions\ms-python.debugpy-2025.14.1-win32-x64\.noConfigDebugAdapterEndpoints\endpoint-fd9b924e4d7057e9.txt`
+- `PATH=${env:PATH};c:\Users\ovargas\.antigravity\extensions\ms-python.debugpy-2025.14.1-win32-x64\bundled\scripts\noConfigScripts`
+- `BUNDLED_DEBUGPY_PATH=c:\Users\ovargas\.antigravity\extensions\ms-python.debugpy-2025.14.1-win32-x64\bundled\libs\debugpy`
+
+## Extension: ms-python.python
+
+- `PYTHONSTARTUP=c:\Users\ovargas\AppData\Roaming\Antigravity\User\workspaceStorage\52133d20a56abac24b2d7114ca22eaad\ms-python.python\pythonrc.py`
+- `PYTHON_BASIC_REPL=1`

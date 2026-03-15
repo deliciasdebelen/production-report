@@ -1,0 +1,424 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    .odoo-header {
+        background-color: #ffffff;
+        border-bottom: 1px solid #dee2e6;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .odoo-btn-primary {
+        background-color: #017e84;
+        color: white;
+        border: 1px solid #017e84;
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .odoo-btn-primary:hover {
+        background-color: #016a6f;
+    }
+
+    .odoo-btn-secondary {
+        background-color: #ffffff;
+        color: #374151;
+        border: 1px solid #d1d5db;
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-size: 14px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .odoo-btn-secondary:hover {
+        background-color: #f3f4f6;
+    }
+
+    .odoo-sheet {
+        background-color: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 24px 32px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .odoo-ribbon {
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 150px;
+        padding: 5px 0;
+        text-align: center;
+        background: #28a745;
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        text-transform: uppercase;
+        transform: rotate(45deg) translate(30%, -150%);
+        transform-origin: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: none;
+    }
+
+    .odoo-ribbon.active {
+        display: block;
+    }
+
+    .odoo-title {
+        font-size: 24px;
+        color: #111827;
+        margin-bottom: 24px;
+        font-weight: 500;
+        width: 75%;
+    }
+
+    .odoo-form-group {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+
+    .odoo-label {
+        width: 180px;
+        font-weight: 600;
+        color: #4b5563;
+        font-size: 13px;
+        padding-top: 6px;
+    }
+
+    .odoo-control {
+        flex: 1;
+        max-width: 450px;
+    }
+
+    .odoo-input {
+        width: 100%;
+        padding: 5px 8px;
+        border: 1px solid #d1d5db;
+        border-radius: 3px;
+        font-size: 13px;
+        color: #111827;
+        background-color: #ffffff;
+    }
+
+    .odoo-input:focus {
+        outline: none;
+        border-color: #017e84;
+        box-shadow: 0 0 0 1px #017e84;
+    }
+
+    .odoo-help {
+        font-size: 11px;
+        color: #6b7280;
+        margin-top: 4px;
+    }
+
+    /* Toggle switch for checkbox */
+    .odoo-switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+        margin-top: 4px;
+    }
+
+    .odoo-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .odoo-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #e5e7eb;
+        transition: .3s;
+        border-radius: 20px;
+        border: 1px solid #d1d5db;
+    }
+
+    .odoo-slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    }
+
+    input:checked+.odoo-slider {
+        background-color: #017e84;
+        border-color: #017e84;
+    }
+
+    input:checked+.odoo-slider:before {
+        transform: translateX(16px);
+    }
+
+    /* Notebook / Tabs styling */
+    .odoo-notebook {
+        margin-top: 35px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        gap: 20px;
+    }
+
+    .odoo-tab {
+        padding: 8px 4px;
+        cursor: pointer;
+        color: #4b5563;
+        font-weight: 500;
+        font-size: 13px;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+    }
+
+    .odoo-tab:hover {
+        color: #111827;
+    }
+
+    .odoo-tab.active {
+        color: #017e84;
+        border-bottom: 2px solid #017e84;
+    }
+
+    .odoo-tab-content {
+        padding: 20px 0;
+    }
+
+    #consoleLog {
+        background: #f8f9fa;
+        color: #111827;
+        padding: 15px;
+        border: 1px solid #e5e7eb;
+        border-radius: 4px;
+        font-family: Consolas, "Courier New", monospace;
+        font-size: 12px;
+        min-height: 150px;
+        max-height: 400px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+    }
+</style>
+
+<div style="padding: 0; background-color: #f9f9f9; min-height: calc(100vh - 60px);">
+
+    <!-- Odoo Action Header -->
+    <div class="odoo-header">
+        <div style="display:flex; gap: 8px; align-items: center;">
+            <button class="odoo-btn-primary" onclick="saveConfig()">Guardar</button>
+            <button class="odoo-btn-secondary" onclick="loadConfig()">Descartar Cambios</button>
+        </div>
+        <div>
+            <span style="color: #6b7280; font-size: 13px; margin-right: 15px;">Automatización Mismatch</span>
+            <button class="odoo-btn-secondary" onclick="runNow()" title="Ejecutar el bot ahora mismo en el servidor">
+                <span style="color: #017e84; font-weight:bold;">⚡</span> Ejecutar Manualmente
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Sheet -->
+    <div class="odoo-sheet">
+        <!-- Status Ribbon -->
+        <div id="activeRibbon" class="odoo-ribbon">Activo</div>
+
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div class="odoo-title">
+                Centro de Notificaciones: Discrepancias (Devoluciones y NCR)
+            </div>
+        </div>
+
+        <div class="odoo-form-group">
+            <div class="odoo-label">Activo</div>
+            <div class="odoo-control" style="padding-top:2px;">
+                <label class="odoo-switch">
+                    <input type="checkbox" id="inputActive" onchange="toggleRibbon()">
+                    <span class="odoo-slider"></span>
+                </label>
+                <div class="odoo-help">Si está desactivado, el scheduler supervisor de discrepancias será ignorado.
+                </div>
+            </div>
+        </div>
+
+        <div class="odoo-form-group">
+            <div class="odoo-label">Cronograma</div>
+            <div class="odoo-control">
+                <input type="text" id="inputCron" class="odoo-input" style="font-family: monospace;"
+                    placeholder="Ej: 30 7,12 * * *">
+                <div class="odoo-help">
+                    Expresión CRON estándar. (Ej: <code>30 7,12 * * *</code> se ejecuta diariamente a las 7:30 AM y
+                    12:30 PM).
+                </div>
+            </div>
+        </div>
+
+        <div class="odoo-form-group">
+            <div class="odoo-label">Notificar a (Emails)</div>
+            <div class="odoo-control">
+                <input type="text" id="inputEmails" class="odoo-input"
+                    placeholder="correo1@dominio.com, correo2@dominio.com">
+                <div class="odoo-help">Separar múltiples direcciones con una coma (,). Recibirán un reporte
+                    post-ejecución si existen descuadres.</div>
+            </div>
+        </div>
+
+        <!-- Odoo Notebook Tabs -->
+        <div class="odoo-notebook">
+            <div class="odoo-tab active" onclick="switchTab(1)" id="tabCtrl1">Consola de Ejecución</div>
+            <div class="odoo-tab" onclick="switchTab(2)" id="tabCtrl2">Información Técnica</div>
+        </div>
+
+        <div class="odoo-tab-content" id="tabContent1">
+            <pre id="consoleLog">No se ha ejecutado ninguna orden en esta sesión...</pre>
+        </div>
+
+        <div class="odoo-tab-content" id="tabContent2" style="display:none;">
+            <div style="font-size: 13px; color: #374151; line-height: 1.6; max-width: 700px;">
+                <strong>Secuencia asignada al Agente (OpenClaw):</strong>
+                <ol style="padding-left: 20px; color: #4b5563; margin-top: 8px;">
+                    <li>Conectarse al servidor secundario de BD SQL Server (`192.168.1.205`).</li>
+                    <li>Ejecutar script de validación de base de datos (`carmal_a`).</li>
+                    <li>Validar <em>saDevolucionCliente</em> comparando campos base del renglón contra totales de
+                        cabecera.</li>
+                    <li>Validar <em>saNotaCreditoCliente</em> para detectar montos positivos erróneos en campo `saldo`,
+                        ocasionados por triggers defectuosos.</li>
+                    <li>Sintetizar lista de discrepancias identificando el `doc_num` afectado y el margen de error
+                        detectado.</li>
+                    <li>Enviar reporte final detallado vía Email.</li>
+                </ol>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Simple Toast -->
+<div id="toast"
+    style="display:none; position:fixed; bottom:20px; right:20px; background:#111827; color:white; padding:12px 20px; border-radius:4px; font-size:13px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); z-index:9999;">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    window.addEventListener('DOMContentLoaded', loadConfig);
+
+    function switchTab(tabId) {
+        document.getElementById('tabCtrl1').classList.remove('active');
+        document.getElementById('tabCtrl2').classList.remove('active');
+        document.getElementById('tabContent1').style.display = 'none';
+        document.getElementById('tabContent2').style.display = 'none';
+
+        document.getElementById('tabCtrl' + tabId).classList.add('active');
+        document.getElementById('tabContent' + tabId).style.display = 'block';
+    }
+
+    function toggleRibbon() {
+        const isActive = document.getElementById('inputActive').checked;
+        const ribbon = document.getElementById('activeRibbon');
+        if (isActive) {
+            ribbon.classList.add('active');
+            ribbon.style.background = '#28a745';
+            ribbon.innerText = 'Activo';
+        } else {
+            ribbon.style.background = '#6c757d';
+            ribbon.innerText = 'Archivado / Inactivo';
+        }
+    }
+
+    async function loadConfig() {
+        try {
+            const res = await fetch('/mismatch-admin/api/config');
+            const data = await res.json();
+            document.getElementById('inputEmails').value = data.emails;
+            document.getElementById('inputCron').value = data.cron_schedule;
+            document.getElementById('inputActive').checked = data.is_active;
+            toggleRibbon();
+        } catch (e) {
+            showToast('Error cargando la configuración. Servidor inaccesible.');
+        }
+    }
+
+    async function saveConfig() {
+        showToast('Guardando...');
+        const payload = {
+            emails: document.getElementById('inputEmails').value.trim(),
+            cron_schedule: document.getElementById('inputCron').value.trim(),
+            is_active: document.getElementById('inputActive').checked
+        };
+        try {
+            const res = await fetch('/mismatch-admin/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (res.ok) {
+                if (data.warning) {
+                    showToast('Guardado. Alerta: ' + data.warning);
+                } else {
+                    showToast('Configuración guardada exitosamente.');
+                }
+            } else {
+                showToast('Error al guardar en base de datos.');
+            }
+        } catch (e) {
+            showToast('Error de red al intentar guardar.');
+        }
+    }
+
+    async function runNow() {
+        switchTab(1); // switch to console tab
+        if (!confirm('¿Desea despachar el agente bot manualmente para buscar discrepancias ahora mismo? Toma algunos minutos.')) return;
+        showToast('Iniciando secuencias del agente bot. No recargue.');
+
+        const logger = document.getElementById('consoleLog');
+        logger.textContent = "> Inicializando conexión SSH e inyectando prompt de Mismatch...\n> Esperando respuesta remota y ejecución...\n\n";
+
+        try {
+            const res = await fetch('/mismatch-admin/api/run-now', { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                showToast('Supervisión finalizada con éxito.');
+                logger.textContent += "--- TERMINADO CORRECTAMENTE ---\n\n" + data.output;
+            } else {
+                const err = await res.json();
+                showToast('Ocurrió un error en la automatización.');
+                logger.textContent += "--- ERROR ---\n\n" + (err.detail || 'Fallo en la ejecución remota.');
+            }
+        } catch (e) {
+            showToast('Time-out o error de enlace.');
+            logger.textContent += "--- ENLACE CORTADO ---\nNetwork Timeout o error de conexión.";
+        }
+    }
+
+    function showToast(msg, dur = 3000) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.style.display = 'block';
+        clearTimeout(window._toastTimer);
+        window._toastTimer = setTimeout(() => t.style.display = 'none', dur);
+    }
+</script>
+{% endblock %}

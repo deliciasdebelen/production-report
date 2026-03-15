@@ -1,0 +1,262 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="flex-between" style="margin-bottom: 2rem;">
+    <div>
+        <h1 style="margin-bottom: 0.5rem;">📈 Proyección de Ventas</h1>
+        <p style="color: var(--text-muted);">Estimación basada en Promedio Móvil (3 Meses) y Ajuste Manual.</p>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; gap: 1rem; align-items: end; margin-bottom: 1.5rem;">
+        <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Mes</label>
+            <select id="selMonth" class="form-control" style="width: 150px;">
+                <option value="1">Enero</option>
+                <option value="2">Febrero</option>
+                <option value="3">Marzo</option>
+                <option value="4">Abril</option>
+                <option value="5">Mayo</option>
+                <option value="6">Junio</option>
+                <option value="7">Julio</option>
+                <option value="8">Agosto</option>
+                <option value="9">Septiembre</option>
+                <option value="10">Octubre</option>
+                <option value="11">Noviembre</option>
+                <option value="12">Diciembre</option>
+            </select>
+        </div>
+        <div>
+            <label style="font-weight: 600; font-size: 0.85rem; display: block; margin-bottom: 0.25rem;">Año</label>
+            <input type="number" id="inpYear" class="form-control" style="width: 100px;" value="{{ default_year }}">
+        </div>
+        <button onclick="loadForecast()" class="btn btn-primary" style="background: var(--primary); color: white;">⚡
+            Calcular Proyección</button>
+        <button onclick="saveForecast()" class="btn btn-primary"
+            style="background: #10b981; color: white; display: none;" id="btnSave">💾 Congelar Estimación</button>
+    </div>
+
+    <div id="loadingIndicator" style="display:none; text-align: center; padding: 2rem; color: var(--primary);">
+        ⏳ Consultando histórico de facturación en Profit Plus...
+    </div>
+
+    <!-- Stats summary -->
+    <div id="summaryStats" style="display: none; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div style="background: #f1f5f9; padding: 1rem; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: #64748b;">SKUs Evaluados</div>
+            <div id="statSkus" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">0</div>
+        </div>
+        <div style="background: #fdf4ff; padding: 1rem; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: #a21caf;">Unidades Sugeridas (Algoritmo)</div>
+            <div id="statAvg" style="font-size: 1.5rem; font-weight: bold; color: #86198f;">0</div>
+        </div>
+        <div style="background: #ecfdf5; padding: 1rem; border-radius: 8px;">
+            <div style="font-size: 0.8rem; color: #047857;">Proyección Final (Ajustada)</div>
+            <div id="statFinal" style="font-size: 1.5rem; font-weight: bold; color: #065f46;">0</div>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table class="table" style="width: 100%; border-collapse: collapse; display: none;" id="forecastTable">
+            <thead>
+                <tr style="background: var(--surface);">
+                    <th style="padding: 1rem; text-align: left; border-bottom: 2px solid var(--border); width: 15%; cursor: pointer;"
+                        onclick="setSort('co_art')" title="Clic para ordenar">
+                        Código <span id="sort_co_art" style="font-size: 0.8rem; color: var(--primary);"></span>
+                    </th>
+                    <th style="padding: 1rem; text-align: left; border-bottom: 2px solid var(--border); width: 25%; cursor: pointer;"
+                        onclick="setSort('article_name')" title="Clic para ordenar">
+                        Artículo <span id="sort_article_name" style="font-size: 0.8rem; color: var(--primary);">▲</span>
+                    </th>
+                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid var(--border); color: #64748b; cursor: pointer; width: 15%;"
+                        onclick="setSort('total_past_3m')" title="Clic para ordenar">
+                        Venta Histórica<br><small id="lblHistoryDates" style="font-weight:normal;"></small> <span
+                            id="sort_total_past_3m" style="font-size: 0.8rem;"></span>
+                    </th>
+                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid var(--border); color: #3b82f6; cursor: pointer; width: 20%;"
+                        onclick="setSort('suggested_qty')" title="Clic para ordenar">
+                        Sug. Mensual<br><small>(Promedio Móvil)</small> <span id="sort_suggested_qty"
+                            style="font-size: 0.8rem;"></span>
+                        <div style="font-size: 0.75rem; font-weight: normal; margin-top: 0.2rem;">UND / CAJ</div>
+                    </th>
+                    <th style="padding: 1rem; text-align: center; border-bottom: 2px solid var(--border); color: #10b981; cursor: pointer; width: 20%;"
+                        onclick="setSort('estimated_qty')" title="Clic para ordenar">
+                        Proyección Final<br><small>(Ajustable)</small> <span id="sort_estimated_qty"
+                            style="font-size: 0.8rem;"></span>
+                        <div style="font-size: 0.75rem; font-weight: normal; margin-top: 0.2rem;">UND / CAJ</div>
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="forecastBody">
+                <!-- Rows injected here -->
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const canEditStr = "{{ 'true' if user and user.role in [1, 4, 8] else 'false' }}";
+    const canEdit = (canEditStr === "true");
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById('selMonth').value = "{{ default_month }}";
+    });
+
+    let currentForecastData = [];
+    let displayData = [];
+    let sortCol = 'article_name';
+    let sortAsc = true;
+
+    async function loadForecast() {
+        const m = document.getElementById('selMonth').value;
+        const y = document.getElementById('inpYear').value;
+
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('forecastTable').style.display = 'none';
+        document.getElementById('summaryStats').style.display = 'none';
+        document.getElementById('btnSave').style.display = 'none';
+
+        try {
+            const res = await fetch(`/sales/api/forecast/generate?month=${m}&year=${y}`);
+            if (!res.ok) throw new Error("Error interno");
+
+            const data = await res.json();
+            currentForecastData = data.data;
+
+            document.getElementById('lblHistoryDates').innerText = `${data.start_history} - ${data.end_history}`;
+
+            applyFilter();
+
+            document.getElementById('forecastTable').style.display = 'table';
+            document.getElementById('summaryStats').style.display = 'grid';
+            document.getElementById('btnSave').style.display = 'block';
+        } catch (e) {
+            console.error(e);
+            alert("No se pudo cargar la sugerencia.");
+        } finally {
+            document.getElementById('loadingIndicator').style.display = 'none';
+        }
+    }
+
+    function setSort(col) {
+        if (sortCol === col) {
+            sortAsc = !sortAsc;
+        } else {
+            sortCol = col;
+            sortAsc = true;
+        }
+        applyFilter();
+    }
+
+    function applyFilter() {
+        // Since we removed inputs, displayData is exactly the same array, just sorted
+        displayData = [...currentForecastData];
+
+        displayData.sort((a, b) => {
+            let va = a[sortCol];
+            let vb = b[sortCol];
+            if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+            return sortAsc ? va - vb : vb - va;
+        });
+
+        ['co_art', 'article_name', 'total_past_3m', 'suggested_qty', 'estimated_qty'].forEach(c => {
+            const el = document.getElementById('sort_' + c);
+            if (el) el.innerText = (c === sortCol) ? (sortAsc ? '▲' : '▼') : '';
+        });
+
+        renderTable();
+    }
+
+    function renderTable() {
+        const tbody = document.getElementById('forecastBody');
+        tbody.innerHTML = '';
+
+        let sumAvg = 0;
+        let sumFinal = 0;
+
+        currentForecastData.forEach(row => {
+            sumAvg += row.suggested_qty;
+            sumFinal += row.estimated_qty;
+        });
+
+        displayData.forEach((row) => {
+            const idx = currentForecastData.indexOf(row);
+            const isAdj = Math.abs(row.suggested_qty - row.estimated_qty) > 0.01;
+            const bg = isAdj ? 'background: #f0fdf4;' : '';
+
+            const equivText = (row.equiv > 1) ? ` <span style="color: #94a3b8; font-size: 0.8rem;">/ ${row.suggested_boxes.toLocaleString()} CJ</span>` : '';
+            const finalEquivText = (row.equiv > 1) ? `<div style="font-size: 0.85rem; color: #10b981; margin-top: 0.3rem;">${row.estimated_boxes.toLocaleString()} CJ</div>` : '';
+
+            const tr = document.createElement('tr');
+            tr.style.cssText = `border-bottom: 1px solid var(--border); ${bg}`;
+            tr.innerHTML = `
+                <td style="padding: 0.75rem; font-family: monospace; font-size: 0.85rem;">${row.co_art}</td>
+                <td style="padding: 0.75rem; font-size: 0.9rem; font-weight: 500;">${row.article_name}</td>
+                <td style="padding: 0.75rem; text-align: center; color: #64748b; font-weight: 500;">${row.total_past_3m.toLocaleString()}</td>
+                <td style="padding: 0.75rem; text-align: center; font-weight: 600; color: #3b82f6;">
+                    ${row.suggested_qty.toLocaleString()} UND<br>${equivText}
+                </td>
+                <td style="padding: 0.75rem; text-align: center;">
+                    <input type="number" step="0.01" value="${row.estimated_qty}" 
+                    style="width: 100px; padding: 0.4rem; border: 1px solid ${isAdj ? '#10b981' : 'var(--border)'}; border-radius: 4px; text-align: center; font-weight: bold; color: ${isAdj ? '#047857' : 'inherit'};"
+                    onchange="updateEstimatedQty(${idx}, this.value)"
+                    ${canEdit ? "" : "disabled"} >
+                    ${finalEquivText}
+                </td >
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('statSkus').innerText = currentForecastData.length;
+        document.getElementById('statAvg').innerText = Math.round(sumAvg).toLocaleString();
+        document.getElementById('statFinal').innerText = Math.round(sumFinal).toLocaleString();
+    }
+
+    function updateEstimatedQty(idx, val) {
+        let num = parseFloat(val);
+        if (isNaN(num) || num < 0) num = 0;
+
+        let row = currentForecastData[idx];
+        row.estimated_qty = num;
+        if (row.equiv > 1) {
+            row.estimated_boxes = Math.round((num / row.equiv) * 100) / 100;
+        }
+
+        applyFilter();
+    }
+
+    async function saveForecast() {
+        const payload = {
+            month: parseInt(document.getElementById('selMonth').value),
+            year: parseInt(document.getElementById('inpYear').value),
+            rows: currentForecastData
+        };
+
+        const btn = document.getElementById('btnSave');
+        const origText = btn.innerText;
+        btn.innerText = "Guardando...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/sales/api/forecast/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                alert("✅ " + data.message);
+            } else {
+                alert("❌ Error: " + data.detail);
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Error de conexión al guardar.");
+        } finally {
+            btn.innerText = origText;
+            btn.disabled = false;
+        }
+    }
+</script>
+{% endblock %}

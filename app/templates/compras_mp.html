@@ -1,0 +1,350 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div style="padding: 0;">
+
+    <!-- Header / Control Panel -->
+    <div
+        style="background: white; border-bottom: 1px solid #e2e8f0; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="flex: 1;">
+            <h2 style="margin: 0; font-size: 1.1rem; color: #1e293b; font-weight: 700;">🧮 Análisis MP vs Compras</h2>
+            <p style="margin: 2px 0 0; font-size: 0.78rem; color: #64748b;">Demanda de Materia Prima (PT en
+                Ventas/Pedidos/Cotizaciones) vs Órdenes de Compra</p>
+        </div>
+
+        <!-- Filtros inline -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <input type="date" id="fechaIni"
+                style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.82rem;">
+            <span style="color: #999; font-size: 0.8rem;">→</span>
+            <input type="date" id="fechaFin"
+                style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.82rem;">
+        </div>
+
+        <!-- Checkboxes documentos -->
+        <div style="display: flex; align-items: center; gap: 10px; font-size: 0.82rem; color: #374151;">
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                <input type="checkbox" id="chkVentas" checked> Facturas
+            </label>
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                <input type="checkbox" id="chkPedidos" checked> Pedidos
+            </label>
+            <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                <input type="checkbox" id="chkCotizaciones"> Cotizaciones
+            </label>
+        </div>
+
+        <button onclick="loadDashboard()" id="btnRefresh"
+            style="background: #714B67; color: white; border: none; padding: 7px 16px; border-radius: 4px; cursor: pointer; font-size: 0.82rem; font-weight: 600; display: flex; align-items: center; gap: 5px;">
+            🔄 Actualizar
+        </button>
+
+        <button onclick="triggerAlert()"
+            style="background: #0891b2; color: white; border: none; padding: 7px 14px; border-radius: 4px; cursor: pointer; font-size: 0.82rem; display: flex; align-items: center; gap: 5px;"
+            title="Enviar alerta Telegram ahora">
+            📱 Enviar Alerta
+        </button>
+    </div>
+
+    <!-- KPI Cards -->
+    <div
+        style="padding: 16px 20px 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;">
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #6366f1;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #1e293b;" id="kpiTotal">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">Artículos MP</div>
+        </div>
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #ef4444;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #ef4444;" id="kpiCriticos">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">🔴 Críticos (&lt;50%)</div>
+        </div>
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #f59e0b;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #f59e0b;" id="kpiAlertas">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">🟡 En Alerta (50-80%)</div>
+        </div>
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #10b981;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #10b981;" id="kpiOk">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">🟢 Cubiertos (&gt;80%)</div>
+        </div>
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #8b5cf6;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #8b5cf6;" id="kpiCobertura">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">% Cobertura Global</div>
+        </div>
+        <div class="kpi-card"
+            style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; text-align: center; border-left: 4px solid #f97316;">
+            <div style="font-size: 1.8rem; font-weight: 700; color: #f97316;" id="kpiDeficit">—</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 3px;">Déficit Total MP</div>
+        </div>
+    </div>
+
+    <!-- Gráfico de barras -->
+    <div style="padding: 16px 20px 0;">
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+            <h3 style="margin: 0 0 12px; font-size: 0.9rem; color: #374151; font-weight: 600;">Top 10 — Requerido vs
+                Comprado</h3>
+            <div style="position: relative; height: 240px;">
+                <canvas id="chartBar"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla principal -->
+    <div style="padding: 16px 20px 20px;">
+        <div style="background: white; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <div
+                style="padding: 12px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 0.9rem; color: #374151; font-weight: 600;">Detalle por Artículo MP</h3>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="filtroTabla" placeholder="Buscar artículo..." onkeyup="filterTable()"
+                        style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem; width: 200px;">
+                    <select id="filtroSemaforo" onchange="filterTable()"
+                        style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.8rem;">
+                        <option value="">Todos</option>
+                        <option value="rojo">🔴 Críticos</option>
+                        <option value="amarillo">🟡 Alertas</option>
+                        <option value="verde">🟢 OK</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table id="tablaMP" style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                    <thead>
+                        <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                            <th style="padding: 10px 12px; text-align: left; color: #475569; font-weight: 600;">Artículo
+                                MP</th>
+                            <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">Unid.
+                            </th>
+                            <th style="padding: 10px 12px; text-align: right; color: #475569; font-weight: 600;">
+                                Requerido</th>
+                            <th style="padding: 10px 12px; text-align: right; color: #475569; font-weight: 600;">
+                                Comprado</th>
+                            <th style="padding: 10px 12px; text-align: right; color: #ef4444; font-weight: 600;">Déficit
+                            </th>
+                            <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">
+                                Cobertura</th>
+                            <th style="padding: 10px 12px; text-align: center; color: #475569; font-weight: 600;">Estado
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyMP">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px; color: #94a3b8;">
+                                <div style="font-size: 1.5rem;">🔄</div>
+                                Cargando datos...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Toast notification -->
+<div id="toast"
+    style="display:none; position:fixed; bottom:20px; right:20px; background:#1e293b; color:white; padding:12px 20px; border-radius:8px; font-size:0.85rem; z-index:9999; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    let allData = [];
+    let chartInstance = null;
+
+    // ── Init ─────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+        const hoy = new Date();
+        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        document.getElementById('fechaIni').value = primerDia.toISOString().split('T')[0];
+        document.getElementById('fechaFin').value = hoy.toISOString().split('T')[0];
+        loadDashboard();
+    });
+
+    async function loadDashboard() {
+        const fi = document.getElementById('fechaIni').value;
+        const ff = document.getElementById('fechaFin').value;
+        const ventas = document.getElementById('chkVentas').checked;
+        const pedidos = document.getElementById('chkPedidos').checked;
+        const cotizaciones = document.getElementById('chkCotizaciones').checked;
+
+        const btn = document.getElementById('btnRefresh');
+        btn.textContent = '⏳ Cargando...';
+        btn.disabled = true;
+
+        setLoadingState(true);
+
+        try {
+            const params = new URLSearchParams({
+                fecha_ini: fi,
+                fecha_fin: ff,
+                include_ventas: ventas,
+                include_pedidos: pedidos,
+                include_cotizaciones: cotizaciones
+            });
+            const res = await fetch(`/compras-mp/api/dashboard?${params}`);
+            const data = await res.json();
+
+            if (data.errors && Object.keys(data.errors).length > 0) {
+                console.warn('Errores del backend:', data.errors);
+            }
+
+            allData = data.balance || [];
+            renderKpis(data.kpis || {});
+            renderTable(allData);
+            renderChart(allData.slice(0, 10));
+
+        } catch (e) {
+            console.error(e);
+            showToast('❌ Error al cargar datos: ' + e.message, 5000);
+        } finally {
+            btn.textContent = '🔄 Actualizar';
+            btn.disabled = false;
+            setLoadingState(false);
+        }
+    }
+
+    function renderKpis(k) {
+        document.getElementById('kpiTotal').textContent = k.total_articulos ?? '—';
+        document.getElementById('kpiCriticos').textContent = k.criticos ?? '—';
+        document.getElementById('kpiAlertas').textContent = k.alertas ?? '—';
+        document.getElementById('kpiOk').textContent = k.ok ?? '—';
+        document.getElementById('kpiCobertura').textContent = (k.cobertura_global_pct ?? '—') + '%';
+        document.getElementById('kpiDeficit').textContent = formatNum(k.total_deficit ?? 0);
+    }
+
+    function renderTable(data) {
+        const tbody = document.getElementById('tbodyMP');
+        if (!data.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;">
+                <div style="font-size:2rem;">📦</div>Sin datos para el período seleccionado.<br>
+                <small>Verifique que existen tablas de fórmulas en Profit Plus</small></td></tr>`;
+            return;
+        }
+
+        const filtroText = document.getElementById('filtroTabla').value.toLowerCase();
+        const filtroSem = document.getElementById('filtroSemaforo').value;
+
+        const filtered = data.filter(r => {
+            const matchText = !filtroText || r.des_art_mp.toLowerCase().includes(filtroText) || r.co_art_mp.toLowerCase().includes(filtroText);
+            const matchSem = !filtroSem || r.semaforo === filtroSem;
+            return matchText && matchSem;
+        });
+
+        tbody.innerHTML = filtered.map(r => {
+            const emoji = r.semaforo === 'rojo' ? '🔴' : r.semaforo === 'amarillo' ? '🟡' : '🟢';
+            const pctColor = r.semaforo === 'rojo' ? '#ef4444' : r.semaforo === 'amarillo' ? '#f59e0b' : '#10b981';
+            const rowBg = r.semaforo === 'rojo' ? 'rgba(239,68,68,0.04)' : r.semaforo === 'amarillo' ? 'rgba(245,158,11,0.04)' : '';
+            return `
+                <tr style="border-bottom:1px solid #f1f5f9; background: ${rowBg};" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='${rowBg}'">
+                    <td style="padding:9px 12px; color:#1e293b;">
+                        <div style="font-weight:600; font-size:0.82rem;">${escHtml(r.des_art_mp)}</div>
+                        <div style="font-size:0.72rem; color:#94a3b8;">${escHtml(r.co_art_mp)}</div>
+                    </td>
+                    <td style="padding:9px 12px; text-align:center; color:#64748b;">${escHtml(r.unidad)}</td>
+                    <td style="padding:9px 12px; text-align:right; color:#374151;">${formatNum(r.requerido)}</td>
+                    <td style="padding:9px 12px; text-align:right; color:#374151;">${formatNum(r.comprado)}</td>
+                    <td style="padding:9px 12px; text-align:right; color:${r.deficit > 0 ? '#ef4444' : '#10b981'}; font-weight:${r.deficit > 0 ? '700' : '400'};">${formatNum(r.deficit)}</td>
+                    <td style="padding:9px 12px; text-align:center;">
+                        <div style="background:#f1f5f9; border-radius:20px; height:7px; overflow:hidden; width:80px; margin: 0 auto 3px;">
+                            <div style="height:100%; width:${Math.min(r.cobertura_pct, 100)}%; background:${pctColor}; border-radius:20px;"></div>
+                        </div>
+                        <span style="font-size:0.75rem; color:${pctColor}; font-weight:700;">${r.cobertura_pct}%</span>
+                    </td>
+                    <td style="padding:9px 12px; text-align:center; font-size:1.1rem;">${emoji}</td>
+                </tr>
+            `;
+        }).join('');
+
+        if (!filtered.length) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">Sin resultados para el filtro aplicado</td></tr>`;
+        }
+    }
+
+    function filterTable() {
+        renderTable(allData);
+    }
+
+    function renderChart(data) {
+        const ctx = document.getElementById('chartBar').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+
+        const labels = data.map(d => d.des_art_mp.length > 30 ? d.des_art_mp.substring(0, 30) + '…' : d.des_art_mp);
+        const requerido = data.map(d => d.requerido);
+        const comprado = data.map(d => d.comprado);
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Requerido', data: requerido, backgroundColor: 'rgba(239,68,68,0.75)', borderRadius: 3 },
+                    { label: 'Comprado', data: comprado, backgroundColor: 'rgba(16,185,129,0.75)', borderRadius: 3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${Number(ctx.parsed.y).toLocaleString('es-VE', { minimumFractionDigits: 0 })}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { font: { size: 10 }, maxRotation: 35 } },
+                    y: { beginAtZero: true, ticks: { font: { size: 10 } } }
+                }
+            }
+        });
+    }
+
+    async function triggerAlert() {
+        if (!confirm('¿Enviar alerta MP a todos los suscriptores Telegram activos?')) return;
+        showToast('📡 Enviando alertas...', 3000);
+        try {
+            const res = await fetch('/compras-mp/api/send-alert-now', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                showToast(`✅ ${data.result.sent} alerta(s) enviada(s) — ${data.result.errors} error(es)`, 5000);
+            } else {
+                showToast('❌ Error: ' + (data.error || 'Desconocido'), 7000);
+            }
+        } catch (e) {
+            showToast('❌ Error de conexión', 5000);
+        }
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────
+    function setLoadingState(loading) {
+        const tbody = document.getElementById('tbodyMP');
+        if (loading) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:40px; color:#94a3b8;"><div style="font-size:1.5rem;">⏳</div> Consultando Profit Plus...</td></tr>`;
+        }
+    }
+
+    function formatNum(n) {
+        return Number(n || 0).toLocaleString('es-VE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+
+    function escHtml(str) {
+        return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function showToast(msg, dur = 3000) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        setTimeout(() => t.style.display = 'none', dur);
+    }
+</script>
+{% endblock %}

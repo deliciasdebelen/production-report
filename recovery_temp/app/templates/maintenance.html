@@ -1,0 +1,782 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="margin-bottom: 1.5rem;">Mantenimiento</h1>
+
+<!-- Tabs -->
+<style>
+    /* Compact Form Styles (Reused) */
+    .form-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .col-span-3 {
+        grid-column: span 3;
+    }
+
+    .col-span-4 {
+        grid-column: span 4;
+    }
+
+    .col-span-6 {
+        grid-column: span 6;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 0.35rem;
+        display: block;
+    }
+
+    .form-group input,
+    .form-group select {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        background: #f8fafc;
+    }
+
+    .tab-btn {
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        padding: 0.5rem 1.5rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+        border-bottom-color: var(--primary);
+        color: var(--primary);
+    }
+</style>
+
+<div style="margin-bottom: 2rem; border-bottom: 1px solid #e2e8f0;">
+    <button onclick="showTab('users', this)" class="tab-btn active">Usuarios</button>
+    <button onclick="showTab('data', this)" class="tab-btn">Base de Datos</button>
+    <button onclick="showTab('routes', this)" class="tab-btn">Rutas de Despacho</button>
+    <button onclick="showTab('ai', this)" class="tab-btn">Parámetros IA</button>
+    <button onclick="showTab('validations', this)" class="tab-btn">Validaciones</button>
+    <button onclick="showTab('notifications', this)" class="tab-btn">Notificaciones</button>
+</div>
+
+<!-- Users Tab -->
+<div id="notifications" class="tab-content" style="display:none;">
+    <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Agregar Suscriptor</h3>
+        <form action="/maintenance/subscribers/add" method="post">
+            <div class="form-grid">
+                <div class="form-group col-span-4">
+                    <label>Nombre</label>
+                    <input type="text" name="name" required placeholder="Ej: Gerente Planta">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Email</label>
+                    <input type="email" name="email" required placeholder="nombre@empresa.com">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Reporte</label>
+                    <select name="report_type">
+                        <option value="Inventory">Inventario</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn"
+                    style="background-color: var(--primary); color: white;">Agregar</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- List -->
+    <div class="card">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1rem;">Suscriptores Activos</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Reporte</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in subscribers %}
+                <tr>
+                    <td>{{ sub.name }}</td>
+                    <td>{{ sub.email }}</td>
+                    <td><span class="badge badge-info">{{ sub.report_type }}</span></td>
+                    <td>
+                        <form action="/maintenance/subscribers/delete" method="post"
+                            onsubmit="return confirm('¿Eliminar?');">
+                            <input type="hidden" name="sub_id" value="{{ sub.id }}">
+                            <button type="submit" class="btn-icon danger">🗑️</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align:center;">No hay suscriptores.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div id="users" class="tab-content">
+    <div class="card" style="margin-bottom: 2rem; max-width: 800px;">
+        <h3 style="color: var(--primary); font-size: 1.1rem; margin-bottom: 1.5rem;">Crear Nuevo Usuario</h3>
+        <form action="/maintenance/users" method="post">
+            <div class="form-grid">
+                <div class="form-group col-span-4">
+                    <label>Usuario</label>
+                    <input type="text" name="username" required placeholder="Ej: ovargas">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Contraseña</label>
+                    <input type="text" name="password" required placeholder="********">
+                </div>
+                <div class="form-group col-span-4">
+                    <label>Rol</label>
+                    <select name="role" required>
+                        <option value="1">1 - KPI (Solo ver)</option>
+                        <option value="2">2 - Producción</option>
+                        <option value="3">3 - Planificación</option>
+                        <option value="4">4 - Admin (Todo)</option>
+                        <option value="5">5 - Almacén General</option>
+                        <option value="6">6 - Inventario</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn"
+                    style="background-color: var(--primary); color: white; padding: 0.5rem 1.5rem;">Crear
+                    Usuario</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1rem;">
+            <h3 style="margin:0;">Lista de Usuarios</h3>
+            <button onclick="window.open('/maintenance/report/print?type=users', '_blank')" class="btn"
+                style="background:var(--primary);">🖨 Imprimir Lista</button>
+        </div>
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border); text-align: left;">
+                    <th style="padding: 0.5rem;">ID</th>
+                    <th style="padding: 0.5rem;">Usuario</th>
+                    <th style="padding: 0.5rem;">Rol</th>
+                    <th style="padding: 0.5rem;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.5rem;">{{ u.id }}</td>
+                    <td style="padding: 0.5rem;">{{ u.username }}</td>
+                    <td style="padding: 0.5rem;">
+                        {% if u.role == 1 %} KPI
+                        {% elif u.role == 2 %} Producción
+                        {% elif u.role == 3 %} Planificación
+                        {% elif u.role == 4 %} Admin
+                        {% elif u.role == 5 %} Almacén Gen.
+                        {% elif u.role == 6 %} Inventario
+                        {% endif %}
+                    </td>
+                    <td style="padding: 0.5rem;">
+                        {% if u.username != 'admin' %}
+                        <form action="/maintenance/users/delete" method="post"
+                            onsubmit="return confirm('¿Eliminar usuario?');" style="display:inline;">
+                            <input type="hidden" name="user_id" value="{{ u.id }}">
+                            <button type="submit"
+                                style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer;">Eliminar</button>
+                        </form>
+                        {% else %}
+                        <small>Default</small>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Data Tab -->
+<div id="data" class="tab-content" style="display: none;">
+    <!-- Alert Message -->
+    <div id="alertMessage"
+        style="display:none; padding: 1rem; margin-bottom: 1rem; border-radius: 8px; font-weight: bold;"></div>
+
+    <script>
+        // Parse URL params for message
+        const urlParams = new URLSearchParams(window.location.search);
+        const msg = urlParams.get('message');
+        const err = urlParams.get('error');
+        if (msg) {
+            const div = document.getElementById('alertMessage');
+            div.style.display = 'block';
+            div.style.backgroundColor = '#d4edda';
+            div.style.color = '#155724';
+            div.innerHTML = `INFO: ${msg}`;
+        }
+        if (err) {
+            const div = document.getElementById('alertMessage');
+            div.style.display = 'block';
+            div.style.backgroundColor = '#f8d7da';
+            div.style.color = '#721c24';
+            div.innerHTML = `ERROR: ${err}`;
+        }
+    </script>
+
+    <div style="margin-bottom: 2rem;">
+        <div class="card" style="border-left: 4px solid #dc3545; background-color: #fff5f5; margin-bottom: 2rem;">
+            <div style="display: flex; align-items: start; gap: 1rem;">
+                <div style="font-size: 1.5rem; color: #dc3545;">⚠️</div>
+                <div>
+                    <h3 style="color: #dc3545; margin-top: 0;">Zona de Mantenimiento de Datos</h3>
+                    <p style="color: #6c757d; margin: 0;">Use los filtros de fecha para previsualizar y eliminar
+                        registros. Las acciones de eliminación son irreversibles.</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            <!-- Planning Data Control -->
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">Planificaciones</h4>
+                    <span
+                        style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Gestión
+                        Mensual</span>
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Inicio</label>
+                        <input type="date" id="planStart" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Fin</label>
+                        <input type="date" id="planEnd" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="previewData('planning')">
+                        <span>👁️</span> Ver Datos
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="printReport('planning')">
+                        <span>🖨️</span> Imprimir
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('planning')">
+                        <span>🔄</span> Restablecer
+                    </button>
+                    <div style="flex-grow: 1;"></div>
+                    <form action="/maintenance/data/delete" method="post" onsubmit="return confirmDelete('planning');"
+                        style="margin: 0;">
+                        <input type="hidden" name="table" value="planning">
+                        <input type="hidden" name="action" value="all">
+                        <input type="hidden" name="start_date" id="formPlanStart">
+                        <input type="hidden" name="end_date" id="formPlanEnd">
+                        <input type="hidden" name="end_date" id="formPlanEnd">
+                        <button type="submit" class="btn"
+                            style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
+                            ELIMINAR TODO EN RANGO
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Production Data Control -->
+            <div class="card">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                    <h4 style="margin: 0; font-size: 1.1rem; color: var(--primary);">Reportes de Producción</h4>
+                    <span
+                        style="font-size: 0.8rem; background: var(--surface); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Histórico
+                        Diario</span>
+                </div>
+
+                <div class="grid-2" style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Inicio</label>
+                        <input type="date" id="prodStart" style="width: 100%;">
+                    </div>
+                    <div class="form-group">
+                        <label style="font-weight: 500; font-size: 0.9rem;">Fecha Fin</label>
+                        <input type="date" id="prodEnd" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; gap: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="previewData('production')">
+                        <span>👁️</span> Ver Datos
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="printReport('production')">
+                        <span>🖨️</span> Imprimir
+                    </button>
+                    <button type="button" class="btn"
+                        style="background: var(--surface); color: var(--text); border: 1px solid var(--border); display: flex; align-items: center; gap: 0.5rem;"
+                        onclick="resetFilters('production')">
+                        <span>🔄</span> Restablecer
+                    </button>
+                    <div style="flex-grow: 1;"></div>
+                    <form action="/maintenance/data/delete" method="post"
+                        onsubmit="return confirm('¿ESTÁ SEGURO? Se borrarán TODOS los reportes de producción (Filtros no aplican a borrado aun).');"
+                        style="margin: 0;">
+                        <input type="hidden" name="table" value="production">
+                        <input type="hidden" name="action" value="all">
+                        <button type="submit" class="btn"
+                            style="background: white; color: #dc3545; border: 1px solid #dc3545; font-weight: 600; transition: all 0.2s;">
+                            ELIMINAR TODO EN RANGO
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Area -->
+    <div id="previewContainer" style="margin-top: 2rem; display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <h4 style="margin: 0;">Previsualización de Datos</h4>
+            <button id="btnDeleteSelected" onclick="deleteSelected()" class="btn" disabled
+                style="background: #dc3545; color: white; padding: 0.25rem 0.75rem; font-size: 0.85rem; opacity: 0.5; cursor: not-allowed;">
+                🗑️ Eliminar Marcados (<span id="selectedCount">0</span>)
+            </button>
+        </div>
+        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border);">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;" id="previewTable">
+                <thead>
+                    <!-- Populated by JS -->
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- AI Parameters Tab -->
+<div id="ai" class="tab-content" style="display: none;">
+    <div class="card" style="margin-bottom: 2rem; border-left: 4px solid #8b5cf6;">
+        <h3 style="color: #8b5cf6; margin-top: 0;">🧠 Inteligencia Artificial - Configuración</h3>
+        <p style="color: #6c757d;">
+            Gestione las capacidades cognitivas del sistema. Active o desactive módulos y ajuste los parámetros de
+            comportamiento.
+            <br>
+            <small>Nota: La IA validará automáticamente cualquier parámetro nuevo antes de aceptarlo.</small>
+        </p>
+    </div>
+
+    <!-- Functionalities List -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+        {% for func in ai_funcs %}
+        <div class="card" style="position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <div>
+                    <h4 style="margin: 0; font-size: 1.1rem;">{{ func.name }}</h4>
+                    <p style="font-size: 0.85rem; color: #6c757d; margin: 0.25rem 0 0 0;">{{ func.description }}</p>
+                </div>
+                <!-- Toggle Switch -->
+                <label class="switch" style="position: relative; display: inline-block; width: 40px; height: 24px;">
+                    <input type="checkbox" onchange="toggleAI({{ func.id }}, this)" {% if func.is_active %}checked{%
+                        endif %} style="opacity: 0; width: 0; height: 0;">
+                    <span class="slider round"
+                        style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px;"></span>
+                    <style>
+                        .switch input:checked+.slider {
+                            background-color: #8b5cf6;
+                        }
+
+                        .switch input:checked+.slider:before {
+                            transform: translateX(16px);
+                        }
+
+                        .slider:before {
+                            position: absolute;
+                            content: "";
+                            height: 16px;
+                            width: 16px;
+                            left: 4px;
+                            bottom: 4px;
+                            background-color: white;
+                            transition: .4s;
+                            border-radius: 50%;
+                        }
+                    </style>
+                </label>
+            </div>
+
+            <!-- Parameters Table -->
+            <div style="background: #f8fafc; padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem;">
+                <table style="width: 100%; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="text-align: left; color: #64748b;">
+                            <th>Parámetro</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for param in func.parameters %}
+                        <tr>
+                            <td style="font-family: monospace; color: #334155;">{{ param.key }}</td>
+                            <td style="font-weight: 600; color: #0f172a;">{{ param.value }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="2" style="color: #94a3b8; font-style: italic;">Sin parámetros</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Add Parameter Form -->
+            <form action="/maintenance/ai/parameter" method="post"
+                style="border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+                <input type="hidden" name="func_id" value="{{ func.id }}">
+                <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.5rem;">
+                    <input type="text" name="key" placeholder="key_name" required
+                        style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <input type="text" name="value" placeholder="Value" required
+                        style="padding: 0.25rem 0.5rem; font-size: 0.8rem; border: 1px solid #cbd5e1; border-radius: 4px;">
+                    <button type="submit"
+                        style="background: #8b5cf6; color: white; border: none; padding: 0 0.75rem; border-radius: 4px; font-size: 1.2rem; cursor: pointer; line-height: 1;">+</button>
+                </div>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- JS for AI Toggle -->
+    <script>
+        async function toggleAI(id, checkbox) {
+            const enabled = checkbox.checked;
+            const formData = new FormData();
+            formData.append('func_id', id);
+            formData.append('enabled', enabled);
+
+            try {
+                const res = await fetch('/maintenance/ai/toggle', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status !== 'success') {
+                    alert('Error al cambiar estado');
+                    checkbox.checked = !enabled; // Revert
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error de conexión');
+                checkbox.checked = !enabled; // Revert
+            }
+        }
+    </script>
+</div>
+
+</div>
+
+<script>
+    // Init Dates
+    document.addEventListener('DOMContentLoaded', function () {
+        const today = new Date().toISOString().split('T')[0];
+        const ps = document.getElementById('planStart');
+        const pe = document.getElementById('planEnd');
+        if (ps) ps.value = today;
+        if (pe) pe.value = today;
+
+        function valMaint() {
+            if (ps.value > pe.value) {
+                alert("Fecha inválida");
+                pe.value = ps.value;
+            }
+        }
+        if (ps) ps.addEventListener('change', valMaint);
+        if (pe) pe.addEventListener('change', valMaint);
+
+        // Init Production Dates too
+        const prs = document.getElementById('prodStart');
+        const pre = document.getElementById('prodEnd');
+        if (prs) prs.value = today;
+        if (pre) pre.value = today;
+    });
+
+
+
+    function resetFilters(table) {
+        const today = new Date().toISOString().split('T')[0];
+        if (table === 'planning') {
+            document.getElementById('planStart').value = today;
+            document.getElementById('planEnd').value = today;
+        } else if (table === 'production') {
+            document.getElementById('prodStart').value = today;
+            document.getElementById('prodEnd').value = today;
+        }
+    }
+
+    function printReport(table) {
+        let url = `/maintenance/report/print?type=${table}`;
+        let s = '', e = '';
+
+        if (table === 'planning') {
+            s = document.getElementById('planStart').value;
+            e = document.getElementById('planEnd').value;
+        } else if (table === 'production') {
+            s = document.getElementById('prodStart').value;
+            e = document.getElementById('prodEnd').value;
+        }
+
+        if (s) url += `&start_date=${s}`;
+        if (e) url += `&end_date=${e}`;
+
+        window.open(url, '_blank');
+    }
+
+    function showTab(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+        document.getElementById(tabId).style.display = 'block';
+
+        // Update active state
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    function confirmDelete(type) {
+        const start = document.getElementById('planStart').value;
+        const end = document.getElementById('planEnd').value;
+
+        // Update hidden form inputs
+        document.getElementById('formPlanStart').value = start;
+        document.getElementById('formPlanEnd').value = end;
+
+        let msg = "¿ESTÁ SEGURO? Se borrarán las planificaciones";
+        if (start || end) {
+            msg += ` entre ${start || 'Inicio'} y ${end || 'Fin'}`;
+        } else {
+            msg += " DE TODAS LAS FECHAS";
+        }
+        return confirm(msg);
+    }
+
+
+
+    let currentTable = ''; // Store current table for deleteSelected
+
+    async function previewData(table) {
+        currentTable = table;
+        const formData = new FormData();
+        formData.append('table', table);
+
+        if (table === 'planning') {
+            formData.append('start_date', document.getElementById('planStart').value);
+            formData.append('end_date', document.getElementById('planEnd').value);
+        }
+
+        try {
+            const res = await fetch('/maintenance/data/preview', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            const container = document.getElementById('previewContainer');
+            const tableEl = document.getElementById('previewTable');
+            const thead = tableEl.querySelector('thead');
+            const tbody = tableEl.querySelector('tbody');
+
+            container.style.display = 'block';
+            tbody.innerHTML = '';
+            thead.innerHTML = '';
+
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td style="padding:1rem;">No se encontraron datos.</td></tr>';
+                return;
+            }
+
+            // Build Headers
+            let keys = Object.keys(data[0]);
+
+            // Reorder: id, date/created_at, inserted_at, others
+            const priority = ['id', 'date', 'created_at', 'inserted_at', 'article_type', 'article', 'batch_qty', 'kg_produced'];
+            keys.sort((a, b) => {
+                const idxA = priority.indexOf(a);
+                const idxB = priority.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b);
+            });
+
+            const headerMap = {
+                'id': 'ID',
+                'date': 'Fecha Planificada',
+                'created_at': 'Fecha Asignada',
+                'inserted_at': 'Fecha Registro (System)',
+                'article_type': 'Artículo',
+                'article': 'Artículo',
+                'batch_qty': 'Batches',
+                'kg_produced': 'Kg Prod.',
+                'boxes': 'Cajas',
+                'pt_units': 'Unidades PT'
+            };
+
+            let headerRow = '<tr style="background:#f1f1f1; text-align:left;">';
+            headerRow += '<th style="padding:0.5rem; width: 30px;"><input type="checkbox" id="checkAll" onchange="toggleAll(this)"></th>';
+            keys.forEach(k => headerRow += `<th style="padding:0.5rem; white-space:nowrap;">${headerMap[k] || k}</th>`);
+            headerRow += '<th style="padding:0.5rem;">Acción</th>'; // Action Header
+            headerRow += '</tr>';
+            thead.innerHTML = headerRow;
+
+            // Build Rows
+            data.forEach(row => {
+                let tr = '<tr style="border-bottom:1px solid #eee;">';
+                tr += `<td style="padding:0.5rem;"><input type="checkbox" class="row-check" value="${row.id}" onchange="updateDeleteButton()"></td>`;
+                keys.forEach(k => {
+                    let content = row[k];
+                    if (content === null || content === undefined) content = "";
+                    let displayContent = content.toString();
+
+                    // Truncate logic handled by CSS, but we ensure tooltip has full content
+                    tr += `<td style="padding:0.5rem; white-space:nowrap; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${displayContent}">${displayContent}</td>`;
+                });
+
+                // Action Button
+                tr += `
+                <td style="padding:0.5rem;">
+                    <button onclick="deleteOne('${table}', '${row.id}')" 
+                        style="background: #dc3545; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 4px; cursor: pointer;">
+                        Eliminar
+                    </button>
+                </td>`;
+
+                tr += '</tr>';
+                tbody.insertAdjacentHTML('beforeend', tr);
+            });
+
+        } catch (e) {
+            console.error(e);
+            alert('Error al cargar vista previa');
+        }
+    }
+
+    async function deleteOne(table, id) {
+        if (!confirm(`¿Eliminar registro ID: ${id}?`)) return;
+
+        const formData = new FormData();
+        formData.append('table', table);
+        formData.append('action', 'one');
+        formData.append('id', id);
+
+        try {
+            const res = await fetch('/maintenance/data/delete', {
+                method: 'POST',
+                body: formData // Using FormData for standard form submission endpoint
+            });
+
+            if (res.ok) {
+                // Refresh preview
+                previewData(table);
+            } else {
+                alert("Error al eliminar");
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    }
+
+
+    function toggleAll(source) {
+        const checkboxes = document.querySelectorAll('.row-check');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        updateDeleteButton();
+    }
+
+    function updateDeleteButton() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        const btn = document.getElementById('btnDeleteSelected');
+        const countSpan = document.getElementById('selectedCount');
+
+        countSpan.innerText = checked.length;
+
+        if (checked.length > 0) {
+            btn.disabled = false;
+            btn.style.opacity = '1';
+            btn.style.cursor = 'pointer';
+        } else {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        }
+    }
+
+    async function deleteSelected() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) return;
+
+        const ids = Array.from(checked).map(cb => cb.value).join(',');
+
+        if (!confirm(`¿Eliminar los ${checked.length} registros seleccionados? Esta acción no se puede deshacer.`)) return;
+
+        const formData = new FormData();
+        formData.append('table', currentTable); // Use stored table
+        formData.append('action', 'list');
+        formData.append('ids', ids);
+
+        // Add dates to preserve context if backend needs it (though list delete usually ignores dates)
+        // Better safe to be simple. Backend relies on IDs.
+
+        try {
+            const res = await fetch('/maintenance/data/delete', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok || res.status === 303 || res.redirected) {
+                // Since fetch follows redirects automatically for 303 but returns the HTML of the new page, 
+                // we might want to manually reload or just call previewData again to refresh the table.
+                // But the backend returns a RedirectResponse to /maintenance?message=...
+                // Fetch will get that HTML. We can't easily change the browser URL and show the message without a full reload 
+                // or extracting the message. 
+                // Let's just reload the page to show the flash message or refresh the grid.
+                // Actually, resizing the grid is better UX, but we want the flash message "Se eliminaron X registros".
+                // If we use fetch, we lose the flash message if we don't handle it.
+                // Let's force a reload to the URL that the backend redirected to (if we can get it) 
+                // or just reload current page with a custom message if possible.
+                // Fetch 'res.url' should be the redirected URL.
+                window.location.href = res.url;
+            } else {
+                alert("Error al eliminar");
+            }
+        } catch (e) {
+            alert("Error de conexión");
+        }
+    }
+</script>
+{% endblock %}
