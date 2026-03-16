@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15
+    container_name: production-report-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: production_password
+      POSTGRES_DB: production_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      # Expose on port 5433 (only on host for migration script access)
+      - "5433:5432"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d production_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: production-report
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./custom_openssl.cnf:/etc/ssl/openssl.cnf
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DATABASE_URL=postgresql://app_user:production_password@db:5432/production_db
+      - OPENSSL_CONF=/etc/ssl/openssl.cnf
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/login').read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

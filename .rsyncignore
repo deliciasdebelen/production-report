@@ -1,0 +1,14 @@
+﻿venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.pytest_cache/
+*.db.bak*
+app_backup_*/
+*.tar.gz
+deploy.log
+debug_output.txt
+full_log.txt
+temp_schema.txt

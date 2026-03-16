@@ -204,19 +204,19 @@
                             </a>
                             {% endif %}
 
-                            {% if user %}
+                            {% if user and user.role != 9 %}
                             <a href="/visor" class="nav-link" title="Visor">
                                 <span class="nav-icon">🖥️</span> <span class="nav-text">Visor</span>
                             </a>
                             {% endif %}
 
-                            {% if user %}
+                            {% if user and user.role != 9 %}
                             <a href="/assistant" class="nav-link" title="Supervisor Belén">
                                 <span class="nav-icon">👩‍💼</span> <span class="nav-text">Supervisor Belén</span>
                             </a>
                             {% endif %}
 
-                            {% if user %}
+                            {% if user and user.role != 9 %}
                             <a href="/alerts" class="nav-link" title="Alertas">
                                 <span class="nav-icon">🛡️</span> <span class="nav-text">Alertas</span>
                             </a>
@@ -240,7 +240,7 @@
                     </div>
 
                     <!-- Reportes Section -->
-                    {% if user %}
+                    {% if user and user.role != 9 %}
                     <div class="nav-section">
                         <div class="nav-section-title" onclick="toggleNavSection(this)">
                             <span>Reportes</span>
@@ -261,7 +261,7 @@
                     {% endif %}
 
                     <!-- Ventas Section -->
-                    {% if user %}
+                    {% if user and user.role != 9 %}
                     <div class="nav-section">
                         <div class="nav-section-title" onclick="toggleNavSection(this)">
                             <span>Ventas</span>
@@ -279,7 +279,7 @@
                     {% endif %}
 
                     <!-- Administracion Section -->
-                    {% if user %}
+                    {% if user and user.role != 9 %}
                     <div class="nav-section">
                         <div class="nav-section-title" onclick="toggleNavSection(this)">
                             <span>Administración</span>

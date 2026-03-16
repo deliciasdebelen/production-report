@@ -103,16 +103,33 @@ from .dependencies import get_db, get_current_user, get_current_active_user, tem
 
 @app.on_event("startup")
 def startup_db_client():
-    # Create default admin if not exists
     db = SessionLocal()
-    admin = db.query(models.User).filter(models.User.username == "admin").first()
-    if not admin:
-        hashed = auth_utils.get_password_hash("admin")
-        admin = models.User(username="admin", password_hash=hashed, role=4)
-        db.add(admin)
+    try:
+        # ── Seed default roles (safe for both SQLite and PostgreSQL fresh installs)
+        default_roles = [
+            (1, "KPI"), (2, "Produccion"), (3, "Planificacion"),
+            (4, "Administrador"), (5, "Almacen"), (6, "Inventario"),
+            (7, "Patrimonial"), (8, "Director"), (9, "Soporte (Solo Crear)")
+        ]
+        for role_id, role_name in default_roles:
+            exists = db.query(models.Role).filter(models.Role.id == role_id).first()
+            if not exists:
+                db.add(models.Role(id=role_id, name=role_name, permissions="{}"))
         db.commit()
-    db.close()
-    
+
+        # ── Create default admin user if not exists
+        admin = db.query(models.User).filter(models.User.username == "admin").first()
+        if not admin:
+            hashed = auth_utils.get_password_hash("admin")
+            admin = models.User(username="admin", password_hash=hashed, role=4)
+            db.add(admin)
+            db.commit()
+    except Exception as e:
+        print(f"[startup] Warning during init: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
     # Start the automation scheduler
     setup_scheduler()
     setup_mismatch_scheduler(scheduler)
@@ -132,7 +149,8 @@ async def login(response: Response, username: str = Form(...), password: str = F
         return RedirectResponse(url="/login?error=invalid_password", status_code=303)
     
     # Simple Cookie Session (In prod, use signed tokens)
-    response = RedirectResponse(url="/", status_code=303)
+    url = "/support/create" if user.role == 9 else "/"
+    response = RedirectResponse(url=url, status_code=303)
     response.set_cookie(key="user_id", value=str(user.id))
     return response
 
@@ -145,6 +163,7 @@ async def logout():
 @app.get("/", response_class=HTMLResponse)
 async def read_root(request: Request, user: models.User = Depends(get_current_user)):
     if not user: return RedirectResponse("/login")
+    if user.role == 9: return RedirectResponse("/support/create")
     return templates.TemplateResponse("index.html", {"request": request, "title": "Home", "user": user})
 
 @app.get("/report", response_class=HTMLResponse)

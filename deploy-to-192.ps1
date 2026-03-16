@@ -24,8 +24,9 @@ function Invoke-SSH {
     if ($Description) { Write-Host "`n[SSH] $Description" -ForegroundColor Cyan }
     
     # Intentar con plink si está disponible
-    $plinkPath = (Get-Command plink -ErrorAction SilentlyContinue)?.Source
-    if ($plinkPath) {
+    $plinkCmd = Get-Command plink -ErrorAction SilentlyContinue
+    if ($plinkCmd) {
+        $plinkPath = $plinkCmd.Source
         echo $Pass | plink -ssh -pw $Pass -batch "$SSHTarget" $Command
     }
     else {
@@ -53,7 +54,7 @@ $keyFile = "$sshDir\id_rsa_prodserver"
 
 if (-not (Test-Path $keyFile)) {
     Write-Host "  Generando nueva clave SSH RSA..." -ForegroundColor DarkGray
-    ssh-keygen -t rsa -b 4096 -f $keyFile -N "" -C "antigravity-prodserver" | Out-Null
+    cmd.exe /c "ssh-keygen -t rsa -b 4096 -f `"$keyFile`" -N `"`" -C `"antigravity-prodserver`"" | Out-Null
     Write-Host "  ✅ Clave generada: $keyFile" -ForegroundColor Green
 }
 else {

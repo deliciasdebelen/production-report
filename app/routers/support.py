@@ -173,7 +173,7 @@ async def create_ticket(
     department_id: int = Form(...),
     type_id: int = Form(...),
     priority_id: int = Form(...),
-    contact_email: Optional[str] = Form(None),
+    contact_email: str = Form(...),
     file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db), 
     current_user: models.User = Depends(get_current_active_user)
