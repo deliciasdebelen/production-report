@@ -1,6 +1,6 @@
 import psycopg2
 
-DATABASE_URL = "postgresql://app_user:production_password@192.168.1.193:5433/production_db"
+DATABASE_URL = "postgresql://app_user:production_password@db:5432/production_db"
 
 def add_role_9():
     try:

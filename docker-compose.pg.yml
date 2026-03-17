@@ -12,8 +12,8 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
-      # Expose on port 5433 (only on host for migration script access)
-      - "5433:5432"
+      # Expose on port 5434 (only on host for migration script access)
+      - "5434:5432"
     networks:
       - app-network
     healthcheck:

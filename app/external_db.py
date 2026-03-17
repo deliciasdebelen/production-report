@@ -1,14 +1,17 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import urllib.parse
+import os
 
 # Connection string for Profit Plus (SQL Server)
 # User provided: 192.168.1.205, PROFIT/profit, db: carmal_a
 # Using pyodbc driver (ODBC Driver 17 for SQL Server)
 
+SQLSRV_HOST = os.getenv("SQLSRV_HOST", "192.168.1.205")
+
 RAW_CONN_STR = (
     "DRIVER={ODBC Driver 17 for SQL Server};"
-    "SERVER=192.168.1.205;"
+    f"SERVER={SQLSRV_HOST};"
     "DATABASE=carmal_a;"
     "UID=PROFIT;"
     "PWD=profit;"
