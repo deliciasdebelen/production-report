@@ -960,13 +960,40 @@ async def create_dispatch(
     if existing_guide:
         raise HTTPException(status_code=400, detail=f"El Número de Guía {document_ref} ya existe en el sistema.")
 
-    # 3. Determine Final Client (Multi-Client Support)
+    # 3. Determine Final Client & Validate Quantities (Server-Side Lockdown)
     try:
         items_list = json.loads(items)
         distinct_clients = set()
         for i in items_list:
             if 'client' in i and i['client']:
                 distinct_clients.add(i['client'])
+                
+            # Security: Hard validation of quantities against Profit Plus
+            inv = i.get('fact', '').strip()
+            if inv and "Manual" not in inv:
+                # Clean prefix format like FACT:000001
+                clean_inv = inv.split('-')[-1].split(':')[-1].strip()
+                f_desc = i.get('item', '').strip()
+                try: f_qty = float(i.get('qty', 0))
+                except: f_qty = 0.0
+                
+                val_sql = text("""
+                    SELECT R.total_art
+                    FROM saFacturaVentaReng R
+                    JOIN saArticulo A ON R.co_art = A.co_art
+                    WHERE R.doc_num LIKE :doc AND LTRIM(RTRIM(A.art_des)) = :desc
+                    UNION ALL
+                    SELECT R.total_art
+                    FROM saNotaEntregaVentaReng R
+                    JOIN saArticulo A ON R.co_art = A.co_art
+                    WHERE R.doc_num LIKE :doc AND LTRIM(RTRIM(A.art_des)) = :desc
+                """)
+                val_result = external_db.execute(val_sql, {"doc": f"%{clean_inv}%", "desc": f_desc}).fetchone()
+                
+                if val_result:
+                    true_qty = float(val_result[0])
+                    if abs(true_qty - f_qty) > 0.01:
+                        raise HTTPException(status_code=400, detail=f"Bloqueo de Seguridad: Intento de manipular cantidades. El ítem '{f_desc}' en el documento {clean_inv} es estrictamente {true_qty}.")
         
         final_client = client_destination # Default to form input
         if len(distinct_clients) > 1:
@@ -974,7 +1001,10 @@ async def create_dispatch(
         elif len(distinct_clients) == 1:
             final_client = list(distinct_clients)[0]
             
-    except:
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        print(f"Validation Error: {e}")
         final_client = client_destination # Fallback
 
     # 4. Concatenate Invoices to Reference

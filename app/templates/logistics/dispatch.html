@@ -773,17 +773,17 @@
                     </span>
                 </td>
                 <td style="padding: 0.5rem;">
-                    <input type="text" value="${item.item}" onchange="updateItem(${index}, 'item', this.value)"
+                    <input type="text" value="${item.item}" ${item.fact ? 'readonly style="background: #f1f5f9; color: #64748b;"' : 'onchange="updateItem(' + index + ', \\'item\\', this.value)"'}
                         list="productList"
                         style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
                     ${breakdownHtml}
                 </td>
                 <td style="padding: 0.5rem;">
-                    <input type="number" step="0.01" value="${item.qty}" onchange="updateItem(${index}, 'qty', parseFloat(this.value))"
+                    <input type="number" step="0.01" value="${item.qty}" ${item.fact ? 'readonly style="background: #f1f5f9; color: #64748b;" title="Las cantidades de facturas no son modificables"' : 'onchange="updateItem(' + index + ', \\'qty\\', parseFloat(this.value))"'}
                         style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
                 </td>
                 <td style="padding: 0.5rem;">
-                    <select onchange="updateItem(${index}, 'unit', this.value)"
+                    <select ${item.fact ? 'disabled style="background: #f1f5f9; color: #64748b;"' : 'onchange="updateItem(' + index + ', \\'unit\\', this.value)"'}
                         style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
                         <option value="Unid" ${item.unit === 'Unid' ? 'selected' : ''}>Unid</option>
                         <option value="Kg" ${item.unit === 'Kg' ? 'selected' : ''}>Kg</option>
@@ -793,10 +793,7 @@
                     </select>
                 </td>
                 <td style="padding: 0.5rem; text-align: center;">
-                    <button type="button" onclick="removeItem(${index})" 
-                        style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; opacity: 0.6;">
-                        &times;
-                    </button>
+                    ${item.fact ? '<span title="Remueva la factura completa desde la sección superior" style="color: #cbd5e1; cursor: not-allowed; font-size: 1.2rem;">&times;</span>' : '<button type="button" onclick="removeItem(' + index + ')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; opacity: 0.6;">&times;</button>'}
                 </td>
             `;
             tbody.appendChild(tr);
