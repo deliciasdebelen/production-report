@@ -35,14 +35,18 @@ async def logistics_dashboard(request: Request, user: User = Depends(get_current
     })
 
 @router.get("/inventory")
-async def view_logistics_inventory(request: Request, user: User = Depends(get_current_user)):
+async def view_logistics_inventory(request: Request, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     if not user: return RedirectResponse("/login")
     if user.role not in [1, 3, 4, 5, 6]: # All logistics roles inc Inventory
         raise HTTPException(status_code=403, detail="Not authorized")
+    # Calculate next inventory correlative
+    from .inventory import generate_inventory_correlative
+    next_correlative = generate_inventory_correlative(db)
     return templates.TemplateResponse("logistics/inventory.html", {
         "request": request,
         "user": user,
-        "title": "Control de Inventario"
+        "title": "Control de Inventario",
+        "next_correlative": next_correlative
     })
 
 @router.get("/reception/production")

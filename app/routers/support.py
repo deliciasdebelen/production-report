@@ -361,11 +361,11 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
     if update.status_id:
         ticket.status_id = update.status_id
         # Check if closed
-        # Assuming status 4 is closed or similar. 
-        # Logic: If status name is 'Cerrado'
         st = db.query(models.SupportStatus).get(update.status_id)
         if st and st.name == "Cerrado":
              ticket.closed_at = datetime.now()
+             if update.close_comment:
+                 ticket.close_comment = update.close_comment
         changed = True
         
         # Notify
@@ -425,6 +425,7 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
 def get_support_report_data(
     date_from: Optional[str] = None,
     date_to: Optional[str] = None,
+    status_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
@@ -434,14 +435,27 @@ def get_support_report_data(
         query = query.filter(models.SupportTicket.created_at >= date_from)
     if date_to:
         query = query.filter(models.SupportTicket.created_at <= f"{date_to} 23:59:59")
+    if status_id:
+        query = query.filter(models.SupportTicket.status_id == status_id)
 
-    # Group by status
+    # Group by status — apply date filter but NOT status filter to chart distribution
     from sqlalchemy import func
+    status_query = db.query(models.SupportTicket)
+    if date_from:
+        status_query = status_query.filter(models.SupportTicket.created_at >= date_from)
+    if date_to:
+        status_query = status_query.filter(models.SupportTicket.created_at <= f"{date_to} 23:59:59")
+    if status_id:
+        status_query = status_query.filter(models.SupportTicket.status_id == status_id)
+
     status_counts = db.query(
         models.SupportStatus.name,
         models.SupportStatus.color_hex,
         func.count(models.SupportTicket.id)
-    ).outerjoin(models.SupportTicket, models.SupportTicket.status_id == models.SupportStatus.id
+    ).outerjoin(models.SupportTicket,
+        (models.SupportTicket.status_id == models.SupportStatus.id) &
+        (models.SupportTicket.created_at >= date_from if date_from else True) &
+        (models.SupportTicket.created_at <= f"{date_to} 23:59:59" if date_to else True)
     ).group_by(models.SupportStatus.id).all()
 
     status_data = [
@@ -449,16 +463,46 @@ def get_support_report_data(
         for s in status_counts
     ]
 
-    # Sub-report: latest tickets timeline
-    tickets_timeline = query.order_by(models.SupportTicket.created_at.desc()).limit(10).all()
-    timeline_data = [
-        {"code": t.code, "date": t.created_at.strftime("%Y-%m-%d"), "status": t.status.name if t.status else "Desconocido"}
-        for t in tickets_timeline
-    ]
+    # All filtered tickets with full details for the main table
+    all_tickets = query.options(
+        joinedload(models.SupportTicket.status),
+        joinedload(models.SupportTicket.priority),
+        joinedload(models.SupportTicket.department),
+        joinedload(models.SupportTicket.created_by)
+    ).order_by(models.SupportTicket.created_at.desc()).all()
+
+    tickets_data = []
+    for t in all_tickets:
+        desc = t.description or ""
+        tickets_data.append({
+            "code":       t.code,
+            "subject":    (desc[:80] + "\u2026") if len(desc) > 80 else desc or "\u2014",
+            "date":       t.created_at.strftime("%d/%m/%Y") if t.created_at else "\u2014",
+            "updated_at": t.closed_at.strftime("%d/%m/%Y") if t.closed_at else "\u2014",
+            "requester":  t.created_by.username if t.created_by else "\u2014",
+            "status":     t.status.name if t.status else "Desconocido",
+            "priority":   t.priority.name if t.priority else "\u2014",
+            "department": t.department.name if t.department else "\u2014",
+        })
+
+    # Trend: group by week start (Monday label) for the bar chart
+    from collections import defaultdict
+    from datetime import timedelta
+    week_counts = defaultdict(int)
+    for t in all_tickets:
+        if t.created_at:
+            week_start = t.created_at - timedelta(days=t.created_at.weekday())
+            label = week_start.strftime("%d/%m")
+            week_counts[label] += 1
+
+    sorted_weeks = sorted(week_counts.items(),
+                          key=lambda x: datetime.strptime(x[0], "%d/%m").replace(year=2000))
+    trend_data = [{"label": k, "count": v} for k, v in sorted_weeks]
 
     return {
         "status_distribution": status_data,
-        "recent_timeline": timeline_data,
-        "total": query.count()
+        "recent_timeline":     tickets_data,
+        "total":               len(tickets_data),
+        "trend":               trend_data,
     }
 

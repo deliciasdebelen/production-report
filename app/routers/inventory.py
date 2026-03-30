@@ -13,8 +13,9 @@ router = APIRouter(
 )
 
 @router.get("/", response_class=HTMLResponse)
-async def view_inventory(request: Request, user: models.User = Depends(get_current_active_user)):
-    return templates.TemplateResponse("inventory.html", {"request": request, "title": "Inventario", "user": user})
+async def view_inventory(request: Request, db: Session = Depends(get_db), user: models.User = Depends(get_current_active_user)):
+    next_correlative = generate_inventory_correlative(db)
+    return templates.TemplateResponse("inventory.html", {"request": request, "title": "Inventario", "user": user, "next_correlative": next_correlative})
 
 def generate_inventory_correlative(db: Session) -> str:
     # Format: INV-YYYYMMDD-XXXX (e.g., INV-20250620-0001)

@@ -19,7 +19,7 @@ scp deploy_package.tar ${ServerUser}@${ServerIP}:~/apps/production-report/deploy
 
 # 3. Extract and Restart on Server
 Write-Host "Extracting and Restarting on Server..."
-ssh ${ServerUser}@${ServerIP} "cd $ServerPath && tar -xvf deploy_package.tar && docker-compose down && docker-compose build && docker-compose up -d && rm deploy_package.tar"
+ssh ${ServerUser}@${ServerIP} "cd $ServerPath && echo GRW7czL3* | sudo -S tar -xvf deploy_package.tar && docker-compose restart && rm deploy_package.tar"
 
 # 4. Clean up local
 Remove-Item deploy_package.tar

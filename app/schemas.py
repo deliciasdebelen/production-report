@@ -193,6 +193,7 @@ class SupportTicketUpdate(BaseModel):
     status_id: Optional[int] = None
     assigned_to_id: Optional[int] = None
     priority_id: Optional[int] = None
+    close_comment: Optional[str] = None
 
 class SupportTicket(SupportTicketBase):
     id: int

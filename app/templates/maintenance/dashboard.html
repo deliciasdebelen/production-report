@@ -49,7 +49,7 @@
                                 style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
                         </div>
                         <div class="form-group">
-                            <label>Rol</label>
+                            <label>Rol Principal</label>
                             <select name="role" required
                                 style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 6px;">
                                 {% for r in roles %}
@@ -74,33 +74,93 @@
                         🖨 Imprimir
                     </button>
                 </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+<style>
+                .user-row { border-bottom: 1px solid var(--border); transition: background 0.12s; }
+                .user-row:hover { background: #f8fafc; }
+                .user-row:hover .user-actions { opacity: 1; }
+                .user-actions { opacity: 0; transition: opacity 0.15s; display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+                .btn-icon {
+                    display: inline-flex; align-items: center; justify-content: center;
+                    width: 28px; height: 28px; border-radius: 6px;
+                    border: none; background: transparent; cursor: pointer;
+                    color: #6b7280; transition: background 0.12s, color 0.12s;
+                }
+                .btn-icon:hover { background: #e0e7ff; color: #4338ca; }
+                .btn-icon.danger:hover { background: #fee2e2; color: #dc2626; }
+                .role-badge { background: #eff6ff; color: #2563eb; border-radius: 4px; padding: 1px 6px; font-size: 0.75rem; margin-right: 2px; display: inline-block; }
+                .status-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+                .status-active { color: #15803d; background: #dcfce7; }
+                .status-inactive { color: #64748b; background: #f1f5f9; }
+                </style>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
                     <thead>
-                        <tr style="border-bottom: 2px solid var(--border); text-align: left;">
-                            <th style="padding: 0.5rem;">Usuario</th>
-                            <th style="padding: 0.5rem;">Rol</th>
-                            <th style="padding: 0.5rem; text-align: right;">Acciones</th>
+                        <tr style="border-bottom: 2px solid var(--border);">
+                            <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #6b7280; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;">Usuario</th>
+                            <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #6b7280; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;">Rol Principal</th>
+                            <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #6b7280; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;">Roles Extra</th>
+                            <th style="padding: 10px 12px; text-align: left; font-weight: 600; color: #6b7280; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em;">Estado</th>
+                            <th style="padding: 10px 12px; width: 72px;"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for u in users %}
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 0.5rem;"><strong>{{ u.username }}</strong></td>
-                            <td style="padding: 0.5rem; color: var(--text-muted);">
-                                {{ u.role_obj.name if u.role_obj else u.role }}
+                        <tr class="user-row">
+                            <td style="padding: 10px 12px;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <div style="width:30px; height:30px; border-radius:50%; background: linear-gradient(135deg,#6366f1,#8b5cf6); display:flex; align-items:center; justify-content:center; color:white; font-weight:700; font-size:0.75rem; flex-shrink:0;">
+                                        {{ u.username[0].upper() }}
+                                    </div>
+                                    <strong style="color:#111827;">{{ u.username }}</strong>
+                                </div>
                             </td>
-                            <td style="padding: 0.5rem; text-align: right;">
-                                {% if u.username != 'admin' %}
-                                <form action="/maintenance/users/delete" method="post"
-                                    onsubmit="return confirm('¿Eliminar usuario {{u.username}}?');"
-                                    style="display:inline;">
-                                    <input type="hidden" name="user_id" value="{{ u.id }}">
-                                    <button type="submit"
-                                        style="color: var(--danger); background: none; border: none; cursor: pointer; font-weight: 600;">Helper</button>
-                                </form>
+                            <td style="padding: 10px 12px; color: #374151;">{{ u.role_obj.name if u.role_obj else u.role }}</td>
+                            <td style="padding: 10px 12px;">
+                                {% for ur in u.extra_roles %}
+                                <span class="role-badge">{{ ur.role.name if ur.role else ur.role_id }}</span>
                                 {% else %}
-                                <span style="font-size: 0.8rem; color: var(--text-muted);">Sistema</span>
+                                <span style="color:#d1d5db;">—</span>
+                                {% endfor %}
+                            </td>
+                            <td style="padding: 10px 12px;">
+                                {% if u.is_active %}
+                                <span class="status-pill status-active">
+                                    <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="#16a34a"/></svg>
+                                    Activo
+                                </span>
+                                {% else %}
+                                <span class="status-pill status-inactive">
+                                    <svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="3" fill="#94a3b8"/></svg>
+                                    Inactivo
+                                </span>
                                 {% endif %}
+                            </td>
+                            <td style="padding: 10px 8px;">
+                                <div class="user-actions">
+                                    <!-- Edit -->
+                                    <button class="btn-icon" title="Editar usuario"
+                                        onclick="openUserModal({{ u.id }}, '{{ u.username }}', {{ u.role }}, {{ u.is_active }}, '{% for ur in u.extra_roles %}{{ ur.role_id }}{% if not loop.last %},{% endif %}{% endfor %}')">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                        </svg>
+                                    </button>
+                                    <!-- Delete -->
+                                    {% if u.username != 'admin' %}
+                                    <form action="/maintenance/users/delete" method="post"
+                                        onsubmit="return confirm('¿Eliminar usuario {{ u.username }}?');"
+                                        style="display:contents;">
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <button type="submit" class="btn-icon danger" title="Eliminar usuario">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                                                <path d="M10 11v6M14 11v6"/>
+                                                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -109,6 +169,398 @@
             </div>
         </div>
     </div>
+
+    <!-- User Edit Modal (Odoo-Style Premium) -->
+    <style>
+        /* Role chips / toggle tags */
+        .role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .role-chip.inactive {
+            background: #f1f5f9;
+            color: #94a3b8;
+            border-color: #e2e8f0;
+        }
+        .role-chip.inactive:hover {
+            background: #e0e7ff;
+            color: #4338ca;
+            border-color: #c7d2fe;
+        }
+        .role-chip.active {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border-color: #93c5fd;
+        }
+        .role-chip.primary-chip {
+            background: #ede9fe;
+            color: #6d28d9;
+            border-color: #c4b5fd;
+        }
+        .role-chip .chip-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .modal-section {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 0.875rem;
+            border: 1px solid #e2e8f0;
+        }
+        .modal-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 0 0 0.75rem 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #rolesChipContainer {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            padding: 8px;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            min-height: 44px;
+        }
+        .roles-summary-bar {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .save-roles-btn {
+            width: 100%;
+            padding: 0.55rem;
+            background: #714B67;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .save-roles-btn:hover { background: #5e3d56; transform: translateY(-1px); }
+        .save-roles-btn:disabled { background: #9ca3af; transform: none; cursor: not-allowed; }
+    </style>
+
+    <div id="userEditModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.55); z-index:2000; align-items:center; justify-content:center; backdrop-filter: blur(2px);">
+        <div style="background:white; border-radius:12px; padding:0; width:520px; max-width:95vw; box-shadow:0 25px 60px rgba(0,0,0,0.25); max-height:90vh; overflow-y:auto; animation: slideIn 0.2s ease-out;">
+
+            <!-- Modal Header -->
+            <div style="padding:1.25rem 1.5rem; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h3 style="margin:0; font-size:1rem; color:#111827; font-weight:700;">⚙️ Editar Usuario</h3>
+                    <p style="margin:2px 0 0; font-size:0.85rem; color:#714B67; font-weight:600;" id="modalUsername"></p>
+                </div>
+                <button onclick="closeUserModal()" style="background:#f1f5f9; border:none; width:30px; height:30px; border-radius:6px; cursor:pointer; color:#6b7280; font-size:1rem; display:flex; align-items:center; justify-content:center;">✕</button>
+            </div>
+            <input type="hidden" id="modalUserId">
+
+            <div style="padding:1.25rem 1.5rem; display:flex; flex-direction:column; gap:0.75rem;">
+
+                <!-- Password Section -->
+                <div class="modal-section">
+                    <p class="modal-section-title">🔑 Contraseña</p>
+                    <div style="display:flex; gap:0.5rem;">
+                        <input type="password" id="newPasswordInput" placeholder="Nueva contraseña" autocomplete="new-password"
+                            style="flex:1; padding:0.45rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; font-size:0.875rem; outline:none; transition:border 0.15s;"
+                            onfocus="this.style.borderColor='#714B67'" onblur="this.style.borderColor='#e2e8f0'">
+                        <button onclick="changePassword()"
+                            style="padding:0.45rem 0.875rem; background:#714B67; color:white; border:none; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer; white-space:nowrap; transition:background 0.15s;"
+                            onmouseover="this.style.background='#5e3d56'" onmouseout="this.style.background='#714B67'">
+                            Guardar
+                        </button>
+                    </div>
+                    <div id="pwdMsg" style="font-size:0.78rem; margin-top:0.4rem; display:none;"></div>
+                </div>
+
+                <!-- Status Section -->
+                <div class="modal-section" style="display:flex; align-items:center; justify-content:space-between;">
+                    <div>
+                        <p class="modal-section-title" style="margin-bottom:0.2rem;">👤 Estado</p>
+                        <p style="margin:0; font-size:0.8rem; color:#6b7280;" id="activeStatusLabel">Activo</p>
+                    </div>
+                    <button id="toggleActiveBtn" onclick="toggleActive()"
+                        style="padding:0.35rem 0.875rem; border-radius:20px; border:none; cursor:pointer; font-weight:600; font-size:0.78rem;">
+                        Inactivar
+                    </button>
+                </div>
+
+                <!-- Roles Section (Premium Chip UI) -->
+                <div class="modal-section">
+                    <p class="modal-section-title">🎭 Roles Asignados</p>
+
+                    <!-- Primary Role -->
+                    <div style="margin-bottom:0.75rem;">
+                        <label style="font-size:0.78rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.03em; display:block; margin-bottom:4px;">Rol Principal</label>
+                        <select id="primaryRoleSelect" onchange="updateChipHighlight()"
+                            style="width:100%; padding:0.45rem 0.75rem; border:1px solid #e2e8f0; border-radius:6px; font-size:0.875rem; outline:none; background:white; cursor:pointer;">
+                            {% for r in roles %}
+                            <option value="{{ r.id }}">{{ r.id }} — {{ r.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Extra Roles (Chip Toggles) -->
+                    <label style="font-size:0.78rem; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.03em; display:block; margin-bottom:6px;">
+                        Roles Adicionales
+                        <span style="font-weight:400; text-transform:none; color:#9ca3af;"> — haz clic para activar/desactivar</span>
+                    </label>
+                    <div id="rolesChipContainer">
+                        {% for r in roles %}
+                        <span class="role-chip inactive"
+                              data-role-id="{{ r.id }}"
+                              data-role-name="{{ r.name }}"
+                              onclick="toggleRoleChip(this)">
+                            <span class="chip-dot" style="background:#94a3b8;"></span>
+                            {{ r.id }} – {{ r.name }}
+                        </span>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Live summary -->
+                    <div class="roles-summary-bar" id="rolesSummary">
+                        <span style="color:#9ca3af;">Sin roles adicionales seleccionados</span>
+                    </div>
+
+                    <!-- Save Button -->
+                    <button onclick="saveRoles()" class="save-roles-btn" id="saveRolesBtn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                            <polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Guardar Configuración de Roles
+                    </button>
+                    <div id="rolesMsg" style="font-size:0.8rem; margin-top:0.5rem; display:none; text-align:center;"></div>
+                </div>
+
+            </div><!-- /body -->
+        </div>
+    </div>
+
+    <style>
+    @keyframes slideIn { from { transform: translateY(-20px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+    </style>
+    <script>
+    // ── Chip helpers ──────────────────────────────────────────────
+    function toggleRoleChip(chip) {
+        // If this role is the primary role, block extra selection
+        const primaryId = document.getElementById('primaryRoleSelect').value;
+        if (chip.dataset.roleId === primaryId) {
+            chip.style.outline = '2px solid #f59e0b';
+            setTimeout(() => chip.style.outline = '', 600);
+            return;
+        }
+        const isActive = chip.classList.contains('active');
+        if (isActive) {
+            chip.classList.remove('active');
+            chip.classList.add('inactive');
+            chip.querySelector('.chip-dot').style.background = '#94a3b8';
+        } else {
+            chip.classList.remove('inactive');
+            chip.classList.add('active');
+            chip.querySelector('.chip-dot').style.background = '#1d4ed8';
+        }
+        updateRolesSummary();
+    }
+
+    function updateChipHighlight() {
+        const primaryId = document.getElementById('primaryRoleSelect').value;
+        document.querySelectorAll('.role-chip').forEach(chip => {
+            if (chip.dataset.roleId === primaryId) {
+                chip.classList.remove('active', 'inactive');
+                chip.classList.add('primary-chip');
+                chip.querySelector('.chip-dot').style.background = '#7c3aed';
+            } else if (chip.classList.contains('primary-chip')) {
+                chip.classList.remove('primary-chip');
+                chip.classList.add('inactive');
+                chip.querySelector('.chip-dot').style.background = '#94a3b8';
+            }
+        });
+        updateRolesSummary();
+    }
+
+    function updateRolesSummary() {
+        const active = Array.from(document.querySelectorAll('.role-chip.active'));
+        const summary = document.getElementById('rolesSummary');
+        if (active.length === 0) {
+            summary.innerHTML = '<span style="color:#9ca3af;">Sin roles adicionales seleccionados</span>';
+        } else {
+            summary.innerHTML = '<span style="color:#374151; font-weight:500;">Adicionales activos:</span> ' +
+                active.map(c => `<span style="background:#eff6ff; color:#1d4ed8; padding:1px 7px; border-radius:10px; font-size:0.75rem; font-weight:600;">${c.dataset.roleName}</span>`).join(' ');
+        }
+    }
+
+    // ── Modal open/close ──────────────────────────────────────────
+    function openUserModal(userId, username, primaryRole, isActive, extraRolesStr) {
+        document.getElementById('modalUserId').value = userId;
+        document.getElementById('modalUsername').textContent = username;
+        document.getElementById('newPasswordInput').value = '';
+        document.getElementById('pwdMsg').style.display = 'none';
+        document.getElementById('rolesMsg').style.display = 'none';
+
+        // Status
+        const btn = document.getElementById('toggleActiveBtn');
+        const lbl = document.getElementById('activeStatusLabel');
+        if (isActive) {
+            lbl.textContent = 'Activo';
+            btn.textContent = 'Inactivar';
+            btn.style.cssText = 'background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; padding:0.35rem 0.875rem; border-radius:20px; cursor:pointer; font-weight:600; font-size:0.78rem;';
+        } else {
+            lbl.textContent = 'Inactivo';
+            btn.textContent = 'Activar';
+            btn.style.cssText = 'background:#f0fdf4; color:#16a34a; border:1.5px solid #bbf7d0; padding:0.35rem 0.875rem; border-radius:20px; cursor:pointer; font-weight:600; font-size:0.78rem;';
+        }
+
+        // Primary role
+        document.getElementById('primaryRoleSelect').value = primaryRole;
+
+        // Reset all chips first
+        document.querySelectorAll('.role-chip').forEach(chip => {
+            chip.classList.remove('active', 'primary-chip');
+            chip.classList.add('inactive');
+            chip.querySelector('.chip-dot').style.background = '#94a3b8';
+        });
+
+        // Mark primary chip
+        document.querySelectorAll('.role-chip').forEach(chip => {
+            if (chip.dataset.roleId == primaryRole) {
+                chip.classList.remove('inactive');
+                chip.classList.add('primary-chip');
+                chip.querySelector('.chip-dot').style.background = '#7c3aed';
+            }
+        });
+
+        // Mark extra roles
+        const extraIds = extraRolesStr ? extraRolesStr.split(',').map(s => s.trim()).filter(Boolean) : [];
+        extraIds.forEach(eid => {
+            const chip = document.querySelector(`.role-chip[data-role-id="${eid}"]`);
+            if (chip && !chip.classList.contains('primary-chip')) {
+                chip.classList.remove('inactive');
+                chip.classList.add('active');
+                chip.querySelector('.chip-dot').style.background = '#1d4ed8';
+            }
+        });
+
+        updateRolesSummary();
+        document.getElementById('userEditModal').style.display = 'flex';
+    }
+
+    function closeUserModal() {
+        document.getElementById('userEditModal').style.display = 'none';
+    }
+
+    // ── Actions ───────────────────────────────────────────────────
+    async function changePassword() {
+        const userId = document.getElementById('modalUserId').value;
+        const pwd = document.getElementById('newPasswordInput').value.trim();
+        if (!pwd || pwd.length < 4) { alert('La contraseña debe tener al menos 4 caracteres.'); return; }
+
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        fd.append('new_password', pwd);
+        const res = await fetch('/maintenance/users/change-password', { method: 'POST', body: fd });
+        const data = await res.json();
+        const msg = document.getElementById('pwdMsg');
+        msg.style.display = 'block';
+        if (data.status === 'ok') { msg.textContent = '✅ Contraseña actualizada.'; msg.style.color='#16a34a'; }
+        else { msg.textContent = '❌ ' + (data.detail || 'Error desconocido'); msg.style.color='#dc2626'; }
+        document.getElementById('newPasswordInput').value = '';
+    }
+
+    async function toggleActive() {
+        const userId = document.getElementById('modalUserId').value;
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        const res = await fetch('/maintenance/users/toggle-active', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (data.status === 'ok') {
+            const btn = document.getElementById('toggleActiveBtn');
+            const lbl = document.getElementById('activeStatusLabel');
+            if (data.is_active) {
+                lbl.textContent = 'Activo';
+                btn.textContent = 'Inactivar';
+                btn.style.cssText = 'background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; padding:0.35rem 0.875rem; border-radius:20px; cursor:pointer; font-weight:600; font-size:0.78rem;';
+            } else {
+                lbl.textContent = 'Inactivo';
+                btn.textContent = 'Activar';
+                btn.style.cssText = 'background:#f0fdf4; color:#16a34a; border:1.5px solid #bbf7d0; padding:0.35rem 0.875rem; border-radius:20px; cursor:pointer; font-weight:600; font-size:0.78rem;';
+            }
+            setTimeout(() => location.reload(), 1000);
+        }
+    }
+
+    async function saveRoles() {
+        const userId   = document.getElementById('modalUserId').value;
+        const primary  = document.getElementById('primaryRoleSelect').value;
+        const extras   = Array.from(document.querySelectorAll('.role-chip.active'))
+                              .map(c => c.dataset.roleId)
+                              .filter(id => id !== primary)
+                              .join(',');
+
+        const btn = document.getElementById('saveRolesBtn');
+        btn.disabled = true;
+        btn.innerHTML = '⏳ Guardando...';
+
+        const fd = new FormData();
+        fd.append('user_id', userId);
+        fd.append('primary_role', primary);
+        fd.append('extra_role_ids', extras);
+
+        try {
+            const res  = await fetch('/maintenance/users/set-roles', { method: 'POST', body: fd });
+            const data = await res.json();
+            const msg  = document.getElementById('rolesMsg');
+            msg.style.display = 'block';
+
+            if (data.status === 'ok') {
+                msg.innerHTML = '✅ Roles guardados correctamente.';
+                msg.style.color = '#16a34a';
+                setTimeout(() => location.reload(), 1200);
+            } else {
+                msg.innerHTML = '❌ ' + (data.detail || 'Error al guardar');
+                msg.style.color = '#dc2626';
+                btn.disabled = false;
+                btn.innerHTML = '💾 Guardar Configuración de Roles';
+            }
+        } catch(err) {
+            const msg = document.getElementById('rolesMsg');
+            msg.style.display = 'block';
+            msg.innerHTML = '❌ Error de red: ' + err.message;
+            msg.style.color = '#dc2626';
+            btn.disabled = false;
+            btn.innerHTML = '💾 Guardar Configuración de Roles';
+        }
+    }
+    </script>
+
 
     <!-- Tab: ROLES (ACCESS MAP) -->
     <div id="tab-roles" class="tab-content" style="display: none; padding: 2rem;">

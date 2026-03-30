@@ -121,6 +121,26 @@
     </div>
 </div>
 
+<!-- Close Comment Modal -->
+<div id="closeCommentModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; align-items:center; justify-content:center;">
+    <div style="background:white; padding:28px; border-radius:8px; width:480px; max-width:90vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);">
+        <h3 style="margin:0 0 8px 0; font-size:16px; color:#111827; font-weight:600;">
+            📋 Comentario de Cierre
+        </h3>
+        <p style="margin:0 0 16px 0; font-size:13px; color:#6b7280;">Ingresa el comentario o resolución para el cierre de este ticket.</p>
+        <textarea id="closeCommentText"
+            placeholder="Describe cómo se resolvió el problema..."
+            style="width:100%; height:100px; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+            <button onclick="cancelCloseModal()"
+                style="padding:8px 16px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:13px; cursor:pointer; color:#6b7280;">Cancelar</button>
+            <button onclick="confirmCloseTicket()"
+                style="padding:8px 16px; border:none; border-radius:6px; background:#ef4444; color:white; font-size:13px; font-weight:600; cursor:pointer;">Cerrar Ticket</button>
+        </div>
+    </div>
+</div>
+
 <script>
     let allStatus = [];
     let allTechs = [];
@@ -191,7 +211,7 @@
                     options += `<option value="${s.id}" ${sel}>${s.name}</option>`;
                 });
                 statusDisplay = `
-                    <select onchange="updateTicket(${t.id}, 'status_id', this.value)" 
+                    <select onchange="updateTicket(${t.id}, 'status_id', this.value, this)" data-prev="${t.status_id}"
                         style="font-size: 12px; padding: 4px 8px; border: 1px solid ${statusColor}; border-radius: 12px; background-color: ${statusColor}15; color: #111827; font-weight:600; outline:none; cursor:pointer;">
                         ${options}
                     </select>`;
@@ -257,11 +277,62 @@
         });
     }
 
-    async function updateTicket(id, field, value) {
+    // --- Close Comment Modal Logic ---
+    let _pendingCloseTicketId = null;
+    let _pendingCloseSelectEl = null;
+    let _pendingPreviousStatusId = null;
+
+    function showCloseModal(ticketId, selectEl, previousStatusId) {
+        _pendingCloseTicketId = ticketId;
+        _pendingCloseSelectEl = selectEl;
+        _pendingPreviousStatusId = previousStatusId;
+        document.getElementById('closeCommentText').value = '';
+        document.getElementById('closeCommentModal').style.display = 'flex';
+    }
+
+    function cancelCloseModal() {
+        // Revert select to previous value
+        if (_pendingCloseSelectEl && _pendingPreviousStatusId !== null) {
+            _pendingCloseSelectEl.value = _pendingPreviousStatusId;
+        }
+        document.getElementById('closeCommentModal').style.display = 'none';
+        _pendingCloseTicketId = null;
+        _pendingCloseSelectEl = null;
+        _pendingPreviousStatusId = null;
+    }
+
+    async function confirmCloseTicket() {
+        const comment = document.getElementById('closeCommentText').value.trim();
+        document.getElementById('closeCommentModal').style.display = 'none';
+        await doUpdateTicket(_pendingCloseTicketId, 'status_id', _pendingCloseSelectEl.value, comment);
+        _pendingCloseTicketId = null;
+        _pendingCloseSelectEl = null;
+        _pendingPreviousStatusId = null;
+    }
+
+    async function updateTicket(id, field, value, selectEl) {
         if (!value && field === 'status_id') return;
+
+        // Check if we need to show close modal
+        if (field === 'status_id') {
+            const statusObj = allStatus.find(s => s.id === parseInt(value));
+            if (statusObj && statusObj.name === 'Cerrado') {
+                // Find previous value from allStatus
+                const prevVal = _pendingPreviousStatusId;
+                showCloseModal(id, selectEl, selectEl.dataset.prev || null);
+                selectEl.dataset.prev = value; // store for next time
+                return;
+            }
+        }
+
+        await doUpdateTicket(id, field, value);
+    }
+
+    async function doUpdateTicket(id, field, value, closeComment) {
         let val = value === "" ? null : parseInt(value);
         const body = {};
         body[field] = val;
+        if (closeComment) body['close_comment'] = closeComment;
 
         try {
             const res = await fetch(`/api/support/ticket/${id}`, {

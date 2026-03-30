@@ -222,6 +222,12 @@
                             </a>
                             {% endif %}
 
+                            {% if user and user.role in [1, 2, 3, 4, 8] %}
+                            <a href="/projects" class="nav-link {% if request.url.path.startswith('/projects') %}active{% endif %}" title="Proyectos">
+                                <span class="nav-icon">📋</span> <span class="nav-text">Proyectos</span>
+                            </a>
+                            {% endif %}
+
                             {% if user %}
                             <a href="/support" class="nav-link" title="Soporte">
                                 <span class="nav-icon">🎫</span> <span class="nav-text">Soporte</span>

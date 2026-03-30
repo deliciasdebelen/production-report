@@ -104,7 +104,8 @@ class User(Base):
     role = Column(Integer, ForeignKey("roles.id"), default=1) # 1=KPI, 2=Prod, 3=Plan, 4=Admin, 5=Almacen, 6=Inventory, 7=Patrimonial, 8=Director
     is_active = Column(Integer, default=1)
     
-    role_obj = relationship("Role")
+    role_obj = relationship("Role", foreign_keys=[role])
+    extra_roles = relationship("UserRole", back_populates="user")
 
 class LogisticsReceptionProduction(Base):
     __tablename__ = "logistics_reception_production"
@@ -330,6 +331,18 @@ class SupportTicket(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     closed_at = Column(DateTime(timezone=True), nullable=True)
+    close_comment = Column(Text, nullable=True)
+
+class UserRole(Base):
+    """Junction table for multiple role assignments per user."""
+    __tablename__ = "user_roles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    role_id = Column(Integer, ForeignKey("roles.id"), nullable=False)
+
+    user = relationship("User", back_populates="extra_roles")
+    role = relationship("Role")
 
 # --- AI PARAMETERS MODULE ---
 
@@ -451,3 +464,169 @@ class ProfitFormulaReng(Base):
     cantidad = Column(Float, default=0.0)
     co_uni = Column(String, nullable=True)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+# --- PROJECTS / Trello Clone MODELS ---
+
+class ProjectBoard(Base):
+    __tablename__ = "project_boards"
+
+    id = Column(String, primary_key=True, default=generate_id)
+    title = Column(String, nullable=False)
+    background = Column(String, default="#714B67") # Color or simple string
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    lists = relationship("ProjectList", back_populates="board", cascade="all, delete-orphan", order_by="ProjectList.order")
+
+class ProjectList(Base):
+    __tablename__ = "project_lists"
+
+    id = Column(String, primary_key=True, default=generate_id)
+    title = Column(String, nullable=False)
+    order = Column(Float, nullable=False, default=1000.0) # Float to allow midpoint inserts (e.g., 1500)
+    
+    board_id = Column(String, ForeignKey("project_boards.id", ondelete="CASCADE"), index=True, nullable=False)
+    board = relationship("ProjectBoard", back_populates="lists")
+    
+    cards = relationship("ProjectCard", back_populates="list", cascade="all, delete-orphan", order_by="ProjectCard.order")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class ProjectCard(Base):
+    __tablename__ = "project_cards"
+
+    id = Column(String, primary_key=True, default=generate_id)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    order = Column(Float, nullable=False, default=1000.0) # Floating point sorting (1024, 2048...)
+    
+    list_id = Column(String, ForeignKey("project_lists.id", ondelete="CASCADE"), index=True, nullable=False)
+    list = relationship("ProjectList", back_populates="cards")
+    
+    # Optional fields like color or label summaries
+    color = Column(String, nullable=True)
+    
+    comments = relationship("ProjectComment", back_populates="card", cascade="all, delete-orphan", order_by="ProjectComment.created_at.desc()")
+    
+    # Relationships for Card Members (users assigned)
+    members = relationship("ProjectCardMember", back_populates="card", cascade="all, delete-orphan")
+    
+    # Agile Card Data
+    due_date = Column(DateTime(timezone=True), nullable=True)
+    labels = relationship("ProjectCardLabel", back_populates="card", cascade="all, delete-orphan")
+    checklists = relationship("ProjectChecklist", back_populates="card", cascade="all, delete-orphan", order_by="ProjectChecklist.created_at")
+    
+    # New Traza & Timeline Fields
+    start_date = Column(DateTime(timezone=True), nullable=True)
+    parent_id = Column(String, ForeignKey("project_cards.id", ondelete="SET NULL"), index=True, nullable=True)
+    is_milestone = Column(Boolean, default=False)
+    story_points = Column(Float, nullable=True, default=0.0)
+    
+    children = relationship("ProjectCard", backref="parent", remote_side="ProjectCard.id")
+    status_history = relationship("ProjectCardStatusHistory", back_populates="card", cascade="all, delete-orphan", order_by="ProjectCardStatusHistory.timestamp")
+    activity_logs = relationship("ProjectActivityLog", back_populates="card", cascade="all, delete-orphan", order_by="ProjectActivityLog.timestamp")
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class ProjectCardStatusHistory(Base):
+    __tablename__ = "project_card_status_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    old_list_id = Column(String, ForeignKey("project_lists.id", ondelete="SET NULL"), index=True, nullable=True)
+    new_list_id = Column(String, ForeignKey("project_lists.id", ondelete="SET NULL"), index=True, nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+    
+    card = relationship("ProjectCard", back_populates="status_history")
+    
+class ProjectActivityLog(Base):
+    __tablename__ = "project_activity_logs"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    action_type = Column(String, nullable=False) # e.g. "created", "updated", "moved", "commented"
+    description = Column(Text, nullable=True)
+    old_value = Column(Text, nullable=True)
+    new_value = Column(Text, nullable=True)
+    timestamp = Column(DateTime(timezone=True), server_default=func.now())
+
+    card = relationship("ProjectCard", back_populates="activity_logs")
+    user = relationship("User")
+
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id = Column(String, primary_key=True, default=generate_id)
+    text = Column(Text, nullable=False)
+    
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    card = relationship("ProjectCard", back_populates="comments")
+    
+    user_id = Column(Integer, ForeignKey("users.id"), index=True, nullable=False)
+    user = relationship("User")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProjectCardMember(Base):
+    __tablename__ = "project_card_members"
+
+    id = Column(String, primary_key=True, default=generate_id)
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=False)
+    
+    card = relationship("ProjectCard", back_populates="members")
+    # user relationship is unidirectional from member to User
+    user = relationship("User")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- AGILE FEATURES FOR TRELLO CLONE ---
+
+class ProjectLabel(Base):
+    """Global labels defined per board"""
+    __tablename__ = "project_labels"
+    
+    id = Column(String, primary_key=True, default=generate_id)
+    name = Column(String, nullable=False) # e.g. "Urgent", "Bug"
+    color = Column(String, nullable=False, default="#3b82f6")
+    
+    board_id = Column(String, ForeignKey("project_boards.id", ondelete="CASCADE"), index=True, nullable=False)
+    
+class ProjectCardLabel(Base):
+    """Junction between Cards and Labels"""
+    __tablename__ = "project_card_labels"
+    
+    id = Column(String, primary_key=True, default=generate_id)
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    label_id = Column(String, ForeignKey("project_labels.id", ondelete="CASCADE"), index=True, nullable=False)
+    
+    card = relationship("ProjectCard", back_populates="labels")
+    label = relationship("ProjectLabel")
+    
+class ProjectChecklist(Base):
+    __tablename__ = "project_checklists"
+    
+    id = Column(String, primary_key=True, default=generate_id)
+    title = Column(String, nullable=False, default="Checklist")
+    
+    card_id = Column(String, ForeignKey("project_cards.id", ondelete="CASCADE"), index=True, nullable=False)
+    card = relationship("ProjectCard", back_populates="checklists")
+    
+    items = relationship("ProjectChecklistItem", back_populates="checklist", cascade="all, delete-orphan", order_by="ProjectChecklistItem.created_at")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ProjectChecklistItem(Base):
+    __tablename__ = "project_checklist_items"
+    
+    id = Column(String, primary_key=True, default=generate_id)
+    text = Column(String, nullable=False)
+    is_completed = Column(Boolean, default=False)
+    
+    checklist_id = Column(String, ForeignKey("project_checklists.id", ondelete="CASCADE"), index=True, nullable=False)
+    checklist = relationship("ProjectChecklist", back_populates="items")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

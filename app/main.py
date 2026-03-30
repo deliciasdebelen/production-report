@@ -73,6 +73,9 @@ app.include_router(automation_admin.router)
 from .routers import mismatch_admin
 app.include_router(mismatch_admin.router)
 
+from .routers import projects
+app.include_router(projects.router)
+
 from app.utils_id import get_next_order_number
 from app.services.automation_scheduler import setup_scheduler, scheduler
 from app.services.mismatch_scheduler import setup_mismatch_scheduler

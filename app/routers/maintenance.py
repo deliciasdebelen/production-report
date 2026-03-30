@@ -7,7 +7,7 @@ from ..models import (
     User, ProductionReport, ProductionPlanning, 
     LogisticsReceptionMerchandise, LogisticsReceptionProduction, 
     LogisticsDispatch, InventoryCaptureHeader, InventoryCaptureLine, Role,
-    AIFunctionality, AIParameter, SupportTicket
+    AIFunctionality, AIParameter, SupportTicket, LogisticsRoute, UserRole
 )
 from .. import auth_utils
 from ..ai_knowledge import get_knowledge_response
@@ -32,6 +32,7 @@ async def view_maintenance_dashboard(request: Request, db: Session = Depends(get
         
     users = db.query(User).all()
     roles = db.query(Role).all()
+    routes = db.query(LogisticsRoute).all()
     
     # Fetch AI Data
     ai_funcs = db.query(AIFunctionality).all()
@@ -41,6 +42,7 @@ async def view_maintenance_dashboard(request: Request, db: Session = Depends(get
         "user": user,
         "users": users, 
         "roles": roles,
+        "routes": routes,
         "ai_funcs": ai_funcs,
         "title": "Mantenimiento - Panel de Control"
     })
@@ -101,6 +103,65 @@ async def delete_user(user_id: int = Form(...), db: Session = Depends(get_db), c
         db.delete(user_obj)
         db.commit()
     return RedirectResponse("/maintenance", status_code=303)
+
+@router.post("/users/change-password")
+async def change_user_password(
+    user_id: int = Form(...),
+    new_password: str = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "manage_users"): raise HTTPException(403)
+    user_obj = db.query(User).filter(User.id == user_id).first()
+    if not user_obj:
+        return {"status": "error", "detail": "User not found"}
+    user_obj.password_hash = auth_utils.get_password_hash(new_password)
+    db.commit()
+    return {"status": "ok"}
+
+@router.post("/users/toggle-active")
+async def toggle_user_active(
+    user_id: int = Form(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "manage_users"): raise HTTPException(403)
+    user_obj = db.query(User).filter(User.id == user_id).first()
+    if not user_obj or user_obj.username == "admin":
+        return {"status": "error", "detail": "Cannot modify this user"}
+    user_obj.is_active = 0 if user_obj.is_active else 1
+    db.commit()
+    return {"status": "ok", "is_active": user_obj.is_active}
+
+@router.post("/users/set-roles")
+async def set_user_roles(
+    user_id: int = Form(...),
+    primary_role: int = Form(...),
+    extra_role_ids: str = Form(""),  # comma-separated list of role IDs
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    if not check_permission(current_user, "maintenance", "manage_users"): raise HTTPException(403)
+    user_obj = db.query(User).filter(User.id == user_id).first()
+    if not user_obj:
+        return {"status": "error", "detail": "User not found"}
+
+    # Update primary role
+    user_obj.role = primary_role
+
+    # Replace extra roles
+    db.query(UserRole).filter(UserRole.user_id == user_id).delete()
+    if extra_role_ids.strip():
+        for rid_str in extra_role_ids.split(","):
+            rid_str = rid_str.strip()
+            if rid_str.isdigit():
+                rid = int(rid_str)
+                if rid != primary_role:  # Don't duplicate primary role
+                    existing = db.query(UserRole).filter(UserRole.user_id == user_id, UserRole.role_id == rid).first()
+                    if not existing:
+                        db.add(UserRole(user_id=user_id, role_id=rid))
+    db.commit()
+    return {"status": "ok"}
 
 # --- DATA MAINTENANCE (Review & Delete) ---
 @router.post("/data/preview")

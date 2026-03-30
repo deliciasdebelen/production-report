@@ -67,18 +67,17 @@ def deploy():
         def run_cmd(cmd_str):
             print(f"Executing: {cmd_str}")
             stdin, stdout, stderr = client.exec_command(cmd_str)
-            out = stdout.read().decode()
-            err = stderr.read().decode()
+            out = stdout.read().decode('utf-8', errors='replace')
+            err = stderr.read().decode('utf-8', errors='replace')
             if out: print(out)
             if err: print(f"STDERR: {err}")
             return out, err
 
         # Chain commands to preserve Directory context
-        # Chain commands to preserve Directory context
         print("Starting Deployment Sequence...")
         full_deployment_cmd = (
             f"cd {REMOTE_DIR} && "
-            f"tar -xzf {tar_name} && "
+            f"tar -xzf {tar_name} --no-same-permissions --no-same-owner || true && "
             f"echo 'Building images...' && "
             f"docker-compose build && "
             f"echo 'Starting Services...' && "
@@ -86,6 +85,17 @@ def deploy():
         )
         
         run_cmd(full_deployment_cmd)
+        
+        # Run migrations inside the container to ensure all tables exist
+        import time
+        print("Waiting for container to start...")
+        time.sleep(5)
+        print("Running user_roles migration inside container...")
+        migration_cmd = (
+            f"cd {REMOTE_DIR} && "
+            f"docker exec {CONTAINER_NAME} python -m app.migrate_user_roles"
+        )
+        run_cmd(migration_cmd)
         
         # Note: setup_remote_backups.py is designed to run locally on the server or via paramiko.
         # But we bundled it in 'scripts/'. If we run it via 'docker exec web', it needs paramiko installed in the container

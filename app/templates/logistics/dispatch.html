@@ -176,7 +176,7 @@
                     <div>
                         <div
                             style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
-                            #{{ log.id }}
+                            #{% if log.document_ref and 'GUIA-' in log.document_ref %}{{ log.document_ref.split('GUIA-')[1].split(' ')[0] | int }}{% else %}{{ log.id }}{% endif %}
 
                             {% set status = audit_map.get(log.id, 'OK') %}
                             {% if status == 'Critical' %}
@@ -762,6 +762,36 @@
             }
 
             const tr = document.createElement('tr');
+            
+            // Build the string carefully without deep quote escaping inside string interpolation
+            let itemInput = `<input type="text" value="${item.item}" onchange="updateItem(${index}, 'item', this.value)" list="productList" style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">`;
+            if (item.fact) {
+                itemInput = `<input type="text" value="${item.item}" readonly style="background: #f1f5f9; color: #64748b; width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">`;
+            }
+
+            let qtyInput = `<input type="number" step="0.01" value="${item.qty}" onchange="updateItem(${index}, 'qty', parseFloat(this.value))" style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">`;
+            if (item.fact) {
+                qtyInput = `<input type="number" step="0.01" value="${item.qty}" readonly title="Las cantidades de facturas no son modificables" style="background: #f1f5f9; color: #64748b; width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">`;
+            }
+
+            let unitSelect = `<select onchange="updateItem(${index}, 'unit', this.value)" style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                <option value="Unid" ${item.unit === 'Unid' ? 'selected' : ''}>Unid</option>
+                <option value="Kg" ${item.unit === 'Kg' ? 'selected' : ''}>Kg</option>
+                <option value="Cjas" ${item.unit === 'Cjas' ? 'selected' : ''}>Cajas</option>
+                <option value="Lts" ${item.unit === 'Lts' ? 'selected' : ''}>Litros</option>
+                <option value="${item.unit}" ${['Unid', 'Kg', 'Cjas', 'Lts'].includes(item.unit) ? '' : 'selected'}>${item.unit}</option>
+            </select>`;
+            if (item.fact) {
+                unitSelect = `<select disabled style="background: #f1f5f9; color: #64748b; width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                <option value="${item.unit}" selected>${item.unit}</option>
+            </select>`;
+            }
+
+            let actionBtn = `<button type="button" onclick="removeItem(${index})" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; opacity: 0.6;">&times;</button>`;
+            if (item.fact) {
+                actionBtn = `<span title="Remueva la factura completa desde la sección superior" style="color: #cbd5e1; cursor: not-allowed; font-size: 1.2rem;">&times;</span>`;
+            }
+
             tr.innerHTML = `
                 <td style="padding: 0.5rem; text-align: center; color: var(--text-muted);">${index + 1}</td>
                 <td style="padding: 0.5rem; font-size: 0.85rem; color: var(--primary);">
@@ -773,27 +803,17 @@
                     </span>
                 </td>
                 <td style="padding: 0.5rem;">
-                    <input type="text" value="${item.item}" ${item.fact ? 'readonly style="background: #f1f5f9; color: #64748b;"' : 'onchange="updateItem(' + index + ', \\'item\\', this.value)"'}
-                        list="productList"
-                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                    ${itemInput}
                     ${breakdownHtml}
                 </td>
                 <td style="padding: 0.5rem;">
-                    <input type="number" step="0.01" value="${item.qty}" ${item.fact ? 'readonly style="background: #f1f5f9; color: #64748b;" title="Las cantidades de facturas no son modificables"' : 'onchange="updateItem(' + index + ', \\'qty\\', parseFloat(this.value))"'}
-                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
+                    ${qtyInput}
                 </td>
                 <td style="padding: 0.5rem;">
-                    <select ${item.fact ? 'disabled style="background: #f1f5f9; color: #64748b;"' : 'onchange="updateItem(' + index + ', \\'unit\\', this.value)"'}
-                        style="width: 100%; border: 1px solid var(--border); padding: 0.25rem; border-radius: var(--radius-sm);">
-                        <option value="Unid" ${item.unit === 'Unid' ? 'selected' : ''}>Unid</option>
-                        <option value="Kg" ${item.unit === 'Kg' ? 'selected' : ''}>Kg</option>
-                        <option value="Cjas" ${item.unit === 'Cjas' ? 'selected' : ''}>Cajas</option>
-                        <option value="Lts" ${item.unit === 'Lts' ? 'selected' : ''}>Litros</option>
-                        <option value="${item.unit}" ${['Unid', 'Kg', 'Cjas', 'Lts'].includes(item.unit) ? '' : 'selected'}>${item.unit}</option>
-                    </select>
+                    ${unitSelect}
                 </td>
                 <td style="padding: 0.5rem; text-align: center;">
-                    ${item.fact ? '<span title="Remueva la factura completa desde la sección superior" style="color: #cbd5e1; cursor: not-allowed; font-size: 1.2rem;">&times;</span>' : '<button type="button" onclick="removeItem(' + index + ')" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 1.2rem; opacity: 0.6;">&times;</button>'}
+                    ${actionBtn}
                 </td>
             `;
             tbody.appendChild(tr);
