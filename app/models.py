@@ -467,16 +467,39 @@ class ProfitFormulaReng(Base):
 
 # --- PROJECTS / Trello Clone MODELS ---
 
+class Project(Base):
+    """Contenedor superior de Tableros (Fases). Un Proyecto agrupa N tableros."""
+    __tablename__ = "projects"
+
+    id          = Column(String, primary_key=True, default=generate_id)
+    name        = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    background  = Column(String, default="#1e1b4b")   # Color de portada del proyecto
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+
+    boards = relationship(
+        "ProjectBoard", back_populates="project",
+        cascade="all, delete-orphan", order_by="ProjectBoard.created_at"
+    )
+    labels = relationship(
+        "ProjectLabel", back_populates="project",
+        cascade="all, delete-orphan",
+        primaryjoin="ProjectLabel.project_id == Project.id"
+    )
+
+
 class ProjectBoard(Base):
     __tablename__ = "project_boards"
 
-    id = Column(String, primary_key=True, default=generate_id)
-    title = Column(String, nullable=False)
-    background = Column(String, default="#714B67") # Color or simple string
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
-    
-    lists = relationship("ProjectList", back_populates="board", cascade="all, delete-orphan", order_by="ProjectList.order")
+    id          = Column(String, primary_key=True, default=generate_id)
+    title       = Column(String, nullable=False)
+    background  = Column(String, default="#714B67")
+    project_id  = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=True)
+    created_at  = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at  = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    project = relationship("Project", back_populates="boards")
+    lists   = relationship("ProjectList", back_populates="board", cascade="all, delete-orphan", order_by="ProjectList.order")
 
 class ProjectList(Base):
     __tablename__ = "project_lists"
@@ -506,6 +529,7 @@ class ProjectCard(Base):
     
     # Optional fields like color or label summaries
     color = Column(String, nullable=True)
+    status = Column(String, nullable=False, server_default="Por Hacer")  # Por Hacer | En Proceso | Finalizado
     
     comments = relationship("ProjectComment", back_populates="card", cascade="all, delete-orphan", order_by="ProjectComment.created_at.desc()")
     
@@ -587,14 +611,20 @@ class ProjectCardMember(Base):
 # --- AGILE FEATURES FOR TRELLO CLONE ---
 
 class ProjectLabel(Base):
-    """Global labels defined per board"""
+    """Catálogo de etiquetas. Ahora pertenecen al Project (compartidas entre fases).
+    board_id se mantiene como nullable para compatibilidad con registros anteriores."""
     __tablename__ = "project_labels"
-    
-    id = Column(String, primary_key=True, default=generate_id)
-    name = Column(String, nullable=False) # e.g. "Urgent", "Bug"
-    color = Column(String, nullable=False, default="#3b82f6")
-    
-    board_id = Column(String, ForeignKey("project_boards.id", ondelete="CASCADE"), index=True, nullable=False)
+
+    id         = Column(String, primary_key=True, default=generate_id)
+    name       = Column(String, nullable=False)
+    color      = Column(String, nullable=False, default="#3b82f6")
+
+    # Relación principal: etiqueta pertenece al Proyecto
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), index=True, nullable=True)
+    project    = relationship("Project", back_populates="labels", foreign_keys=[project_id])
+
+    # Legado: se mantiene para no romper tarjetas existentes
+    board_id   = Column(String, ForeignKey("project_boards.id", ondelete="SET NULL"), index=True, nullable=True)
     
 class ProjectCardLabel(Base):
     """Junction between Cards and Labels"""

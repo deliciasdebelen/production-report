@@ -100,6 +100,16 @@ async def assistant_chat(
                  response_text = f"Diagnóstico General:\n" + "\n".join(statuses)
                  if kb_response: response_text += f"\n\n{kb_response}"
 
+        # 5. DISPATCH AUDIT INTENT (via chat)
+        elif any(x in msg for x in ["auditar despacho", "revisar facturas", "duplicado", "factura duplicada", "verificar guia", "buscar duplicado"]):
+            response_text = (
+                "Para auditar facturas o notas de entrega contra el histórico de guías, "
+                "usa el endpoint **POST /api/assistant/audit-dispatch** con el campo "
+                "`doc_numbers` (lista separada por comas). Ejemplo:\n"
+                "```\nPOST /api/assistant/audit-dispatch\ndoc_numbers=000001,000002,NE-003\n```\n"
+                "El sistema te indicará si algún documento ya vive en una guía existente."
+            )
+
         # 4. KNOWLEDGE BASE (Fallback)
         if not response_text:
             kb = get_knowledge_response(msg)
@@ -109,7 +119,7 @@ async def assistant_chat(
                 if "gracias" in msg:
                     response_text = "De nada. ¿Necesitas ayuda con algo más?"
                 else:
-                    response_text = "Entendido. ¿Necesitas analizar ventas, inventario o revisar algún error técnico?"
+                    response_text = "Entendido. ¿Necesitas analizar ventas, inventario, auditar facturas de despacho o revisar algún error técnico?"
 
         # Save History
         history.append({"role": "assistant", "content": response_text})
@@ -118,3 +128,115 @@ async def assistant_chat(
     except Exception as e:
         print(f"Chat Error: {e}")
         return {"response": "Ocurrió un error interno al procesar tu solicitud."}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AUDITOR DE INTEGRIDAD DE DESPACHOS
+# Endpoint preventivo: recibe lista de facturas/notas y detecta duplicados
+# contra el histórico de Guías de Despacho ya registradas.
+# ─────────────────────────────────────────────────────────────────────────────
+
+from ..models import LogisticsDispatch
+import json as _json
+
+@router.post("/audit-dispatch")
+async def audit_dispatch_documents(
+    doc_numbers: str = Form(..., description="Números de factura o nota de entrega, separados por coma"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_active_user)
+):
+    """
+    Auditor Preventivo de Despachos.
+
+    Recibe una lista de números de documento (facturas / notas de entrega)
+    y los compara contra TODOS los renglones de guías de despacho activas
+    (is_annulled = False).
+
+    Retorna:
+    - duplicates: lista con los conflictos encontrados
+    - clean:      lista de documentos sin conflicto
+    - summary:    texto legible para mostrar en el chat/asistente
+    """
+    # Normalizar lista de documentos
+    raw_docs = [d.strip() for d in doc_numbers.split(",") if d.strip()]
+    if not raw_docs:
+        raise HTTPException(status_code=400, detail="Debe proporcionar al menos un número de documento.")
+
+    # Cargar todas las guías activas (no anuladas) de una sola consulta
+    active_dispatches = (
+        db.query(LogisticsDispatch)
+        .filter(LogisticsDispatch.is_annulled == False)
+        .all()
+    )
+
+    # Construir índice: doc_num → [(guide_ref, client, date), ...]
+    doc_index: dict = {}
+    for dispatch in active_dispatches:
+        try:
+            items_list = _json.loads(dispatch.items_json or "[]")
+        except Exception:
+            items_list = []
+
+        for item in items_list:
+            fact_val = str(item.get("fact", "")).strip()
+            if not fact_val:
+                continue
+            # Normalizar: quitar prefijos tipo "FACT:", "NOTA:" etc.
+            clean_fact = fact_val.split(":")[-1].strip()
+
+            if clean_fact not in doc_index:
+                doc_index[clean_fact] = []
+
+            doc_index[clean_fact].append({
+                "guide_ref":  dispatch.document_ref,
+                "client":     dispatch.client_destination,
+                "date":       dispatch.date.strftime("%d/%m/%Y") if dispatch.date else "—",
+                "dispatch_id": dispatch.id,
+                "article":    str(item.get("item", "")).strip(),
+                "qty":        item.get("qty", 0),
+            })
+
+    # Clasificar cada documento solicitado
+    duplicates = []
+    clean      = []
+
+    for doc in raw_docs:
+        # Buscar con y sin prefijo
+        hits = doc_index.get(doc) or doc_index.get(doc.split(":")[-1].strip(), [])
+        if hits:
+            duplicates.append({
+                "doc_number": doc,
+                "conflicts":  hits
+            })
+        else:
+            clean.append(doc)
+
+    # Construir resumen legible
+    if not duplicates:
+        summary = (
+            f"Todos los {len(clean)} documento(s) auditados son nuevos. "
+            "No se detectaron duplicados en el histórico de guías."
+        )
+    else:
+        lines = [f"Se detectaron **{len(duplicates)} documento(s) duplicado(s)**:\n"]
+        for dup in duplicates:
+            lines.append(f"\n**Factura/Nota: {dup['doc_number']}** — ya registrada en:")
+            for c in dup["conflicts"]:
+                lines.append(
+                    f"  · Guía **{c['guide_ref']}** | "
+                    f"Cliente: {c['client']} | "
+                    f"Fecha: {c['date']} | "
+                    f"Artículo: {c['article']} ({c['qty']})"
+                )
+        if clean:
+            lines.append(f"\nDocumento(s) sin conflicto: {', '.join(clean)}")
+        summary = "\n".join(lines)
+
+    return {
+        "audited":    raw_docs,
+        "duplicates": duplicates,
+        "clean":      clean,
+        "total_audited":    len(raw_docs),
+        "total_duplicates": len(duplicates),
+        "summary":    summary
+    }

@@ -206,8 +206,7 @@
 
                 if (res.ok) {
                     const ticket = await res.json();
-                    alert(`Ticket creado con éxito: ${ticket.code}`);
-                    window.location.href = '/support/tickets'; // Go to list
+                    window.location.href = `/support/tickets?created=${ticket.code}`;
                 } else {
                     alert('Error al crear el ticket. Por favor intente nuevamente.');
                     btn.innerHTML = originalText;

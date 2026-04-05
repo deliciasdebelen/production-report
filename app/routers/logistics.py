@@ -964,6 +964,74 @@ async def create_dispatch(
     if existing_guide:
         raise HTTPException(status_code=400, detail=f"El Número de Guía {document_ref} ya existe en el sistema.")
 
+    # ── [VALIDACIÓN MULTICRITERIO] ─────────────────────────────────────────────
+    # Antes de cualquier INSERT, verificamos a nivel de renglón que no exista
+    # una combinación idéntica de: Cliente + Artículo + Cantidad + Nro Factura/Nota.
+    # Consultamos exclusivamente despachos activos (is_annulled = False).
+    # ──────────────────────────────────────────────────────────────────────────
+    try:
+        raw_items_for_check = json.loads(items) if items else []
+        client_check = client_destination or ""
+
+        # Cargamos todos los despachos activos del mismo cliente para minimizar I/O
+        candidate_dispatches = (
+            db.query(LogisticsDispatch)
+            .filter(
+                LogisticsDispatch.is_annulled == False,
+                LogisticsDispatch.client_destination == client_check
+            )
+            .all()
+        )
+
+        for item in raw_items_for_check:
+            item_fact  = str(item.get("fact", "")).strip()
+            item_item  = str(item.get("item", "")).strip()   # descripción/SKU
+            try:
+                item_qty = float(item.get("qty", 0))
+            except (TypeError, ValueError):
+                item_qty = 0.0
+
+            if not item_fact or "Manual" in item_fact:
+                # Renglones manuales sin número de factura no se validan
+                continue
+
+            for existing in candidate_dispatches:
+                try:
+                    existing_items = json.loads(existing.items_json or "[]")
+                except Exception:
+                    existing_items = []
+
+                for ex_item in existing_items:
+                    ex_fact = str(ex_item.get("fact", "")).strip()
+                    ex_item_name = str(ex_item.get("item", "")).strip()
+                    try:
+                        ex_qty = float(ex_item.get("qty", 0))
+                    except (TypeError, ValueError):
+                        ex_qty = 0.0
+
+                    # Comparación exacta de las 4 claves
+                    if (
+                        ex_fact == item_fact
+                        and ex_item_name == item_item
+                        and abs(ex_qty - item_qty) < 0.001
+                    ):
+                        raise HTTPException(
+                            status_code=400,
+                            detail=(
+                                f"Error: Ya existe un registro con el mismo cliente, "
+                                f"factura y cantidades en los renglones. "
+                                f"Factura: {item_fact} | Artículo: {item_item} | "
+                                f"Cantidad: {item_qty} ya está registrada en la "
+                                f"Guía {existing.document_ref}."
+                            )
+                        )
+    except HTTPException:
+        raise
+    except Exception as _mc_err:
+        # No bloqueamos si la validación misma falla por error de parseo u otro
+        print(f"[WARN] Multicriterio check skipped due to error: {_mc_err}")
+    # ── FIN VALIDACIÓN MULTICRITERIO ──────────────────────────────────────────
+
     # 3. Determine Final Client & Validate Quantities (Server-Side Lockdown)
     try:
         items_list = json.loads(items)

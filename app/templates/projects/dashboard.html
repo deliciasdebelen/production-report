@@ -1,0 +1,111 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="projects-dashboard" style="padding: 20px;">
+    <h2 style="font-weight: 600; color: #1e293b; margin-bottom: 20px; font-size: 1.5rem;">Mis Tableros (Proyectos)</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+        
+        <!-- Tablero de Crear Nuevo -->
+        <div style="background-color: #f1f5f9; border: 2px dashed #cbd5e1; border-radius: 8px; height: 120px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s;" 
+             onclick="document.getElementById('newBoardModal').style.display='flex'"
+             onmouseover="this.style.backgroundColor='#e2e8f0'" 
+             onmouseout="this.style.backgroundColor='#f1f5f9'">
+            <span style="color: #475569; font-weight: 500;">+ Crear Tablero Nuevo</span>
+        </div>
+
+        <!-- Lista de Tableros -->
+        {% for board in boards %}
+        <div style="position: relative;">
+            <a href="/projects/{{ board.id }}" style="text-decoration: none; display: block;">
+                <div style="background-color: {{ board.background }}; border-radius: 8px; height: 120px; padding: 15px; position: relative; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); transition: transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-3px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div style="position: absolute; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.2); border-radius: 8px;"></div>
+                    <h3 style="color: white; font-weight: 600; font-size: 1.1rem; position: relative; z-index: 1; margin: 0; text-shadow: 0px 1px 2px rgba(0,0,0,0.4);">
+                        {{ board.title }}
+                    </h3>
+                </div>
+            </a>
+            <!-- Delete Button -->
+            <button onclick="deleteBoard('{{ board.id }}')" style="position: absolute; bottom: 10px; right: 10px; background: rgba(255,255,255,0.2); border: none; border-radius: 4px; color: white; padding: 5px 8px; cursor: pointer; font-size: 0.8rem; z-index: 2; transition: background 0.2s;" onmouseover="this.style.background='rgba(239, 68, 68, 0.8)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                🗑️ Eliminar
+            </button>
+        </div>
+        {% endfor %}
+        
+    </div>
+</div>
+
+<!-- Modal Crear Tablero -->
+<div id="newBoardModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; width: 400px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);">
+        <h3 style="margin-top: 0; font-weight: 600; color: #1e293b; margin-bottom: 15px;">Crear Tablero</h3>
+        <form onsubmit="submitNewBoard(event)">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 5px;">Título del Tablero *</label>
+                <input type="text" id="boardTitle" required style="width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 1rem;">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 0.85rem; color: #64748b; margin-bottom: 5px;">Color de Fondo</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="color" id="boardColor" value="#714B67" style="height: 35px; width: 40px; padding: 0; border: none; cursor: pointer;">
+                    <div style="flex:1; display:flex; gap: 5px; align-items:center;">
+                        <button type="button" onclick="document.getElementById('boardColor').value='#ef4444'" style="width: 20px; height: 20px; border-radius: 50%; border:none; background:#ef4444; cursor:pointer;" title="Rojo"></button>
+                        <button type="button" onclick="document.getElementById('boardColor').value='#10b981'" style="width: 20px; height: 20px; border-radius: 50%; border:none; background:#10b981; cursor:pointer;" title="Verde"></button>
+                        <button type="button" onclick="document.getElementById('boardColor').value='#3b82f6'" style="width: 20px; height: 20px; border-radius: 50%; border:none; background:#3b82f6; cursor:pointer;" title="Azul"></button>
+                        <button type="button" onclick="document.getElementById('boardColor').value='#714B67'" style="width: 20px; height: 20px; border-radius: 50%; border:none; background:#714B67; cursor:pointer;" title="Odoo"></button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="document.getElementById('newBoardModal').style.display='none'" style="padding: 8px 15px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; color: #475569;">Cancelar</button>
+                <button type="submit" style="padding: 8px 15px; border: none; background: #714B67; color: white; border-radius: 4px; cursor: pointer; font-weight: 500;">Crear Tablero</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+async function submitNewBoard(e) {
+    e.preventDefault();
+    const title = document.getElementById('boardTitle').value;
+    const color = document.getElementById('boardColor').value;
+    
+    const formData = new URLSearchParams();
+    formData.append("title", title);
+    formData.append("background", color);
+    
+    try {
+        const res = await fetch("/api/projects/boards", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: formData.toString()
+        });
+        if(res.ok) {
+            const data = await res.json();
+            window.location.href = "/projects/" + data.id;
+        } else {
+            alert("Error al crear el tablero.");
+        }
+    } catch(err) {
+        alert("Error de red.");
+    }
+}
+
+async function deleteBoard(boardId) {
+    if(confirm("¿Estás seguro de eliminar todo el tablero y sus tarjetas de forma permanente?")) {
+        try {
+            const res = await fetch(`/api/projects/boards/${boardId}`, { method: 'DELETE' });
+            if(res.ok) {
+                window.location.reload();
+            } else {
+                alert("Error eliminando tablero");
+            }
+        } catch(e) {
+            console.error(e);
+        }
+    }
+}
+</script>
+{% endblock %}

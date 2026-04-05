@@ -1,0 +1,312 @@
+{% extends "layout.html" %}
+{% block scripts %}{% endblock %}
+{% block content %}
+<style>
+    :root { --accent: #714B67; --accent-hover: #5a3a52; }
+
+    .detail-page { padding: 24px 32px; max-width: 1300px; margin: 0 auto; }
+
+    .breadcrumb {
+        display: flex; align-items: center; gap: 8px;
+        font-size: .83rem; color: #94a3b8; margin-bottom: 20px;
+    }
+    .breadcrumb a { color: #714B67; text-decoration: none; }
+    .breadcrumb a:hover { text-decoration: underline; }
+
+    .project-banner-full {
+        height: 110px; border-radius: 12px;
+        display: flex; align-items: flex-end; padding: 18px 24px;
+        position: relative; margin-bottom: 24px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.15);
+    }
+    .project-banner-full h1 {
+        font-size: 1.7rem; font-weight: 800; color: #fff;
+        text-shadow: 0 2px 8px rgba(0,0,0,.4); margin: 0;
+    }
+    .header-actions { position: absolute; top: 14px; right: 16px; display: flex; gap: 8px; }
+    .btn-action {
+        background: rgba(0,0,0,.3); backdrop-filter: blur(4px); color: #fff;
+        border: 1px solid rgba(255,255,255,.2); border-radius: 7px;
+        padding: 6px 12px; font-size: .8rem; cursor: pointer; transition: background .2s;
+    }
+    .btn-action:hover { background: rgba(0,0,0,.5); }
+    .btn-action.danger:hover { background: rgba(239,68,68,.6); }
+
+    /* Progress master */
+    .progress-master {
+        background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+        padding: 20px 24px; margin-bottom: 24px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .progress-master-header {
+        display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    .progress-master-header h2 { font-size: .95rem; font-weight: 700; color: #1e293b; margin: 0; }
+
+    .progress-tip {
+        background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
+        padding: 10px 14px; margin-bottom: 12px; font-size: .8rem; color: #166534;
+        display: flex; align-items: flex-start; gap: 8px;
+    }
+    .members-tip {
+        background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;
+        padding: 10px 14px; margin-bottom: 18px; font-size: .8rem; color: #1d4ed8;
+        display: flex; align-items: flex-start; gap: 8px;
+    }
+    .tip-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+    .pct-badge {
+        background: #f5f0f4; color: #714B67; border: 1px solid #d9c9d5;
+        border-radius: 20px; padding: 3px 12px; font-size: .85rem; font-weight: 700;
+    }
+    .global-bar-bg { height: 9px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
+    .global-bar-fill {
+        height: 100%; border-radius: 10px;
+        background: linear-gradient(90deg, #714B67, #a07090);
+        transition: width .8s ease;
+    }
+    .phases-breakdown { display: flex; flex-direction: column; gap: 9px; }
+    .phase-row { display: grid; align-items: center; gap: 12px; grid-template-columns: 200px 1fr 50px; }
+    .phase-name { font-size: .8rem; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .phase-bar-bg { height: 4px; background: #e2e8f0; border-radius: 10px; overflow: hidden; }
+    .phase-bar-fill { height: 100%; border-radius: 10px; background: #714B67; }
+    .phase-bar-fill.full { background: #16a34a; }
+    .phase-pct { font-size: .78rem; color: #94a3b8; text-align: right; }
+
+    /* Toolbar */
+    .boards-toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .boards-toolbar h3 { color: #1e293b; font-size: 1rem; font-weight: 700; margin: 0; }
+    .btn-add-phase {
+        display: flex; align-items: center; gap: 6px;
+        background: #714B67; color: #fff; border: none; border-radius: 8px;
+        padding: 8px 16px; font-size: .88rem; font-weight: 600;
+        cursor: pointer; transition: background .2s;
+    }
+    .btn-add-phase:hover { background: #5a3a52; }
+
+    /* Boards grid */
+    .boards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+    .board-card {
+        border-radius: 10px; overflow: hidden; background: #fff;
+        border: 1px solid #e2e8f0; transition: transform .2s, box-shadow .2s;
+        box-shadow: 0 1px 3px rgba(0,0,0,.05);
+    }
+    .board-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,.1); }
+    .board-thumb { height: 60px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+    .board-body { padding: 12px 14px 0; }
+    .board-title { font-size: .92rem; font-weight: 700; color: #1e293b; margin: 0 0 4px; }
+    .board-meta  { font-size: .76rem; color: #94a3b8; }
+    .board-bar-bg { height: 4px; background: #f1f5f9; border-radius: 10px; overflow: hidden; margin: 10px 0 4px; }
+    .board-bar-fill { height: 100%; border-radius: 10px; background: #714B67; }
+    .board-pct { font-size: .73rem; color: #714B67; font-weight: 600; }
+    .board-actions { display: flex; gap: 6px; padding: 10px 12px 12px; }
+    .board-btn {
+        flex: 1; padding: 6px; border-radius: 6px; font-size: .76rem; font-weight: 500;
+        cursor: pointer; border: 1px solid #e2e8f0; background: #f8fafc;
+        color: #64748b; transition: all .15s; text-align: center; text-decoration: none; display: block;
+    }
+    .board-btn:hover { background: #f1f5f9; color: #1e293b; }
+    .board-btn.del { color: #ef4444; border-color: #fecaca; }
+    .board-btn.del:hover { background: #fef2f2; }
+
+    .empty-boards { grid-column: 1/-1; text-align: center; padding: 50px; color: #94a3b8; }
+    .empty-boards .icon { font-size: 3rem; margin-bottom: 10px; }
+
+    /* Modal */
+    .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+                     backdrop-filter:blur(3px); z-index:2000; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:#fff; border-radius:14px; padding:28px; width:100%; max-width:440px;
+             box-shadow:0 20px 60px rgba(0,0,0,.2); animation:slideUp .22s ease; }
+    @keyframes slideUp { from{transform:translateY(16px);opacity:0} to{transform:none;opacity:1} }
+    .modal h2 { font-size:1.05rem; font-weight:700; color:#1e293b; margin:0 0 20px; }
+    .form-group { margin-bottom:13px; }
+    .form-group label { display:block; font-size:.81rem; color:#64748b; margin-bottom:5px; font-weight:500; }
+    .form-group input {
+        width:100%; background:#f8fafc; border:1px solid #e2e8f0; border-radius:7px;
+        color:#1e293b; padding:9px 12px; font-size:.9rem; font-family:inherit;
+        box-sizing:border-box; outline:none; transition:border-color .2s;
+    }
+    .form-group input:focus { border-color:#714B67; background:#fff; }
+    .modal-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:20px; }
+    .btn-cancel { background:#f1f5f9; border:1px solid #e2e8f0; color:#64748b;
+                  border-radius:7px; padding:8px 16px; cursor:pointer; font-size:.87rem; }
+    .btn-submit { background:#714B67; color:#fff; border:none; border-radius:7px;
+                  padding:8px 18px; cursor:pointer; font-size:.87rem; font-weight:600; }
+    .btn-submit:hover { background:#5a3a52; }
+</style>
+
+<div class="detail-page">
+
+    <div class="breadcrumb">
+        <a href="/projects">Mis Proyectos</a>
+        <span style="color:#cbd5e1">›</span>
+        <span>{{ project.name }}</span>
+    </div>
+
+    <!-- Banner del proyecto -->
+    <div class="project-banner-full" style="background: {{ project.background }};">
+        <h1>{{ project.name }}</h1>
+        <div class="header-actions">
+            <button class="btn-action danger"
+                    onclick="confirmDeleteProject('{{ project.id }}', '{{ project.name }}')">
+                Eliminar Proyecto
+            </button>
+        </div>
+    </div>
+    {% if project.description %}
+    <p style="color:#64748b; font-size:.88rem; margin: -14px 0 20px;">{{ project.description }}</p>
+    {% endif %}
+
+    <!-- Tip: Miembros -->
+    <div class="members-tip">
+        <span class="tip-icon">👤</span>
+        <div>
+            <strong>Asignación de equipos:</strong> Haz clic en cualquier <strong>tarjeta</strong> dentro del tablero Kanban para abrirla.
+            En el panel derecho del modal encontrarás el botón <strong>"👤 Miembros"</strong> para asignar usuarios al trabajo.
+            Los avatares aparecerán visibles en la tarjeta.
+        </div>
+    </div>
+
+    <!-- Barra de Progreso Maestra -->
+    <div class="progress-master">
+        <div class="progress-master-header">
+            <h2>📊 Progreso del Proyecto</h2>
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span style="font-size:.8rem;color:#94a3b8;">{{ progress.done }}/{{ progress.total }} tareas completadas</span>
+                <span class="pct-badge">{{ progress.pct }}%</span>
+            </div>
+        </div>
+        <!-- Cómo funciona el progreso -->
+        <div class="progress-tip">
+            <span class="tip-icon">💡</span>
+            <div>
+                <strong>¿Cómo mover el progreso?</strong><br>
+                <span style="margin-top:4px; display:block;">
+                    1. Haz clic en <strong>"Abrir"</strong> en cualquier fase de abajo
+                    → 2. Dentro del tablero Kanban, en el campo <strong>"+ Añadir otra lista"</strong>
+                    escribe <strong>"Finalizado"</strong> y presiona Enter
+                    → 3. <strong>Arrastra</strong> las tarjetas terminadas a esa columna.
+                    El porcentaje subirá automáticamente.
+                </span>
+            </div>
+        </div>
+        <div class="global-bar-bg">
+            <div class="global-bar-fill" style="width: {{ progress.pct }}%"></div>
+        </div>
+        {% if progress.phases %}
+        <div class="phases-breakdown">
+            {% for phase in progress.phases %}
+            <div class="phase-row">
+                <div class="phase-name" title="{{ phase.title }}">{{ phase.title }}</div>
+                <div class="phase-bar-bg">
+                    <div class="phase-bar-fill {% if phase.pct == 100 %}full{% endif %}"
+                         style="width: {{ phase.pct }}%"></div>
+                </div>
+                <div class="phase-pct">{{ phase.pct }}%</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p style="text-align:center;color:#94a3b8;font-size:.83rem;margin:0;">
+            Crea fases y agrega tarjetas para ver el progreso
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Grid de Tableros/Fases -->
+    <div class="boards-toolbar">
+        <h3>Fases del Proyecto ({{ project.boards | length }})</h3>
+        <button class="btn-add-phase" onclick="openAddPhaseModal()">+ Nueva Fase</button>
+    </div>
+
+    <div class="boards-grid" id="boardsGrid">
+        {% if project.boards %}
+            {% for board in project.boards %}
+            {% set phase = progress.phases | selectattr('id', 'equalto', board.id) | first | default({'pct': 0, 'total': 0, 'done': 0}) %}
+            <div class="board-card" data-board-id="{{ board.id }}">
+                <div class="board-thumb" style="background: {{ board.background }};">📋</div>
+                <div class="board-body">
+                    <div class="board-title">{{ board.title }}</div>
+                    <div class="board-meta">{{ phase.total }} tarjeta{{ 's' if phase.total != 1 else '' }}</div>
+                    <div class="board-bar-bg">
+                        <div class="board-bar-fill" style="width: {{ phase.pct }}%"></div>
+                    </div>
+                    <div class="board-pct">{{ phase.pct }}%</div>
+                </div>
+                <div class="board-actions">
+                    <a href="/projects/{{ project.id }}/boards/{{ board.id }}" class="board-btn">Abrir</a>
+                    <button class="board-btn del"
+                            onclick="deletePhase('{{ project.id }}', '{{ board.id }}', '{{ board.title }}')">Eliminar</button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-boards">
+                <div class="icon">📋</div>
+                <p>Sin fases. Haz clic en <strong>+ Nueva Fase</strong> para comenzar.</p>
+            </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Modal Nueva Fase -->
+<div class="modal-overlay" id="addPhaseModal">
+    <div class="modal">
+        <h2>Nueva Fase</h2>
+        <form id="addPhaseForm">
+            <div class="form-group">
+                <label>Nombre de la fase *</label>
+                <input type="text" id="phaseName" placeholder="ej. FASE I — Análisis" required>
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <input type="color" id="phaseColor" value="#714B67" style="height:36px;padding:2px 6px;width:100%">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn-submit" id="phaseSubmitBtn">Crear Fase</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const PROJECT_ID = "{{ project.id }}";
+function openAddPhaseModal() { document.getElementById('addPhaseModal').classList.add('open'); }
+function closeModal() { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+
+document.getElementById('addPhaseForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('phaseSubmitBtn');
+    btn.textContent = 'Creando...'; btn.disabled = true;
+    const fd = new FormData();
+    fd.append('title',      document.getElementById('phaseName').value.trim());
+    fd.append('background', document.getElementById('phaseColor').value);
+    try {
+        const res  = await fetch('/api/projects/' + PROJECT_ID + '/boards', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok) { window.location.reload(); }
+        else { alert(data.detail || 'Error'); btn.textContent = 'Crear Fase'; btn.disabled = false; }
+    } catch { alert('Error de red'); btn.textContent = 'Crear Fase'; btn.disabled = false; }
+});
+
+async function deletePhase(projectId, boardId, title) {
+    if (!confirm('Eliminar la fase "' + title + '"? Se eliminarán todas sus listas y tarjetas.')) return;
+    const res = await fetch('/api/projects/' + projectId + '/boards/' + boardId, { method: 'DELETE' });
+    if (res.ok) { document.querySelector('[data-board-id="' + boardId + '"]')?.remove(); window.location.reload(); }
+    else { alert('No se pudo eliminar'); }
+}
+
+async function confirmDeleteProject(projectId, name) {
+    if (!confirm('Eliminar el proyecto "' + name + '"? Se eliminarán TODAS sus fases y tarjetas.')) return;
+    const res = await fetch('/api/projects/' + projectId, { method: 'DELETE' });
+    if (res.ok) { window.location.href = '/projects'; }
+    else { alert('No se pudo eliminar el proyecto'); }
+}
+
+document.querySelectorAll('.modal-overlay').forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) closeModal(); });
+});
+</script>
+{% endblock %}

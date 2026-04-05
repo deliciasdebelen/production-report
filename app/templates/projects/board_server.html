@@ -1,0 +1,445 @@
+{% extends "layout.html" %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        if (!document.getElementById('sidebar').classList.contains('collapsed')) {
+            document.getElementById('sidebar').classList.add('collapsed');
+        }
+    });
+
+    const boardContainer = document.getElementById('board-container');
+    const boardId = "{{ board.id }}";
+    const projectId = "{{ project_id | default('') }}";
+
+    new Sortable(boardContainer, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        handle: '.list-header',
+        onEnd: async function (evt) {
+            if (evt.oldIndex === evt.newIndex) return;
+            const itemEl = evt.item;
+            const listId = itemEl.getAttribute('data-id');
+            const newIndex = evt.newIndex;
+            const lists = Array.from(boardContainer.children);
+            let prevOrder = 0.0, nextOrder = 0.0;
+            if (newIndex > 0) prevOrder = parseFloat(lists[newIndex - 1].getAttribute('data-order') || 0);
+            if (newIndex < lists.length - 1) { 
+                const nextEl = lists[newIndex + 1];
+                if(nextEl && nextEl.hasAttribute('data-order')) nextOrder = parseFloat(nextEl.getAttribute('data-order') || 0);
+            }
+            const formData = new URLSearchParams();
+            formData.append("prev_order", prevOrder);
+            formData.append("next_order", nextOrder);
+            try {
+                const res = await fetch(`/api/projects/lists/${listId}/move`, {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
+                });
+                if(res.ok) {
+                    const data = await res.json();
+                    itemEl.setAttribute('data-order', data.new_order);
+                }
+            } catch(e) { console.error(e); }
+        }
+    });
+
+    function initCardSortable() {
+        document.querySelectorAll('.card-list').forEach(el => {
+            new Sortable(el, {
+                group: 'shared', 
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                onEnd: async function (evt) {
+                    const itemEl = evt.item;
+                    const cardId = itemEl.getAttribute('data-id');
+                    const newListId = evt.to.closest('.kanban-list').getAttribute('data-id');
+                    const newIndex = evt.newIndex;
+                    const cards = Array.from(evt.to.children);
+                    let prevOrder = 0.0, nextOrder = 0.0;
+                    if (newIndex > 0) prevOrder = parseFloat(cards[newIndex - 1].getAttribute('data-order') || 0);
+                    if (newIndex < cards.length - 1) nextOrder = parseFloat(cards[newIndex + 1].getAttribute('data-order') || 0);
+
+                    const formData = new URLSearchParams();
+                    formData.append("new_list_id", newListId);
+                    formData.append("prev_order", prevOrder);
+                    formData.append("next_order", nextOrder);
+                    try {
+                        const res = await fetch(`/api/projects/cards/${cardId}/move`, {
+                            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
+                        });
+                        if(res.ok) {
+                            const data = await res.json();
+                            itemEl.setAttribute('data-order', data.new_order);
+                        }
+                    } catch(e) { console.error(e); }
+                }
+            });
+        });
+    }
+
+    initCardSortable();
+
+    async function addNewList(event) {
+        if(event) event.preventDefault();
+        const input = document.getElementById('newListInput');
+        const title = input.value.trim();
+        if(!title) return;
+        const formData = new URLSearchParams(); formData.append("title", title);
+        const res = await fetch(`/api/projects/boards/${boardId}/lists`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
+        });
+        if (res.ok) window.location.reload(); 
+    }
+
+    async function addNewCard(listId, formElement) {
+        event.preventDefault();
+        const input = formElement.querySelector('input');
+        const title = input.value.trim();
+        if(!title) return;
+        const formData = new URLSearchParams(); formData.append("title", title);
+        const res = await fetch(`/api/projects/lists/${listId}/cards`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
+        });
+        if (res.ok) window.location.reload(); 
+    }
+
+    function showAddCardForm(listId) {
+        document.getElementById('add-card-btn-' + listId).style.display = 'none';
+        const form = document.getElementById('add-card-form-' + listId);
+        form.style.display = 'block';
+        form.querySelector('input').focus();
+    }
+
+    // --- EXPERIENCIA DE USUARIO AVANZADA: MODAL DE TARJETA ---
+    let currentModalCardId = null;
+
+    async function openCardModal(cardId) {
+        currentModalCardId = cardId;
+        document.getElementById('cardModal').style.display = 'flex';
+        // Cleanup old UI
+        document.getElementById('modalCardTitle').value = 'Cargando...';
+        document.getElementById('modalCardDesc').value = '';
+        document.getElementById('modalChecklists').innerHTML = '';
+        document.getElementById('modalMembersText').innerHTML = '';
+        
+        try {
+            const res = await fetch(`/api/projects/cards/${cardId}`);
+            if(res.ok) {
+                const data = await res.json();
+                document.getElementById('modalCardTitle').value = data.title;
+                document.getElementById('modalCardDesc').value = data.description;
+                document.getElementById('modalDueDate').value = data.due_date;
+                
+                // Render Checklists
+                document.getElementById('modalChecklists').innerHTML = data.checklists.map(cl => `
+                    <div style="margin-top: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px;">
+                        <h4 style="margin: 0 0 10px 0; color: #334155; font-size:1rem;">✅ ${cl.title}</h4>
+                        <div style="padding-left: 25px; margin-bottom: 10px;">
+                            ${cl.items.map(it => `
+                                <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+                                    <input type="checkbox" ${it.is_completed ? 'checked' : ''} onchange="toggleChecklistItem('${it.id}', this.checked)">
+                                    <span style="flex:1; ${it.is_completed ? 'text-decoration: line-through; color:#94a3b8;' : ''}">${it.text}</span>
+                                    <button onclick="deleteChecklistItem('${it.id}')" style="background:none; border:none; color:#ef4444; cursor:pointer;" title="Eliminar">×</button>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div style="padding-left: 25px;">
+                            <input type="text" id="cl-input-${cl.id}" placeholder="Nuevo ítem..." style="padding: 4px 8px; border: 1px solid #cbd5e1; border-radius:3px;" onkeypress="if(event.key === 'Enter') addChecklistItem('${cl.id}')">
+                            <button onclick="addChecklistItem('${cl.id}')" style="padding: 5px 10px; border:none; background:#f1f5f9; cursor:pointer; border-radius:3px;">Añadir</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Render Members
+                document.getElementById('modalMembersText').innerHTML = data.members.map(m => `
+                    <div style="display:inline-flex; align-items:center; background:#e2e8f0; border-radius:12px; padding:2px 8px; margin:2px; font-size:0.8rem;">
+                        ${m.username}
+                        <button onclick="removeMember('${m.id}')" style="background:none; border:none; margin-left:5px; cursor:pointer;">×</button>
+                    </div>
+                `).join('');
+                
+                // Labels rendering skip for brevity in display, you get the point
+            }
+        } catch(e) { console.error(e); }
+    }
+
+    function closeCardModal() {
+        document.getElementById('cardModal').style.display = 'none';
+        window.location.reload(); // Refresh to catch all changes
+    }
+
+    // Card Updates
+    async function updateCardDetails() {
+        const title = document.getElementById('modalCardTitle').value;
+        const desc = document.getElementById('modalCardDesc').value;
+        const dueDate = document.getElementById('modalDueDate').value;
+        
+        const formData = new URLSearchParams();
+        formData.append("title", title);
+        formData.append("description", desc);
+        formData.append("due_date", dueDate);
+
+        await fetch(`/api/projects/cards/${currentModalCardId}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: formData
+        });
+        document.getElementById('saveMsg').innerText = 'Guardado!';
+        setTimeout(()=> document.getElementById('saveMsg').innerText='', 2000);
+    }
+
+    async function deleteCard() {
+        if(confirm("¿Estás seguro de eliminar esta tarjeta de forma permanente?")) {
+            await fetch(`/api/projects/cards/${currentModalCardId}`, { method: 'DELETE' });
+            closeCardModal();
+        }
+    }
+
+    // Members
+    async function loadUsersToAssign() {
+        const res = await fetch('/api/projects/users');
+        const users = await res.json();
+        const sel = document.getElementById('userAssignSelect');
+        sel.innerHTML = '<option value="">Selecciona un usuario...</option>' + users.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+        document.getElementById('assignUserDiv').style.display = 'block';
+    }
+
+    async function assignMember() {
+        const userId = document.getElementById('userAssignSelect').value;
+        if(!userId) return;
+        const form = new URLSearchParams(); form.append("user_id", userId);
+        await fetch(`/api/projects/cards/${currentModalCardId}/members`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form
+        });
+        document.getElementById('assignUserDiv').style.display = 'none';
+        openCardModal(currentModalCardId);
+    }
+    
+    async function removeMember(userId) {
+        await fetch(`/api/projects/cards/${currentModalCardId}/members/${userId}`, { method: 'DELETE' });
+        openCardModal(currentModalCardId);
+    }
+
+    // Checklists
+    async function createNewChecklist() {
+        const title = prompt("Nombre de la lista de tareas:");
+        if(!title) return;
+        const form = new URLSearchParams(); form.append("title", title);
+        await fetch(`/api/projects/cards/${currentModalCardId}/checklists`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form
+        });
+        openCardModal(currentModalCardId);
+    }
+
+    async function addChecklistItem(clId) {
+        const text = document.getElementById(`cl-input-${clId}`).value;
+        if(!text) return;
+        const form = new URLSearchParams(); form.append("text", text);
+        await fetch(`/api/projects/checklists/${clId}/items`, {
+            method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form
+        });
+        openCardModal(currentModalCardId);
+    }
+
+    async function toggleChecklistItem(itemId, isComplete) {
+        const form = new URLSearchParams(); form.append("is_completed", isComplete);
+        await fetch(`/api/projects/checklist_items/${itemId}`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: form
+        });
+        openCardModal(currentModalCardId);
+    }
+
+    async function deleteChecklistItem(itemId) {
+        await fetch(`/api/projects/checklist_items/${itemId}`, { method: 'DELETE' });
+        openCardModal(currentModalCardId);
+    }
+
+    async function deleteList(listId) {
+        if(confirm("¿Estás seguro de eliminar esta lista y TODAS sus tarjetas de forma permanente?")) {
+            try {
+                const res = await fetch(`/api/projects/lists/${listId}`, { method: 'DELETE' });
+                if(res.ok) {
+                    window.location.reload();
+                } else {
+                    alert("Error eliminando lista");
+                }
+            } catch(e) { console.error(e); }
+        }
+    }
+
+</script>
+
+<style>
+    body, html { height: 100%; margin: 0; padding: 0; overflow: hidden; }
+    .page-content { padding: 0 !important; height: calc(100vh - 60px); display: flex; flex-direction: column; background-color: {{ board.background }} !important; }
+    .board-header { padding: 12px 20px; background: rgba(0,0,0,0.15); display: flex; align-items: center; color: white; }
+    .board-title { font-size: 1.25rem; font-weight: 700; margin: 0; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .board-canvas { flex: 1 1 auto; overflow-y: hidden; overflow-x: auto; padding: 20px; display: flex; align-items: flex-start; gap: 15px; white-space: nowrap; }
+    .kanban-list { background-color: #f1f5f9; border-radius: 8px; width: 280px; min-width: 280px; max-height: 100%; display: flex; flex-direction: column; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+    .list-header { padding: 12px 15px; font-weight: 600; font-size: 0.95rem; cursor: pointer; user-select: none; }
+    .card-list { padding: 0 10px; flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; min-height: 20px; }
+    
+    .kanban-card { background: white; border-radius: 6px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); cursor: pointer; font-size: 0.9rem; word-wrap: break-word; white-space: normal; border: 1px solid #e2e8f0; border-left: 4px solid transparent; transition: transform 0.1s; position: relative; }
+    .kanban-card:hover { background: #f8fafc; border-color: #cbd5e1; }
+    .kanban-card.sortable-ghost { opacity: 0.4; background: #e2e8f0; }
+
+    .add-card-btn { padding: 10px 15px; color: #475569; cursor: pointer; display: block; border-radius: 0 0 8px 8px; font-size: 0.9rem; font-weight: 500; }
+    .add-card-btn:hover { background: rgba(0,0,0,0.08); color: #1e293b; }
+    .add-list-container { background-color: rgba(255,255,255,0.24); border-radius: 8px; width: 280px; min-width: 280px; padding: 12px; cursor: pointer; color: white; display: flex; align-items: center; }
+    .add-list-container:hover { background-color: rgba(255,255,255,0.32); }
+    
+    .board-canvas::-webkit-scrollbar { height: 12px; }
+    .board-canvas::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 8px; margin: 0 10px 10px 10px; }
+    .board-canvas::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.4); border-radius: 8px; }
+
+    /* Modal Styles */
+    .card-modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: flex-start; overflow-y: auto; padding-top: 50px; }
+    .card-modal-content { background: #f8fafc; border-radius: 8px; width: 750px; max-width: 95%; margin-bottom: 50px; display: flex; padding: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    .card-modal-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #64748b; border: none; background: none; }
+    .card-modal-main { flex: 1; padding-right: 20px; }
+    .card-modal-sidebar { width: 180px; display: flex; flex-direction: column; gap: 10px; }
+    
+    .modal-input-title { width: 100%; border: none; font-size: 1.3rem; font-weight: 700; color: #1e293b; background: transparent; padding: 5px; border-radius: 4px; }
+    .modal-input-title:focus { background: white; box-shadow: inset 0 0 0 2px #3b82f6; outline: none; }
+    .modal-textarea { width: 100%; min-height: 100px; border: 1px solid #cbd5e1; font-size: 0.95rem; color: #334155; padding: 10px; border-radius: 4px; resize: vertical; margin-top: 10px; }
+    
+    .sidebar-btn { width: 100%; padding: 8px 12px; text-align: left; background: #e2e8f0; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; color: #334155; font-weight: 500; }
+    .sidebar-btn:hover { background: #cbd5e1; }
+    
+    /* Pequeños avatares en la tarjeta del tablero */
+    .avatar-mini { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: #3b82f6; color: white; font-size: 0.7rem; font-weight: bold; border: 2px solid white; margin-left: -5px; }
+    .label-pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; color: white; margin-bottom: 5px; margin-right: 4px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="board-header">
+    <h1 class="board-title">{{ board.title }}</h1>
+    <div style="margin-left:auto;">
+        {% if project_id %}
+        <a href="/projects/{{ project_id }}" style="color: white; text-decoration: none; font-size: 0.9rem; opacity: 0.8;">
+            ← Volver al Proyecto
+        </a>
+        {% else %}
+        <a href="/projects" style="color: white; text-decoration: none; font-size: 0.9rem; opacity: 0.8;">← Proyectos</a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="board-canvas" id="board-container">
+    {% for lst in board.lists %}
+    <div class="kanban-list" data-id="{{ lst.id }}" data-order="{{ lst.order }}">
+        <div class="list-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>{{ lst.title }}</span>
+            <button onclick="deleteList('{{ lst.id }}')" style="background:none; border:none; color:#94a3b8; cursor:pointer;" title="Eliminar Lista" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">🗑️</button>
+        </div>
+        
+        <div class="card-list" id="card-list-{{ lst.id }}">
+            {% for card in lst.cards %}
+            <div class="kanban-card" data-id="{{ card.id }}" data-order="{{ card.order }}" onclick="openCardModal('{{ card.id }}')"
+                style="{% if card.color %}border-left-color: {{ card.color }};{% endif %}">
+                
+                <!-- Etiquetas Visuales -->
+                {% if card.labels %}
+                <div style="display:flex; flex-wrap:wrap;">
+                    {% for cl in card.labels %}
+                        <div class="label-pill" style="background: {{ cl.label.color }}">{{ cl.label.name }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div style="font-weight:500;">{{ card.title }}</div>
+                
+                <div style="display: flex; gap: 10px; margin-top: 8px; font-size:0.75rem; color:#64748b; align-items: center;">
+                    {% if card.due_date %}
+                        {% set is_past = card.due_date < now_date %}
+                        <span style="background: {% if is_past %}#fecaca{% else %}#fef08a{% endif %}; padding: 2px 5px; border-radius: 3px; color: {% if is_past %}#991b1b{% else %}#854d0e{% endif %}; font-weight: 500;">
+                            🕒 {{ card.due_date.strftime('%Y-%m-%d') }}
+                        </span>
+                    {% endif %}
+                    {% if card.checklists|length > 0 %}
+                        <span>✅ {{ card.checklists|length }}</span>
+                    {% endif %}
+                    {% if card.comments|length > 0 %}
+                        <span>💬 {{ card.comments|length }}</span>
+                    {% endif %}
+                    
+                    <div style="margin-left: auto; display: flex; padding-left: 5px;">
+                        {% for mem in card.members %}
+                            <div class="avatar-mini" title="{{ mem.user.username }}">{{ mem.user.username[0]|upper }}</div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="add-card-wrapper">
+            <div id="add-card-btn-{{ lst.id }}" class="add-card-btn" onclick="showAddCardForm('{{ lst.id }}')">+ Añadir una tarjeta</div>
+            <form id="add-card-form-{{ lst.id }}" style="display: none; padding: 0 10px 10px 10px;" onsubmit="addNewCard('{{ lst.id }}', this)">
+                <input type="text" placeholder="Introduzca un título..." required style="width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 8px;">
+                <div style="display: flex; gap: 5px;">
+                    <button type="submit" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;">Añadir</button>
+                    <button type="button" onclick="document.getElementById('add-card-form-{{ lst.id }}').style.display = 'none'; document.getElementById('add-card-btn-{{ lst.id }}').style.display = 'block';" style="background: none; border: none; color: #64748b; cursor: pointer; font-size: 1.2rem; width: 30px;">×</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <form onsubmit="addNewList(event)" style="margin: 0; padding: 0;">
+        <div class="add-list-container">
+            <input type="text" id="newListInput" placeholder="+ Añadir otra lista" style="background: transparent; border: none; outline: none; color: white; width: 100%;" class="placeholder-white">
+        </div>
+        <style>.placeholder-white::placeholder { color: rgba(255,255,255,0.7); }</style>
+    </form>
+</div>
+
+<!-- COMPLEJO MODAL MAESTRO DE LA TARJETA -->
+<div class="card-modal-overlay" id="cardModal">
+    <div class="card-modal-content">
+        <button class="card-modal-close" onclick="closeCardModal()">×</button>
+        
+        <div class="card-modal-main">
+            <!-- Título Editable -->
+            <input type="text" id="modalCardTitle" class="modal-input-title" onchange="updateCardDetails()">
+            
+            <div style="margin-top: 20px;">
+                <strong style="color: #475569;">≡ Descripción</strong>
+                <textarea id="modalCardDesc" class="modal-textarea" placeholder="Añadir una descripción más detallada..."></textarea>
+                <button onclick="updateCardDetails()" style="background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; margin-top: 5px;">Guardar Detalles</button>
+                <span id="saveMsg" style="color: #10b981; font-size: 0.8rem; margin-left: 10px;"></span>
+            </div>
+
+            <!-- Contenedor Dinámico Checklists -->
+            <div id="modalChecklists" style="margin-top: 25px;"></div>
+        </div>
+        
+        <div class="card-modal-sidebar">
+            <strong style="color: #475569; font-size: 0.8rem; text-transform: uppercase;">Añadir a la tarjeta</strong>
+            
+            <!-- Botón de Miembros -->
+            <button class="sidebar-btn" onclick="loadUsersToAssign()">👤 Miembros</button>
+            <div id="assignUserDiv" style="display:none; background:white; border:1px solid #cbd5e1; border-radius:4px; padding:10px; margin-top:5px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+                <select id="userAssignSelect" style="width:100%; border:1px solid #cbd5e1; padding:5px; border-radius:3px;"></select>
+                <button onclick="assignMember()" style="width:100%; background:#10b981; color:white; border:none; padding:5px; border-radius:3px; margin-top:5px; cursor:pointer;">Asignar</button>
+            </div>
+            
+            <div id="modalMembersText" style="margin-bottom:10px;"></div>
+
+            <!-- Etiquetas (Simulación visual para no extender fetch) -->
+            <!-- <button class="sidebar-btn">🏷️ Etiquetas</button> -->
+
+            <!-- Checklist -->
+            <button class="sidebar-btn" onclick="createNewChecklist()">☑️ Checklist</button>
+            
+            <!-- Fechas -->
+            <strong style="color: #475569; font-size: 0.8rem; text-transform: uppercase; margin-top:15px;">Fechas</strong>
+            <input type="date" id="modalDueDate" class="sidebar-btn" style="background:white; border:1px solid #cbd5e1;" onchange="updateCardDetails()">
+            
+            <!-- Acción de Eliminar -->
+            <strong style="color: #475569; font-size: 0.8rem; text-transform: uppercase; margin-top:15px;">Acciones</strong>
+            <button class="sidebar-btn" style="background:#fef2f2; color:#ef4444;" onclick="deleteCard()">➖ Eliminar Tarjeta</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

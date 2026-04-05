@@ -55,6 +55,13 @@
     </div>
 </div>
 
+<!-- Success Banner (shown when redirected after ticket creation) -->
+<div id="successBanner" style="display:none; background:#ecfdf5; border-left:4px solid #10b981; padding:12px 20px; margin:0; display:flex; align-items:center; gap:12px; font-size:13px; color:#065f46;">
+    <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span id="successBannerText">Ticket creado con éxito.</span>
+    <button onclick="document.getElementById('successBanner').style.display='none'" style="margin-left:auto; background:none; border:none; cursor:pointer; color:#6b7280; font-size:18px; line-height:1;">&times;</button>
+</div>
+
 <div class="odoo-search-view">
     <div style="position: relative;">
         <svg style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #9ca3af;"
@@ -366,6 +373,18 @@
     ['statusFilter', 'techFilter', 'dateFrom', 'dateTo'].forEach(id => {
         document.getElementById(id).addEventListener('change', loadTickets);
     });
+
+    // Show success banner if redirected after ticket creation
+    const urlParams = new URLSearchParams(window.location.search);
+    const createdCode = urlParams.get('created');
+    if (createdCode) {
+        const banner = document.getElementById('successBanner');
+        document.getElementById('successBannerText').textContent = `Ticket ${createdCode} creado con éxito.`;
+        banner.style.display = 'flex';
+        setTimeout(() => { banner.style.display = 'none'; }, 5000);
+        // Clean URL without reload
+        history.replaceState({}, '', '/support/tickets');
+    }
 
     // Init
     loadConfig().then(() => loadTickets());

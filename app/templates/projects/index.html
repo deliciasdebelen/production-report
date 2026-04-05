@@ -1,0 +1,232 @@
+{% extends "layout.html" %}
+{% block scripts %}{% endblock %}
+{% block content %}
+<style>
+    :root { --accent: #6366f1; --accent-hover: #4f46e5; }
+
+    .projects-page { padding: 28px 32px; max-width: 1300px; margin: 0 auto; }
+
+    .page-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 30px;
+    }
+    .page-header h1 { font-size: 1.6rem; font-weight: 700; margin: 0; color: #1e293b; }
+    .page-header p  { color: #64748b; margin: 4px 0 0; font-size:.9rem; }
+
+    .btn-new-project {
+        display: flex; align-items: center; gap: 8px;
+        background: #714B67; color: #fff;
+        border: none; border-radius: 8px;
+        padding: 10px 20px; font-size: .9rem; font-weight: 600;
+        cursor: pointer; transition: background .2s, transform .15s;
+    }
+    .btn-new-project:hover { background: #5a3a52; transform: translateY(-1px); }
+
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+
+    .project-card {
+        border-radius: 12px;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        overflow: hidden;
+        cursor: pointer;
+        transition: transform .2s, box-shadow .2s;
+        text-decoration: none;
+        display: block;
+        box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .project-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.1); }
+
+    .project-banner {
+        height: 72px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 2rem;
+        position: relative;
+    }
+    .project-banner .badge-count {
+        position: absolute; top: 10px; right: 12px;
+        background: rgba(0,0,0,.3); color: #fff;
+        padding: 2px 9px; border-radius: 20px; font-size: .75rem; font-weight: 600;
+    }
+
+    .project-body { padding: 16px 18px 18px; }
+    .project-name { font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 5px; }
+    .project-desc { font-size: .82rem; color: #64748b; margin: 0 0 14px;
+                    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+                    overflow: hidden; line-clamp: 2; }
+
+    .progress-header { display: flex; justify-content: space-between; margin-bottom: 5px; }
+    .progress-label { font-size: .76rem; color: #94a3b8; }
+    .progress-pct   { font-size: .76rem; color: #714B67; font-weight: 700; }
+    .progress-bar-bg {
+        height: 6px; background: #f1f5f9; border-radius: 10px; overflow: hidden;
+    }
+    .progress-bar-fill {
+        height: 100%; border-radius: 10px;
+        background: linear-gradient(90deg, #714B67, #a07090);
+        transition: width .6s ease;
+    }
+    .project-meta { font-size:.72rem; color:#94a3b8; margin-top: 10px; }
+
+    .empty-state {
+        grid-column: 1/-1; text-align: center; padding: 80px 20px; color: #94a3b8;
+    }
+    .empty-state .icon { font-size: 3.5rem; margin-bottom: 14px; }
+    .empty-state h3 { color: #64748b; font-size: 1.1rem; margin: 0 0 8px; }
+
+    /* Modal */
+    .modal-overlay {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,.5); backdrop-filter: blur(3px);
+        z-index: 2000; align-items: center; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+        background: #fff; border-radius: 14px; padding: 28px;
+        width: 100%; max-width: 460px; box-shadow: 0 20px 60px rgba(0,0,0,.2);
+        animation: slideUp .22s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(16px); opacity:0; } to { transform: none; opacity:1; } }
+    .modal h2 { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 22px; }
+
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: .82rem; color: #64748b; margin-bottom: 5px; font-weight: 500; }
+    .form-group input, .form-group textarea {
+        width: 100%; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 7px;
+        color: #1e293b; padding: 9px 12px; font-size: .9rem; font-family: inherit;
+        box-sizing: border-box; outline: none; transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: #714B67; background: #fff; }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+
+    .color-picker-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+    .color-swatch {
+        width: 30px; height: 30px; border-radius: 7px; cursor: pointer;
+        border: 2px solid transparent; transition: transform .15s, border-color .15s;
+    }
+    .color-swatch.selected { border-color: #1e293b; transform: scale(1.15); }
+
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+    .btn-cancel {
+        background: #f1f5f9; border: 1px solid #e2e8f0; color: #64748b;
+        border-radius: 7px; padding: 8px 16px; cursor: pointer; font-size: .88rem;
+    }
+    .btn-submit {
+        background: #714B67; color: #fff; border: none;
+        border-radius: 7px; padding: 8px 18px; cursor: pointer; font-size: .88rem; font-weight: 600;
+        transition: background .2s;
+    }
+    .btn-submit:hover { background: #5a3a52; }
+</style>
+
+<div class="projects-page">
+    <div class="page-header">
+        <div>
+            <h1>📋 Mis Proyectos</h1>
+            <p>Organiza el trabajo en proyectos y fases</p>
+        </div>
+        <button class="btn-new-project" onclick="openCreateModal()">+ Crear Proyecto</button>
+    </div>
+
+    <div class="projects-grid">
+        {% if projects %}
+            {% for p in projects %}
+            <a href="/projects/{{ p.id }}" class="project-card">
+                <div class="project-banner" style="background: {{ p.background }};">
+                    <span>🗂️</span>
+                    <span class="badge-count">{{ p.board_count }} fase{{ 's' if p.board_count != 1 else '' }}</span>
+                </div>
+                <div class="project-body">
+                    <div class="project-name">{{ p.name }}</div>
+                    {% if p.description %}
+                    <div class="project-desc">{{ p.description }}</div>
+                    {% endif %}
+                    <div class="progress-header">
+                        <span class="progress-label">Progreso</span>
+                        <span class="progress-pct">{{ p.pct }}%</span>
+                    </div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" style="width: {{ p.pct }}%"></div>
+                    </div>
+                    <div class="project-meta">
+                        {{ p.done_cards }}/{{ p.total_cards }} tareas ·
+                        {{ p.created_at.strftime('%d/%m/%Y') if p.created_at else '' }}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <div class="icon">🗂️</div>
+                <h3>Sin proyectos todavía</h3>
+                <p>Crea tu primer proyecto para organizar el trabajo.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Crear Proyecto -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <h2>Nuevo Proyecto</h2>
+        <form id="createProjectForm">
+            <div class="form-group">
+                <label>Nombre del proyecto *</label>
+                <input type="text" id="projName" placeholder="ej. Homologación de Procesos" required>
+            </div>
+            <div class="form-group">
+                <label>Descripción (opcional)</label>
+                <textarea id="projDesc" placeholder="Breve descripción..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Color de portada</label>
+                <div class="color-picker-row">
+                    {% for color in ['#1e1b4b','#7c3aed','#0f766e','#b45309','#be123c','#1d4ed8','#374151','#714B67'] %}
+                    <div class="color-swatch {% if loop.first %}selected{% endif %}"
+                         style="background:{{color}}" data-color="{{color}}"
+                         onclick="selectColor(this)"></div>
+                    {% endfor %}
+                </div>
+                <input type="hidden" id="projBackground" value="#1e1b4b">
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button type="submit" class="btn-submit" id="submitBtn">Crear Proyecto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateModal() { document.getElementById('createModal').classList.add('open'); }
+function closeModal()      { document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open')); }
+
+function selectColor(el) {
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('projBackground').value = el.dataset.color;
+}
+
+document.getElementById('createProjectForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('submitBtn');
+    btn.textContent = 'Creando...'; btn.disabled = true;
+    const fd = new FormData();
+    fd.append('name',        document.getElementById('projName').value.trim());
+    fd.append('description', document.getElementById('projDesc').value.trim());
+    fd.append('background',  document.getElementById('projBackground').value);
+    try {
+        const res  = await fetch('/api/projects', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (res.ok) { window.location.href = '/projects/' + data.id; }
+        else { alert(data.detail || 'Error'); btn.textContent = 'Crear Proyecto'; btn.disabled = false; }
+    } catch { alert('Error de red'); btn.textContent = 'Crear Proyecto'; btn.disabled = false; }
+});
+
+document.getElementById('createModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+</script>
+{% endblock %}
