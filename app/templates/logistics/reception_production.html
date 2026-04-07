@@ -1,8 +1,8 @@
-{% extends "layout.html" %}
+﻿{% extends "layout.html" %}
 
 {% block content %}
 <div class="flex-between">
-    <h1>Recepción de Producción</h1>
+    <h1>RecepciÃ³n de ProducciÃ³n</h1>
     <a href="/logistics" class="btn" style="background: var(--text-muted);">Volver</a>
 </div>
 
@@ -12,9 +12,9 @@
     <!-- Import Section -->
     <div class="card"
         style="padding: 1.5rem; margin-top: 0; display: flex; flex-direction: column; justify-content: center; align-items: flex-start;">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">⬇️ Importar Orden de Producción</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">â¬‡ï¸ Importar Orden de ProducciÃ³n</h3>
         <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">Seleccione una orden pendiente para
-            registrar su recepción.</p>
+            registrar su recepciÃ³n.</p>
         <button class="btn" onclick="openImportModal()"
             style="background: var(--primary); color: white; padding: 0.5rem 1.5rem; font-size: 0.9rem;">
             Seleccionar Orden Pendiente
@@ -23,7 +23,7 @@
 
     <!-- Date Filter Section (Keep as is) -->
     <div class="card" style="padding: 1.5rem; margin-top: 0;">
-        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">📅 Filtrar Historial</h3>
+        <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">ðŸ“… Filtrar Historial</h3>
         <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end;">
             <div style="flex: 1;">
                 <label style="font-size: 0.8rem; margin-bottom: 0.25rem;">Desde</label>
@@ -57,8 +57,8 @@
                 <div>
                     <h3 style="margin:0; color:#111827; font-size:1.25rem; font-weight:700;">Seleccionar Orden Pendiente
                     </h3>
-                    <p style="margin:4px 0 0 0; color:#6b7280; font-size:0.875rem;">Mostrando órdenes pendientes de
-                        recepción</p>
+                    <p style="margin:4px 0 0 0; color:#6b7280; font-size:0.875rem;">Mostrando Ã³rdenes pendientes de
+                        recepciÃ³n</p>
                 </div>
                 <span onclick="closeImportModal()"
                     style="color:#9ca3af; font-size:24px; cursor:pointer; transition:color 0.2s;"
@@ -84,7 +84,7 @@
                             Producido</th>
                         <th
                             style="padding: 12px 24px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; text-align: center;">
-                            Acción</th>
+                            AcciÃ³n</th>
                     </tr>
                 </thead>
                 <tbody id="modalListBody">
@@ -95,7 +95,7 @@
                 <div
                     style="display: inline-block; width: 24px; height: 24px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite;">
                 </div>
-                <p style="margin-top: 10px; color: #6b7280; font-size: 0.875rem;">Cargando órdenes...</p>
+                <p style="margin-top: 10px; color: #6b7280; font-size: 0.875rem;">Cargando Ã³rdenes...</p>
             </div>
         </div>
 
@@ -140,7 +140,7 @@
 
             <div class="form-group grid-2" style="gap: 1rem;">
                 <div>
-                    <label>Orden Producción</label>
+                    <label>Orden ProducciÃ³n</label>
                     <input type="text" id="dispOrderNumber" readonly style="background: #f0f0f0;">
                 </div>
                 <div>
@@ -167,7 +167,7 @@
             </div>
 
             <div class="form-group" style="margin-top: 1rem;">
-                <label>Notas de Recepción</label>
+                <label>Notas de RecepciÃ³n</label>
                 <textarea id="notes" rows="2" placeholder="Opcional"></textarea>
             </div>
             <div style="text-align: right; margin-top: 1.5rem;">
@@ -183,7 +183,7 @@
 
     <!-- Recent Logs -->
     <div class="card">
-        <h3>Últimos Movimientos</h3>
+        <h3>Ãšltimos Movimientos</h3>
         <div style="overflow-x: auto;">
             <table>
                 <thead>
@@ -213,7 +213,7 @@
 <div id="alertModal"
     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
     <div class="card" style="width: 90%; max-width: 500px; background: white; border: 1px solid var(--danger);">
-        <h2 style="color: var(--danger); margin-top: 0;">⚠️ Discrepancia Detectada</h2>
+        <h2 style="color: var(--danger); margin-top: 0;">âš ï¸ Discrepancia Detectada</h2>
         <p>La cantidad recibida no coincide con la reportada. Se debe notificar.</p>
 
         <div class="form-group">
@@ -222,7 +222,7 @@
         </div>
         <div class="form-group">
             <label>Asunto</label>
-            <input type="text" id="emailSubject" value="Alerta de Merma - Recepción">
+            <input type="text" id="emailSubject" value="Alerta de Merma - RecepciÃ³n">
         </div>
         <div class="form-group">
             <label>Mensaje</label>
@@ -257,14 +257,14 @@
         loading.style.display = 'block';
 
         try {
-            const res = await fetch(`/logistics/api/production/pending`);
+            const res = await fetch(`/api/external/pending-production`);
             const data = await res.json();
             pendingOrders = data;
             renderModalList(data);
         } catch (e) {
             console.error(e);
             loading.style.display = 'none';
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:red; padding: 1rem;'>Error cargando órdenes...</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:red; padding: 1rem;'>Error cargando Ã³rdenes...</td></tr>";
         }
     }
 
@@ -275,7 +275,7 @@
         loading.style.display = 'none';
 
         if (items.length === 0) {
-            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 2rem; color: #6b7280;'>No hay órdenes pendientes.</td></tr>";
+            tbody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 2rem; color: #6b7280;'>No hay Ã³rdenes pendientes.</td></tr>";
             return;
         }
 
@@ -384,7 +384,7 @@
         if (diff !== 0) {
             // Show Alert Modal
             const body = document.getElementById('emailBody');
-            body.value = `Se detectó una diferencia en la Orden ${orderNum}.\n\nEsperado: ${expected}\nRecibido: ${received}\nDiferencia: ${diff}\n\nPor favor verificar.`;
+            body.value = `Se detectÃ³ una diferencia en la Orden ${orderNum}.\n\nEsperado: ${expected}\nRecibido: ${received}\nDiferencia: ${diff}\n\nPor favor verificar.`;
 
             document.getElementById('alertModal').style.display = 'flex';
         } else {
@@ -417,7 +417,7 @@
             }
         } catch (e) {
             console.error(e);
-            alert("Error de conexión");
+            alert("Error de conexiÃ³n");
         }
     }
 
@@ -432,9 +432,9 @@
     style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(2px);">
     <div class="card"
         style="width: 400px; padding: 2rem; text-align: center; box-shadow: var(--shadow-lg); animation: slideIn 0.3s ease-out; background: white; border-radius: 8px;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">âœ…</div>
         <h2 style="margin: 0 0 0.5rem 0; color: #16a34a;">Registro Guardado</h2>
-        <p style="color: #64748b; margin-bottom: 1.5rem;">La información se ha guardado correctamente.</p>
+        <p style="color: #64748b; margin-bottom: 1.5rem;">La informaciÃ³n se ha guardado correctamente.</p>
         <button onclick="closeSuccessAndReload()" class="btn"
             style="width: 100%; justify-content: center; background: var(--odoo-primary); color: white; padding: 0.75rem; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">Aceptar</button>
     </div>
