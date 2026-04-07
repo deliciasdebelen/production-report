@@ -188,6 +188,28 @@ def api_delete_project(project_id: str, db: Session = Depends(get_db), user: Use
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404)
+
+    # Todos deben eliminar en orden jerárquico
+    for board in project.boards:
+        for lst in board.lists:
+            card_count = len(lst.cards)
+            if card_count > 0:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"La fase '{board.title}' contiene la lista '{lst.title}' con {card_count} tarjeta(s). Elimina las tarjetas primero."
+                )
+        list_count = len(board.lists)
+        if list_count > 0:
+            raise HTTPException(
+                status_code=422,
+                detail=f"La fase '{board.title}' tiene {list_count} lista(s). Elimínalas desde el tablero Kanban."
+            )
+    board_count = len(project.boards)
+    if board_count > 0:
+        raise HTTPException(
+            status_code=422,
+            detail=f"El proyecto tiene {board_count} fase(s). Elimínalas primero."
+        )
     db.delete(project)
     db.commit()
     return {"message": "Proyecto eliminado"}
@@ -256,6 +278,21 @@ def api_delete_board_in_project(
     ).first()
     if not board:
         raise HTTPException(status_code=404)
+
+    # Todos deben eliminar en orden jerárquico
+    for lst in board.lists:
+        card_count = len(lst.cards)
+        if card_count > 0:
+            raise HTTPException(
+                status_code=422,
+                detail=f"La lista '{lst.title}' tiene {card_count} tarjeta(s). Elimina las tarjetas primero."
+            )
+    list_count = len(board.lists)
+    if list_count > 0:
+        raise HTTPException(
+            status_code=422,
+            detail=f"La fase '{board.title}' tiene {list_count} lista(s). Elimínalas primero desde el tablero Kanban."
+        )
     db.delete(board)
     db.commit()
     return {"message": "Fase eliminada"}
@@ -294,10 +331,18 @@ def create_list(board_id: str, title: str = Form(...), db: Session = Depends(get
     return {"message": "Lista creada", "id": plist.id, "order": plist.order}
 
 @router.delete("/api/projects/lists/{list_id}")
-def delete_list(list_id: str, db: Session = Depends(get_db)):
+def delete_list(list_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     plist = db.query(ProjectList).filter(ProjectList.id == list_id).first()
     if not plist:
         raise HTTPException(status_code=404)
+
+    # Todos deben eliminar tarjetas primero
+    card_count = len(plist.cards)
+    if card_count > 0:
+        raise HTTPException(
+            status_code=422,
+            detail=f"La lista '{plist.title}' tiene {card_count} tarjeta(s). Elimina las tarjetas primero."
+        )
     db.delete(plist)
     db.commit()
     return {"message": "Lista eliminada"}

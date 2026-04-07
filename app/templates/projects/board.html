@@ -191,10 +191,44 @@
     }
 
     async function deleteCard() {
-        if (!window.confirm('\u00bfEliminar esta tarjeta de forma permanente?')) return;
         const res = await fetch(`/api/projects/cards/${currentModalCardId}`, { method: 'DELETE' });
         if (res.ok) closeCardModal();
-        else alert('Error al eliminar la tarjeta: ' + res.status);
+        else { document.getElementById('deleteCardBtn').innerText = 'Error ' + res.status; }
+    }
+
+    async function deleteList(listId, btn) {
+        btn.innerHTML = '...';
+        const res = await fetch(`/api/projects/lists/${listId}`, { method: 'DELETE' });
+        if (res.ok) {
+            window.location.reload();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            const msg = data.detail || ('Error ' + res.status);
+            // Show inline error on the list header
+            btn.innerHTML = '\u26a0\ufe0f';
+            btn.title = msg;
+            btn.style.color = '#ef4444';
+            // Also show floating toast
+            showToast(msg, 'error');
+            setTimeout(() => { btn.innerHTML = '\ud83d\uddd1\ufe0f'; btn.style.color = '#94a3b8'; btn.title = ''; }, 5000);
+        }
+    }
+
+    function showToast(msg, type) {
+        let t = document.getElementById('kanban-toast');
+        if (!t) {
+            t = document.createElement('div');
+            t.id = 'kanban-toast';
+            t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:8px;font-size:.88rem;font-weight:500;z-index:9999;max-width:480px;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:opacity .3s';
+            document.body.appendChild(t);
+        }
+        t.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
+        t.style.color = type === 'error' ? '#b91c1c' : '#15803d';
+        t.style.border = type === 'error' ? '1px solid #fecaca' : '1px solid #bbf7d0';
+        t.style.opacity = '1';
+        t.textContent = msg;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => { t.style.opacity = '0'; }, 4000);
     }
 
     // Members
@@ -256,12 +290,6 @@
         openCardModal(currentModalCardId);
     }
 
-    async function deleteList(listId) {
-        if (!window.confirm('¿Eliminar esta lista y TODAS sus tarjetas?')) return;
-        const res = await fetch(`/api/projects/lists/${listId}`, { method: 'DELETE' });
-        if (res.ok) window.location.reload();
-        else alert('Error eliminando lista: ' + res.status);
-    }
 
 </script>
 
@@ -327,7 +355,7 @@
     <div class="kanban-list" data-id="{{ lst.id }}" data-order="{{ lst.order }}">
         <div class="list-header" style="display: flex; justify-content: space-between; align-items: center;">
             <span>{{ lst.title }}</span>
-            <button onclick="deleteList('{{ lst.id }}')" style="background:none; border:none; color:#94a3b8; cursor:pointer;" title="Eliminar Lista" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#94a3b8'">🗑️</button>
+            <button data-confirm="0" onclick="deleteList('{{ lst.id }}', this)" style="background:none; border:none; color:#94a3b8; cursor:pointer; font-size:0.9rem;" title="Eliminar Lista (2 clics)">🗑️</button>
         </div>
         
         <div class="card-list" id="card-list-{{ lst.id }}">
@@ -385,18 +413,11 @@
     
     <form onsubmit="addNewList(event)" style="margin: 0; padding: 0;">
         <div class="add-list-container">
-            <input type="text" id="newListInput" list="listNameSuggestions"
+            <input type="text" id="newListInput"
                    placeholder="+ Añadir otra lista"
                    style="background: transparent; border: none; outline: none; color: white; width: 100%;"
                    class="placeholder-white"
                    autocomplete="off">
-            <datalist id="listNameSuggestions">
-                <option value="Finalizado">
-                <option value="Hecho">
-                <option value="Completado">
-                <option value="Cerrado">
-                <option value="Done">
-            </datalist>
         </div>
         <style>.placeholder-white::placeholder { color: rgba(255,255,255,0.7); }</style>
     </form>
@@ -459,7 +480,7 @@
             
             <!-- Acción de Eliminar -->
             <strong style="color: #475569; font-size: 0.8rem; text-transform: uppercase; margin-top:15px;">Acciones</strong>
-            <button class="sidebar-btn" style="background:#fef2f2; color:#ef4444;" onclick="deleteCard()">➖ Eliminar Tarjeta</button>
+            <button id="deleteCardBtn" data-confirm="0" class="sidebar-btn" style="background:#fef2f2; color:#ef4444;" onclick="deleteCard()">➖ Eliminar Tarjeta</button>
         </div>
     </div>
 </div>

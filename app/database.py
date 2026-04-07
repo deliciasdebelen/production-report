@@ -8,7 +8,10 @@ import os
 # to ensure no SQLite instances are ever recreated.
 _db_url = os.getenv("DATABASE_URL", "")
 
-if not _db_url or "sqlite" in _db_url:
+if os.getenv("TESTING") == "1":
+    SQLALCHEMY_DATABASE_URL = _db_url or "sqlite:///./test.db"
+elif not _db_url or "sqlite" in _db_url:
+    # Ensure no local SQLite instances are recreated in production
     SQLALCHEMY_DATABASE_URL = "postgresql://app_user:production_password@db:5432/production_db"
 else:
     SQLALCHEMY_DATABASE_URL = _db_url

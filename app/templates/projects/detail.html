@@ -147,10 +147,13 @@
     <div class="project-banner-full" style="background: {{ project.background }};">
         <h1>{{ project.name }}</h1>
         <div class="header-actions">
+            {% if user.role in [1, 2, 4] %}
             <button class="btn-action danger"
-                    onclick="confirmDeleteProject('{{ project.id }}', '{{ project.name }}')">
-                Eliminar Proyecto
+                    onclick="confirmDeleteProject('{{ project.id }}', '{{ project.name }}')"
+                    title="Elimina el proyecto (debes vaciar fases primero)">
+                🗑️ Eliminar Proyecto
             </button>
+            {% endif %}
         </div>
     </div>
     {% if project.description %}
@@ -176,20 +179,7 @@
                 <span class="pct-badge">{{ progress.pct }}%</span>
             </div>
         </div>
-        <!-- Cómo funciona el progreso -->
-        <div class="progress-tip">
-            <span class="tip-icon">💡</span>
-            <div>
-                <strong>¿Cómo mover el progreso?</strong><br>
-                <span style="margin-top:4px; display:block;">
-                    1. Haz clic en <strong>"Abrir"</strong> en cualquier fase de abajo
-                    → 2. Dentro del tablero Kanban, en el campo <strong>"+ Añadir otra lista"</strong>
-                    escribe <strong>"Finalizado"</strong> y presiona Enter
-                    → 3. <strong>Arrastra</strong> las tarjetas terminadas a esa columna.
-                    El porcentaje subirá automáticamente.
-                </span>
-            </div>
-        </div>
+
         <div class="global-bar-bg">
             <div class="global-bar-fill" style="width: {{ progress.pct }}%"></div>
         </div>
@@ -292,17 +282,48 @@ document.getElementById('addPhaseForm').addEventListener('submit', async (e) => 
 });
 
 async function deletePhase(projectId, boardId, title) {
-    if (!confirm('Eliminar la fase "' + title + '"? Se eliminarán todas sus listas y tarjetas.')) return;
     const res = await fetch('/api/projects/' + projectId + '/boards/' + boardId, { method: 'DELETE' });
-    if (res.ok) { document.querySelector('[data-board-id="' + boardId + '"]')?.remove(); window.location.reload(); }
-    else { alert('No se pudo eliminar'); }
+    if (res.ok) {
+        document.querySelector('[data-board-id="' + boardId + '"]')?.remove();
+        window.location.reload();
+    } else {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.detail || 'No se pudo eliminar la fase';
+        showDetailToast(msg, 'error');
+    }
 }
 
 async function confirmDeleteProject(projectId, name) {
-    if (!confirm('Eliminar el proyecto "' + name + '"? Se eliminarán TODAS sus fases y tarjetas.')) return;
     const res = await fetch('/api/projects/' + projectId, { method: 'DELETE' });
-    if (res.ok) { window.location.href = '/projects'; }
-    else { alert('No se pudo eliminar el proyecto'); }
+    if (res.ok) {
+        window.location.href = '/projects';
+    } else {
+        const data = await res.json().catch(() => ({}));
+        const msg = data.detail || 'No se pudo eliminar el proyecto';
+        showDetailToast(msg, 'error');
+    }
+}
+
+function showDetailToast(msg, type) {
+    let t = document.getElementById('detail-toast');
+    if (!t) {
+        t = document.createElement('div');
+        t.id = 'detail-toast';
+        t.style.cssText = [
+            'position:fixed', 'bottom:28px', 'left:50%', 'transform:translateX(-50%)',
+            'padding:14px 24px', 'border-radius:10px', 'font-size:.88rem', 'font-weight:500',
+            'z-index:9999', 'max-width:540px', 'text-align:center',
+            'box-shadow:0 4px 20px rgba(0,0,0,.18)', 'transition:opacity .35s'
+        ].join(';');
+        document.body.appendChild(t);
+    }
+    t.style.background = type === 'error' ? '#fef2f2' : '#f0fdf4';
+    t.style.color      = type === 'error' ? '#b91c1c' : '#15803d';
+    t.style.border     = type === 'error' ? '1px solid #fecaca' : '1px solid #bbf7d0';
+    t.style.opacity    = '1';
+    t.textContent      = '⚠️ ' + msg;
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 6000);
 }
 
 document.querySelectorAll('.modal-overlay').forEach(m => {

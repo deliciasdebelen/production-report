@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Form, UploadFile, File
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from datetime import datetime
@@ -8,7 +8,6 @@ from app.dependencies import get_current_user, get_current_active_user
 import uuid
 import os
 import shutil
-from fastapi import APIRouter, Depends, HTTPException, Form, UploadFile, File
 
 router = APIRouter(
     prefix="/api/support",
@@ -169,13 +168,14 @@ def generate_ticket_code(db: Session):
 
 @router.post("/ticket", response_model=schemas.SupportTicket)
 async def create_ticket(
+    background_tasks: BackgroundTasks,
     description: str = Form(...),
     department_id: int = Form(...),
     type_id: int = Form(...),
     priority_id: int = Form(...),
     contact_email: str = Form(...),
     file: Optional[UploadFile] = File(None),
-    db: Session = Depends(get_db), 
+    db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     # 1. Generate Code
@@ -222,8 +222,7 @@ async def create_ticket(
     db.commit()
     db.refresh(db_ticket)
     
-    # 5. Email Notification (Async/Background ideal, but sync for now)
-    # Collect recipients
+    # 5. Email Notification — en background para NO bloquear la respuesta
     recipients = []
     if db_ticket.contact_email and "@" in db_ticket.contact_email:
         recipients.append(db_ticket.contact_email)
@@ -233,30 +232,27 @@ async def create_ticket(
     if p: priority_name = p.name
 
     subject = f"[SOPORTE] Ticket Creado: {db_ticket.code}"
-    body = f"""
-    Hola {current_user.username},
-    
-    Su ticket ha sido registrado exitosamente.
-    
-    Código: {db_ticket.code}
-    Prioridad: {priority_name}
-    
-    Descripción:
-    {db_ticket.description}
-    
-    Nos pondremos en contacto pronto.
-    """
-    
+    body = (
+        f"Hola {current_user.username},\n\n"
+        f"Su ticket ha sido registrado exitosamente.\n\n"
+        f"Código:      {db_ticket.code}\n"
+        f"Prioridad:   {priority_name}\n\n"
+        f"Descripción:\n{db_ticket.description}\n\n"
+        f"Nos pondremos en contacto pronto.\n"
+    )
+
     settings = db.query(models.SupportSettings).first()
     if settings and settings.notification_emails:
         global_emails = [e.strip() for e in settings.notification_emails.split(",") if e.strip()]
         recipients.extend(global_emails)
-        
-    # Deduplicate
+
     recipients = list(set(recipients))
-    
+
+    # BackgroundTasks: la respuesta se devuelve inmediatamente y el email
+    # se envía en segundo plano sin bloquear al usuario
     if recipients:
-        email_utils.send_email(subject, body, recipients)
+        background_tasks.add_task(email_utils.send_email, subject, body, recipients)
+
     return schemas.SupportTicket(
         id=db_ticket.id,
         code=db_ticket.code,
@@ -346,8 +342,9 @@ def list_tickets(status: str = "all", mine: bool = False, q: str = None, tech_id
     return result
 
 @router.patch("/ticket/{id}")
-def update_ticket(id: int, update: schemas.SupportTicketUpdate, 
-                  db: Session = Depends(get_db), 
+def update_ticket(id: int, update: schemas.SupportTicketUpdate,
+                  background_tasks: BackgroundTasks,
+                  db: Session = Depends(get_db),
                   current_user: models.User = Depends(get_current_active_user)):
     
     if current_user.role != 4:
@@ -381,11 +378,12 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
         recipients = list(set(recipients))
         
         if recipients:
-             email_utils.send_email(
-                 f"[SOPORTE] Estado Actualizado: {ticket.code}",
-                 f"El estado de su ticket ha cambiado a: {st.name}",
-                 recipients
-             )
+            background_tasks.add_task(
+                email_utils.send_email,
+                f"[SOPORTE] Estado Actualizado: {ticket.code}",
+                f"El estado de su ticket {ticket.code} ha cambiado a: {st.name}",
+                recipients
+            )
 
     if update.assigned_to_id:
         ticket.assigned_to_id = update.assigned_to_id
@@ -393,22 +391,18 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
         
         # Notify User of Assignment
         if ticket.contact_email:
-            # Fetch Technician Name
             tech = db.query(models.User).get(update.assigned_to_id)
             tech_name = tech.username if tech else "Un técnico"
-            
-            email_utils.send_email(
+            body_assign = (
+                f"Hola,\n\n"
+                f"Su ticket {ticket.code} ha sido asignado al técnico: {tech_name}.\n\n"
+                f"Pronto recibirá actualizaciones sobre su solicitud.\n\n"
+                f"Atentamente,\nEquipo de Soporte"
+            )
+            background_tasks.add_task(
+                email_utils.send_email,
                 f"[SOPORTE] Ticket Asignado: {ticket.code}",
-                f"""
-                Hola,
-                
-                Su ticket {ticket.code} ha sido asignado al técnico: {tech_name}.
-                
-                Pronto recibirá actualizaciones sobre su solicitud.
-                
-                Atentamente,
-                Equipo de Soporte
-                """,
+                body_assign,
                 [ticket.contact_email]
             )
 
