@@ -59,10 +59,17 @@ def update_support_settings(
     if current_user.role != 4:
         raise HTTPException(status_code=403, detail="Not authorized")
         
+    # Sanitizar: sólo emails que contengan '@' y al menos un punto en el dominio
+    valid_emails = [
+        e.strip() for e in notification_emails.split(",")
+        if e.strip() and "@" in e.strip() and "." in e.strip().split("@")[-1]
+    ]
+    clean_notification_emails = ",".join(valid_emails)
+
     settings = db.query(models.SupportSettings).first()
     if not settings:
         settings = models.SupportSettings(
-            notification_emails=notification_emails,
+            notification_emails=clean_notification_emails,
             smtp_server=smtp_server,
             smtp_port=smtp_port,
             smtp_user=smtp_user,
@@ -70,7 +77,7 @@ def update_support_settings(
         )
         db.add(settings)
     else:
-        settings.notification_emails = notification_emails
+        settings.notification_emails = clean_notification_emails
         settings.smtp_server = smtp_server
         settings.smtp_port = smtp_port
         settings.smtp_user = smtp_user
@@ -167,7 +174,7 @@ def generate_ticket_code(db: Session):
     return f"SOP-{str(seq).zfill(3)}"
 
 @router.post("/ticket", response_model=schemas.SupportTicket)
-async def create_ticket(
+def create_ticket(
     background_tasks: BackgroundTasks,
     description: str = Form(...),
     department_id: int = Form(...),
@@ -331,6 +338,7 @@ def list_tickets(status: str = "all", mine: bool = False, q: str = None, tech_id
             "assigned_to_id": t.assigned_to_id,
             "created_at": t.created_at,
             "closed_at": t.closed_at,
+            "close_comment": t.close_comment if hasattr(t, 'close_comment') else None,
             "department": {'id': t.department.id, 'name': t.department.name} if t.department else None,
             "status": {'id': t.status.id, 'name': t.status.name, 'color_hex': t.status.color_hex} if t.status else None,
             "priority": {'id': t.priority.id, 'name': t.priority.name, 'level': t.priority.level} if t.priority else None,
@@ -347,8 +355,10 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
                   db: Session = Depends(get_db),
                   current_user: models.User = Depends(get_current_active_user)):
     
-    if current_user.role != 4:
-         raise HTTPException(status_code=403, detail="Not authorized")
+    # Allow roles 4 (admin) and 7 (support supervisor) to update tickets
+    ALLOWED_ROLES = {4, 7}
+    if current_user.role not in ALLOWED_ROLES:
+        raise HTTPException(status_code=403, detail=f"Not authorized. Your role ({current_user.role}) cannot update tickets.")
 
     ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == id).first()
     if not ticket: raise HTTPException(404, "Not found")
@@ -357,12 +367,21 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
     
     if update.status_id:
         ticket.status_id = update.status_id
-        # Check if closed
+        # Check if closed or waiting for user
         st = db.query(models.SupportStatus).get(update.status_id)
+        
+        body_email = f"El estado de su ticket {ticket.code} ha cambiado a: {st.name}\n\n" if st else ""
+        
         if st and st.name == "Cerrado":
              ticket.closed_at = datetime.now()
              if update.close_comment:
                  ticket.close_comment = update.close_comment
+                 body_email += f"Comentario de Resolución:\n{update.close_comment}\n\n"
+        elif st and st.name.lower() == "respuesta usuario":
+             if update.close_comment:
+                 ticket.close_comment = update.close_comment
+                 body_email += f"Mensaje del Técnico:\n{update.close_comment}\n\n"
+
         changed = True
         
         # Notify
@@ -377,11 +396,11 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
             
         recipients = list(set(recipients))
         
-        if recipients:
+        if recipients and st:
             background_tasks.add_task(
                 email_utils.send_email,
                 f"[SOPORTE] Estado Actualizado: {ticket.code}",
-                f"El estado de su ticket {ticket.code} ha cambiado a: {st.name}",
+                body_email,
                 recipients
             )
 
