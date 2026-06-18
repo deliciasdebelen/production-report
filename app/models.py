@@ -285,6 +285,7 @@ class SupportSettings(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     notification_emails = Column(String, default="")  # Comma-separated list
+    cc_emails = Column(String, default="")            # Comma-separated CC list (conditional)
     smtp_server = Column(String, default="smtp.gmail.com")
     smtp_port = Column(Integer, default=587)
     smtp_user = Column(String, default="")
@@ -660,3 +661,59 @@ class ProjectChecklistItem(Base):
     checklist = relationship("ProjectChecklist", back_populates="items")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- AUDI LOGS (AI Auditor) ---
+
+class AudiLog(Base):
+    __tablename__ = "audi_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    report_text = Column(Text, nullable=False)
+    status = Column(String, default="Generado") # e.g. "Con Discrepancias", "Conciliado"
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- CHATBOT CONFIG ---
+
+class ChatbotConfig(Base):
+    __tablename__ = "chatbot_configs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    db_host = Column(String, default="192.168.1.48")
+    db_name = Column(String, default="carmal_a")
+    db_user = Column(String, default="PROFIT")
+    db_password = Column(String, default="profit")
+    whatsapp_number = Column(String, default="+5804241931896")
+    ai_provider = Column(String, default="gemini") # "gemini" o "ollama"
+    gemini_api_key = Column(String, nullable=True)
+    ollama_api_url = Column(String, default="http://192.168.1.79:11434")
+    whatsapp_gateway_url = Column(String, default="http://192.168.1.79:8050")
+    whatsapp_gateway_token = Column(String, default="carmal_token_2026")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+# --- CHATBOT SESSIONS ---
+
+class ChatbotSession(Base):
+    __tablename__ = "chatbot_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phone_number = Column(String, unique=True, index=True)
+    state = Column(String, default="START") # START, AWAITING_LOCATION, COMPLETED
+    last_interaction = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    vendedor_name = Column(String, nullable=True)
+    vendedor_phone = Column(String, nullable=True)
+    zona_code = Column(String, nullable=True)
+    zona_name = Column(String, nullable=True)
+
+
+# --- CONSISTENCY LOGS ---
+
+class ConsistencyLog(Base):
+    __tablename__ = "consistency_log"
+
+    id = Column(Integer, primary_key=True, index=True)
+    execution_date = Column(DateTime, default=datetime.datetime.now)
+    initiated_by = Column(String, default="System (Cron)")  # System or Username
+    status = Column(String)  # SUCCESS, FAILED
+    details = Column(Text)  # JSON or text with reasons/details
+    duration_seconds = Column(Float)

@@ -14,3 +14,16 @@ sync_from_prod.py
 test_*.py
 verify_*.py
 force-deploy.ps1
+
+# Extra production exclusions added by Antigravity
+pgdata/
+app_sync_193.tar.gz
+full_app_sync.tar.gz
+named_volume_pgdata_backup_before_switch.tar.gz
+pgdata_backup_before_switch.tar.gz
+production.db.bak_20260316
+production.db.live
+production_db_restore.sql
+production_db_restore_utf8.sql
+recovery_backup.tar.gz
+

@@ -18,6 +18,10 @@ JSON_PATH = os.path.join(DOCS_DIR, 'latest_results.json')
 async def view_alerts(request: Request, user: models.User = Depends(get_current_active_user)):
     return templates.TemplateResponse("alerts.html", {"request": request, "title": "Alertas y Auditoría", "user": user})
 
+@router.get("/stock", response_class=HTMLResponse)
+async def view_alerts_stock(request: Request, user: models.User = Depends(get_current_active_user)):
+    return templates.TemplateResponse("alerts_stock.html", {"request": request, "title": "Auditoría de Stock", "user": user})
+
 @router.get("/api/data")
 async def get_alerts_data(user: models.User = Depends(get_current_active_user)):
     if not os.path.exists(JSON_PATH):

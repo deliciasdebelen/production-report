@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, HTTPException, Form
+from fastapi import APIRouter, Depends, Request, HTTPException, Form, BackgroundTasks
 from fastapi.responses import RedirectResponse, HTMLResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, text, func
@@ -524,7 +524,7 @@ async def ai_chat(
             try:
                 with engine_a.connect() as conn:
                     conn.execute(text("SELECT 1"))
-                statuses.append("✅ **carmal_a** (Administrativo): Conectado (192.168.1.205)")
+                statuses.append("✅ **carmal_a** (Administrativo): Conectado (192.168.1.48)")
             except Exception as e:
                 statuses.append(f"❌ **carmal_a**: Error de conexión ({str(e)[:50]}...)")
 
@@ -532,7 +532,7 @@ async def ai_chat(
             try:
                 with engine_m.connect() as conn:
                     conn.execute(text("SELECT 1"))
-                statuses.append("✅ **carmal_m** (Manufactura): Conectado (192.168.1.205)")
+                statuses.append("✅ **carmal_m** (Manufactura): Conectado (192.168.1.48)")
             except Exception as e:
                 statuses.append(f"❌ **carmal_m**: Error de conexión ({str(e)[:50]}...)")
             
@@ -567,3 +567,184 @@ async def ai_chat(
     return {"response": response}
 
 
+# --- DATABASE CONSISTENCY VALIDATIONS (Profit Plus) ---
+
+def execute_consistency_validation_in_background(username: str):
+    procedures = [
+        "pValidarTrasladoMontoDistribuidoTotal",
+        "pValidarTrasladoMontoDistribuidoProrateo",
+        "pValidarLoteDocumentoConLote",
+        "pValidarLoteDocumentoSinLote",
+        "pValidarLoteEntradaDatos",
+        "pValidarLoteEntradaNoOrigen",
+        "pValidarLoteEntradaSalidaDatos",
+        "pValidarLoteSalidaDatos",
+        "pValidarStockAct",
+        "pValidarSStockAct",
+        "pValidarStockLle",
+        "pValidarSStockLle",
+        "pValidarStockCom",
+        "pValidarSStockCom",
+        "pValidarStockDes",
+        "pValidarSStockDes",
+        "pValidarLoteStock"
+    ]
+    
+    import uuid
+    try:
+        with engine_a.connect() as conn:
+            raw_conn = conn.connection.dbapi_connection
+            cursor = raw_conn.cursor()
+            
+            for pass_num in [1, 2]:
+                for proc in procedures:
+                    proc_start = datetime.datetime.now()
+                    id_process = str(uuid.uuid4()).upper()
+                    
+                    temp_motivos = []
+                    try:
+                        cursor.execute(f"EXEC {proc} @bCorregir = 1, @IdProcess = '{id_process}'")
+                        
+                        while True:
+                            try:
+                                rows = cursor.fetchall()
+                                for r in rows:
+                                    if r[0]:
+                                        temp_motivos.append(str(r[0]))
+                            except:
+                                pass
+                            if not cursor.nextset():
+                                break
+                                
+                        duration = (datetime.datetime.now() - proc_start).total_seconds()
+                        
+                        if temp_motivos:
+                            for m in temp_motivos:
+                                m_trunc = m[:500]
+                                cursor.execute(
+                                    "INSERT INTO saConsistencyLog (initiated_by, pass_number, proc_name, status, motivo, duration_seconds) "
+                                    "VALUES (?, ?, ?, 'SUCCESS', ?, ?)",
+                                    (f"User: {username}", pass_num, proc, m_trunc, duration)
+                                )
+                        else:
+                            cursor.execute(
+                                "INSERT INTO saConsistencyLog (initiated_by, pass_number, proc_name, status, motivo, duration_seconds) "
+                                "VALUES (?, ?, ?, 'SUCCESS', 'Sin novedades', ?)",
+                                (f"User: {username}", pass_num, proc, duration)
+                            )
+                            
+                    except Exception as ex:
+                        duration = (datetime.datetime.now() - proc_start).total_seconds()
+                        err_msg = str(ex)[:500]
+                        cursor.execute(
+                            "INSERT INTO saConsistencyLog (initiated_by, pass_number, proc_name, status, motivo, duration_seconds) "
+                            "VALUES (?, ?, ?, 'FAILED', ?, ?)",
+                            (f"User: {username}", pass_num, proc, err_msg, duration)
+                        )
+            raw_conn.commit()
+            cursor.close()
+    except Exception as e:
+        print(f"Error executing manual consistency check: {e}")
+
+@router.get("/consistency/logs")
+async def get_consistency_logs(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    if not check_permission(current_user, "maintenance", "view"): 
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    try:
+        import requests
+        # Query the consistency-monitor microservice
+        response = requests.get("http://consistency-monitor:8002/logs", timeout=5)
+        if response.status_code == 200:
+            runs = response.json()
+            logs = []
+            row_id = 1
+            for run in runs:
+                details = run.get("details", [])
+                run_date = run.get("execution_date")
+                run_user = run.get("initiated_by")
+                for proc_result in details:
+                    if "error" in proc_result:
+                        logs.append({
+                            "id": row_id,
+                            "date": run_date,
+                            "user": run_user,
+                            "pass": 0,
+                            "proc": "ERROR_GENERAL",
+                            "status": "FAILED",
+                            "motivo": proc_result["error"],
+                            "duration": run.get("duration_seconds", 0)
+                        })
+                        row_id += 1
+                        continue
+                    
+                    proc_name = proc_result.get("proc_name")
+                    pass_num = proc_result.get("pass_number", 1)
+                    proc_status = proc_result.get("status", "SUCCESS")
+                    proc_duration = proc_result.get("duration_seconds", 0.0)
+                    motivos = proc_result.get("motivos", [])
+                    
+                    motivo_str = ", ".join(motivos) if motivos else "Sin novedades"
+                    
+                    logs.append({
+                        "id": row_id,
+                        "date": run_date,
+                        "user": run_user,
+                        "pass": pass_num,
+                        "proc": proc_name,
+                        "status": proc_status,
+                        "motivo": motivo_str,
+                        "duration": proc_duration
+                    })
+                    row_id += 1
+            return logs
+        else:
+            print(f"Microservice logs returned status {response.status_code}. Falling back to local SQL query.")
+    except Exception as e:
+        print(f"Error calling consistency-monitor logs: {e}. Falling back to local SQL query.")
+        
+    # Fallback to local SQL Server logs query
+    try:
+        with engine_a.connect() as conn:
+            res = conn.execute(text(
+                "SELECT TOP 150 id, CONVERT(varchar, execution_date, 120) as execution_date, "
+                "initiated_by, pass_number, proc_name, status, motivo, duration_seconds "
+                "FROM saConsistencyLog ORDER BY id DESC"
+            ))
+            logs = [
+                {
+                    "id": r[0],
+                    "date": r[1],
+                    "user": r[2],
+                    "pass": r[3],
+                    "proc": r[4],
+                    "status": r[5],
+                    "motivo": r[6],
+                    "duration": r[7]
+                }
+                for r in res.fetchall()
+            ]
+        return logs
+    except Exception as sql_e:
+        raise HTTPException(status_code=500, detail=f"Error al consultar logs de SQL Server: {sql_e}")
+
+@router.post("/consistency/run")
+async def run_consistency_validation(background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user)):
+    if not check_permission(current_user, "maintenance", "view"): 
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
+    try:
+        import requests
+        payload = {"b_corregir": 1, "username": current_user.username}
+        response = requests.post("http://consistency-monitor:8002/run", json=payload, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return {"status": "ok", "message": data.get("message", "Validación iniciada en el microservicio.")}
+        else:
+            print(f"Microservice run returned status {response.status_code}. Falling back to local run.")
+    except Exception as e:
+        print(f"Error calling consistency-monitor run: {e}. Falling back to local run.")
+        
+    # Fallback to local background execution
+    background_tasks.add_task(execute_consistency_validation_in_background, current_user.username)
+    return {"status": "ok", "message": "Validación de consistencia iniciada localmente (Fallback)."}

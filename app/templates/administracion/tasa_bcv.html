@@ -1,0 +1,926 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+  :root {
+    --primary-color: #714B67; /* Odoo Purple */
+    --accent-color: #00A09D;  /* Odoo Teal */
+    --bg-dark-card: #1e293b;
+    --text-muted: #64748b;
+  }
+
+  .bcv-container {
+    padding: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .bcv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .bcv-title-block h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    margin: 0 0 4px 0;
+  }
+
+  .bcv-title-block p {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+
+  .bcv-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .bcv-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bcv-btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .bcv-btn-primary:hover {
+    background-color: #5a3b52;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(113, 75, 103, 0.25);
+  }
+
+  .bcv-btn-secondary {
+    background-color: white;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+
+  .bcv-btn-secondary:hover {
+    background-color: #f8fafc;
+    border-color: #94a3b8;
+  }
+
+  /* --- Grid Layout --- */
+  .bcv-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 960px) {
+    .bcv-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* --- Cards --- */
+  .bcv-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.02);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .bcv-card-header {
+    background-color: #f8fafc;
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .bcv-card-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bcv-card-body {
+    padding: 20px;
+  }
+
+  /* --- Currency Rate Badges --- */
+  .rates-display {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  @media (max-width: 600px) {
+    .rates-display {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .rate-box {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 16px;
+    background: #f8fafc;
+    position: relative;
+    transition: all 0.2s;
+  }
+
+  .rate-box:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+  }
+
+  .rate-currency {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .rate-currency.usd { color: #2563eb; }
+  .rate-currency.eur { color: #d97706; }
+
+  .rate-value {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+
+  .rate-details {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    border-top: 1px dashed #e2e8f0;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .rate-details span strong {
+    color: #334155;
+  }
+
+  /* --- Comparison Table --- */
+  .profit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+
+  .profit-table th, .profit-table td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .profit-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-weight: 600;
+  }
+
+  .profit-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  /* --- Terminal Log Console --- */
+  .log-console {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.8rem;
+    padding: 16px;
+    border-radius: 8px;
+    height: 300px;
+    overflow-y: auto;
+    border: 1px solid #334155;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+  }
+
+  .log-line {
+    margin-bottom: 6px;
+    line-height: 1.4;
+    word-break: break-all;
+  }
+
+  .log-line .ts { color: #64748b; margin-right: 8px; }
+  .log-line.info .lvl { color: #38bdf8; font-weight: bold; }
+  .log-line.ok .lvl { color: #4ade80; font-weight: bold; }
+  .log-line.warn .lvl { color: #fbbf24; font-weight: bold; }
+  .log-line.error .lvl { color: #f87171; font-weight: bold; }
+  .log-line.skip .lvl { color: #94a3b8; font-weight: bold; }
+
+  /* --- Modal Styles --- */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-container {
+    background: white;
+    border-radius: 14px;
+    width: min(580px, 94vw);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: modalScale 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  @keyframes modalScale {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg, var(--primary-color), #8e5e82);
+    padding: 18px 24px;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+  }
+
+  .modal-close {
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .modal-close:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .modal-body {
+    padding: 24px;
+    overflow-y: auto;
+  }
+
+  .modal-footer {
+    padding: 16px 24px;
+    background-color: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 12px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 6px;
+  }
+
+  .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    box-sizing: border-box;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(113, 75, 103, 0.15);
+  }
+
+  .form-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  .spin-icon {
+    animation: rotate 1s linear infinite;
+  }
+
+  @keyframes rotate {
+    to { transform: rotate(360deg); }
+  }
+</style>
+
+<div class="bcv-container">
+
+  <!-- Header -->
+  <div class="bcv-header">
+    <div class="bcv-title-block">
+      <h1>💸 Tasas Oficiales de Cambio BCV</h1>
+      <p>Control del tipo de cambio oficial de referencia en Profit Plus</p>
+    </div>
+    <div class="bcv-actions">
+      {% if user and user.role == 4 %}
+      <button class="bcv-btn bcv-btn-secondary" onclick="openConfigModal()">
+        ⚙️ Configurar BD Profit
+      </button>
+      {% endif %}
+      <button class="bcv-btn bcv-btn-primary" id="btn-sync" onclick="triggerSync()">
+        🔄 Sincronizar Ahora
+      </button>
+    </div>
+  </div>
+
+  <div class="bcv-grid">
+    <!-- Left Column -->
+    <div>
+      <!-- Live BCV Scraped Rates -->
+      <div class="bcv-card">
+        <div class="bcv-card-header">
+          <h3 class="bcv-card-title">🌐 Tasas Publicadas en el Sitio del BCV</h3>
+          <span style="font-size: 0.78rem; color: var(--text-muted);" id="live-scraping-time">Cargando...</span>
+        </div>
+        <div class="bcv-card-body">
+          <div class="rates-display">
+            <!-- USD -->
+            <div class="rate-box">
+              <div class="rate-currency usd">
+                <span>🇺🇸</span> <span>Dólar Americano (USD)</span>
+              </div>
+              <div class="rate-value" id="rate-bcv-usd">—</div>
+              <div class="rate-details">
+                <span>Compra (tasa_c): <strong id="rate-bcv-usd-c">—</strong> Bs.</span>
+                <span>Venta (tasa_v): <strong id="rate-bcv-usd-v">—</strong> Bs.</span>
+              </div>
+            </div>
+
+            <!-- EUR -->
+            <div class="rate-box">
+              <div class="rate-currency eur">
+                <span>🇪🇺</span> <span>Euro (EUR)</span>
+              </div>
+              <div class="rate-value" id="rate-bcv-eur">—</div>
+              <div class="rate-details">
+                <span>Compra (tasa_c): <strong id="rate-bcv-eur-c">—</strong> Bs.</span>
+                <span>Venta (tasa_v): <strong id="rate-bcv-eur-v">—</strong> Bs.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log Terminal -->
+      <div class="bcv-card">
+        <div class="bcv-card-header">
+          <h3 class="bcv-card-title">💻 Consola de Ejecución y Auditoría (Rastro)</h3>
+          <button class="bcv-btn bcv-btn-secondary" style="padding: 4px 10px; font-size: 0.75rem;" onclick="loadStatus()">
+            🔄 Limpiar Consola e Hilos
+          </button>
+        </div>
+        <div class="bcv-card-body" style="padding: 12px;">
+          <div class="log-console" id="console-output">
+            <div class="log-line info"><span class="ts">[--:--:--]</span><span class="lvl">[INFO]</span> Iniciando consola de auditoría...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column -->
+    <div>
+      <!-- Profit Rates Status -->
+      <div class="bcv-card">
+        <div class="bcv-card-header">
+          <h3 class="bcv-card-title">🗄️ Tasas en Profit (saTasa)</h3>
+        </div>
+        <div class="bcv-card-body" style="padding: 0;">
+          <table class="profit-table">
+            <thead>
+              <tr>
+                <th>Moneda</th>
+                <th>Tasa Activa Hoy</th>
+                <th>Siguiente Hábil</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>USD</strong></td>
+                <td>
+                  <span id="profit-usd-hoy">—</span>
+                  <div id="profit-usd-hoy-date" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;"></div>
+                </td>
+                <td>
+                  <span id="profit-usd-aplic">—</span>
+                  <div id="profit-usd-aplic-date" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;"></div>
+                </td>
+              </tr>
+              <tr>
+                <td><strong>EUR</strong></td>
+                <td>
+                  <span id="profit-eur-hoy">—</span>
+                  <div id="profit-eur-hoy-date" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;"></div>
+                </td>
+                <td>
+                  <span id="profit-eur-aplic">—</span>
+                  <div id="profit-eur-aplic-date" style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;"></div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Cycle Info -->
+      <div class="bcv-card">
+        <div class="bcv-card-header">
+          <h3 class="bcv-card-title">🕒 Detalles del Ciclo</h3>
+        </div>
+        <div class="bcv-card-body">
+          <div style="font-size: 0.85rem; display: flex; flex-direction: column; gap: 12px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Fecha Búsqueda:</span>
+              <strong id="cycle-search-date">—</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Fecha Aplicación:</span>
+              <strong id="cycle-apply-date">—</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Última Ejecución:</span>
+              <strong id="cycle-last-run">—</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <span style="color: var(--text-muted);">Intentos de Hoy:</span>
+              <span class="badge" style="background:#cbd5e1; color:#334155; padding:2px 8px; border-radius:12px; font-weight:700;" id="cycle-attempts">0</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items:center;">
+              <span style="color: var(--text-muted);">Estado:</span>
+              <span id="cycle-completed-badge" class="badge" style="padding:4px 10px; border-radius:20px; font-size:0.75rem; font-weight:700;">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ MODAL: Configuración de BD Profit ══ -->
+<div class="modal-overlay" id="config-modal">
+  <div class="modal-container">
+    <div class="modal-header">
+      <h3>⚙️ Configuración del Servidor Profit (saTasa)</h3>
+      <button class="modal-close" onclick="closeConfigModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label" for="cfg-host">Dirección IP / Host SQL Server</label>
+        <input class="form-control" id="cfg-host" type="text" placeholder="192.168.60.15">
+        <div class="form-hint">Dirección IP o nombre de host del servidor de Profit Plus.</div>
+      </div>
+
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label" for="cfg-instance">Instancia SQL Server</label>
+          <input class="form-control" id="cfg-instance" type="text" placeholder="(Dejar en blanco si es default)">
+          <div class="form-hint">Nombre de la instancia (ej. SQLEXPRESS).</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cfg-port">Puerto TCP</label>
+          <input class="form-control" id="cfg-port" type="text" placeholder="1433">
+          <div class="form-hint">Puerto del servicio (default 1433).</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="cfg-database">Nombre Base de Datos</label>
+        <input class="form-control" id="cfg-database" type="text" placeholder="carmal_a">
+        <div class="form-hint">Base de datos de Profit a afectar (ej. carmal_a).</div>
+      </div>
+
+      <div class="form-group-row">
+        <div class="form-group">
+          <label class="form-label" for="cfg-user">Usuario de Conexión</label>
+          <input class="form-control" id="cfg-user" type="text" placeholder="sa">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cfg-password">Contraseña</label>
+          <input class="form-control" id="cfg-password" type="password" placeholder="••••••••">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="bcv-btn bcv-btn-secondary" onclick="testConnection()" id="btn-test-conn">
+        🔍 Probar Conexión
+      </button>
+      <div style="display:flex; gap:10px;">
+        <button class="bcv-btn bcv-btn-secondary" onclick="closeConfigModal()">Cancelar</button>
+        <button class="bcv-btn bcv-btn-primary" onclick="saveConfig()" id="btn-save-conn">💾 Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  let _configCargada = false;
+
+  async function loadStatus() {
+    try {
+      const res = await fetch('/administracion/tasaBCV/api/status');
+      const data = await res.json();
+      if (data.status === 'ok') {
+        // Actualizar tasas live scraped (con fallback a la última en Profit si no están disponibles)
+        const rates = data.tasas_bcv;
+        let liveRates = null;
+        
+        if (Array.isArray(rates)) {
+          liveRates = rates[0];
+        } else if (rates && typeof rates === 'object') {
+          liveRates = rates;
+        }
+
+        // USD Rate
+        let usdVal = null;
+        let usdSource = "";
+        if (liveRates && liveRates.USD) {
+          usdVal = liveRates.USD;
+          usdSource = "Publicada BCV";
+        } else if (data.tasas_profit && data.tasas_profit.latest && data.tasas_profit.latest.USD) {
+          usdVal = data.tasas_profit.latest.USD;
+          usdSource = "Última en Profit";
+        }
+
+        // EUR Rate
+        let eurVal = null;
+        let eurSource = "";
+        if (liveRates && liveRates.EUR) {
+          eurVal = liveRates.EUR;
+          eurSource = "Publicada BCV";
+        } else if (data.tasas_profit && data.tasas_profit.latest && data.tasas_profit.latest.EUR) {
+          eurVal = data.tasas_profit.latest.EUR;
+          eurSource = "Última en Profit";
+        }
+
+        // Render USD
+        if (usdVal) {
+          document.getElementById('rate-bcv-usd').textContent = usdVal.toFixed(2) + ' Bs';
+          document.getElementById('rate-bcv-usd-c').textContent = usdVal.toFixed(2);
+          document.getElementById('rate-bcv-usd-v').textContent = usdVal.toFixed(2);
+          
+          if (usdSource === "Última en Profit") {
+            document.getElementById('rate-bcv-usd').style.color = '#714B67'; // Color Odoo
+            document.getElementById('rate-bcv-usd').title = "Tasa no disponible en la web del BCV. Mostrando la última registrada en Profit.";
+          } else {
+            document.getElementById('rate-bcv-usd').style.color = '';
+            document.getElementById('rate-bcv-usd').title = "Tasa extraída en vivo desde el sitio web del BCV.";
+          }
+        } else {
+          document.getElementById('rate-bcv-usd').textContent = 'No Disp.';
+          document.getElementById('rate-bcv-usd-c').textContent = '—';
+          document.getElementById('rate-bcv-usd-v').textContent = '—';
+        }
+
+        // Render EUR
+        if (eurVal) {
+          document.getElementById('rate-bcv-eur').textContent = eurVal.toFixed(2) + ' Bs';
+          document.getElementById('rate-bcv-eur-c').textContent = eurVal.toFixed(2);
+          document.getElementById('rate-bcv-eur-v').textContent = eurVal.toFixed(2);
+          
+          if (eurSource === "Última en Profit") {
+            document.getElementById('rate-bcv-eur').style.color = '#714B67';
+            document.getElementById('rate-bcv-eur').title = "Tasa no disponible en la web del BCV. Mostrando la última registrada en Profit.";
+          } else {
+            document.getElementById('rate-bcv-eur').style.color = '';
+            document.getElementById('rate-bcv-eur').title = "Tasa extraída en vivo desde el sitio web del BCV.";
+          }
+        } else {
+          document.getElementById('rate-bcv-eur').textContent = 'No Disp.';
+          document.getElementById('rate-bcv-eur-c').textContent = '—';
+          document.getElementById('rate-bcv-eur-v').textContent = '—';
+        }
+
+        // Indicar procedencia en el header de la tarjeta si aplica
+        let bcvTimeText = 'Última consulta BCV: ' + new Date().toLocaleTimeString();
+        if (usdSource === "Última en Profit" || eurSource === "Última en Profit") {
+          bcvTimeText += ' (Mostrando respaldo de Profit Plus)';
+        }
+        document.getElementById('live-scraping-time').textContent = bcvTimeText;
+
+        // Actualizar tasas en Profit
+        const profit = data.tasas_profit;
+        document.getElementById('profit-usd-hoy').textContent = profit.hoy.USD ? profit.hoy.USD.toFixed(2) + ' Bs' : 'Sin Tasa';
+        document.getElementById('profit-usd-aplic').textContent = profit.aplicacion.USD ? profit.aplicacion.USD.toFixed(2) + ' Bs' : 'Sin Tasa';
+        document.getElementById('profit-eur-hoy').textContent = profit.hoy.EUR ? profit.hoy.EUR.toFixed(2) + ' Bs' : 'Sin Tasa';
+        document.getElementById('profit-eur-aplic').textContent = profit.aplicacion.EUR ? profit.aplicacion.EUR.toFixed(2) + ' Bs' : 'Sin Tasa';
+
+        // Formatear fechas de aplicación
+        function formatDateStr(str) {
+          if (!str) return '';
+          const parts = str.split('-');
+          if (parts.length === 3) {
+            return `(Valor: ${parts[2]}/${parts[1]}/${parts[0]})`;
+          }
+          return '';
+        }
+
+        if (profit.fechas && profit.fechas.hoy_USD && profit.hoy.USD) {
+          document.getElementById('profit-usd-hoy-date').textContent = formatDateStr(profit.fechas.hoy_USD);
+        } else {
+          document.getElementById('profit-usd-hoy-date').textContent = '';
+        }
+        if (profit.fechas && profit.fechas.hoy_EUR && profit.hoy.EUR) {
+          document.getElementById('profit-eur-hoy-date').textContent = formatDateStr(profit.fechas.hoy_EUR);
+        } else {
+          document.getElementById('profit-eur-hoy-date').textContent = '';
+        }
+
+        if (data.fechas && data.fechas.aplicacion && profit.aplicacion.USD) {
+          document.getElementById('profit-usd-aplic-date').textContent = formatDateStr(data.fechas.aplicacion);
+        } else {
+          document.getElementById('profit-usd-aplic-date').textContent = '';
+        }
+        if (data.fechas && data.fechas.aplicacion && profit.aplicacion.EUR) {
+          document.getElementById('profit-eur-aplic-date').textContent = formatDateStr(data.fechas.aplicacion);
+        } else {
+          document.getElementById('profit-eur-aplic-date').textContent = '';
+        }
+
+        // Detalles del ciclo
+        const cycle = data.estado_ciclo;
+        document.getElementById('cycle-search-date').textContent = cycle.fecha_busqueda || '—';
+        document.getElementById('cycle-apply-date').textContent = cycle.fecha_aplicacion || '—';
+        document.getElementById('cycle-attempts').textContent = cycle.intentos || 0;
+        
+        if (cycle.ultima_ejecucion) {
+          const runDate = new Date(cycle.ultima_ejecucion);
+          document.getElementById('cycle-last-run').textContent = runDate.toLocaleTimeString() + ' (' + runDate.toLocaleDateString() + ')';
+        } else {
+          document.getElementById('cycle-last-run').textContent = '—';
+        }
+
+        const statusBadge = document.getElementById('cycle-completed-badge');
+        if (cycle.completado) {
+          statusBadge.textContent = 'Sincronizado';
+          statusBadge.style.backgroundColor = 'rgba(74, 222, 128, 0.15)';
+          statusBadge.style.color = '#16a34a';
+          statusBadge.style.border = '1px solid rgba(74, 222, 128, 0.3)';
+        } else {
+          statusBadge.textContent = 'Pendiente';
+          statusBadge.style.backgroundColor = 'rgba(252, 211, 77, 0.15)';
+          statusBadge.style.color = '#d97706';
+          statusBadge.style.border = '1px solid rgba(252, 211, 77, 0.3)';
+        }
+
+        // Render console logs
+        renderLogs(data.rastro);
+      }
+    } catch (e) {
+      console.error("Error al cargar status:", e);
+      addConsoleLine('error', 'Error al consultar el endpoint /api/status');
+    }
+  }
+
+  function renderLogs(logs) {
+    const con = document.getElementById('console-output');
+    if (!logs || logs.length === 0) {
+      con.innerHTML = '<div style="color: #64748b; text-align: center; padding-top: 100px;">Consola vacía.</div>';
+      return;
+    }
+    
+    con.innerHTML = logs.map(l => {
+      const timeStr = l.ts ? l.ts.split(' ')[1] : '--:--:--';
+      const level = (l.nivel || 'info').toLowerCase();
+      return `<div class="log-line ${level}">
+        <span class="ts">[${timeStr}]</span><span class="lvl">[${l.nivel || 'INFO'}]</span> ${escapeHtml(l.msg)}
+      </div>`;
+    }).join('');
+    
+    // Auto-scroll to bottom
+    con.scrollTop = con.scrollHeight;
+  }
+
+  function addConsoleLine(level, message) {
+    const con = document.getElementById('console-output');
+    const timeStr = new Date().toLocaleTimeString();
+    const line = document.createElement('div');
+    line.className = `log-line ${level}`;
+    line.innerHTML = `<span class="ts">[${timeStr}]</span><span class="lvl">[${level.toUpperCase()}]</span> ${escapeHtml(message)}`;
+    con.appendChild(line);
+    con.scrollTop = con.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // --- Actions ---
+  async function triggerSync() {
+    const btn = document.getElementById('btn-sync');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spin-icon">⏳</span> Sincronizando...';
+    
+    addConsoleLine('info', 'Iniciando ciclo de sincronización manual de tasa BCV...');
+    
+    try {
+      const res = await fetch('/administracion/tasaBCV/api/sync?forzar=true', { method: 'POST' });
+      const data = await res.json();
+      
+      if (data.status === 'ok') {
+        const result = data.result;
+        if (result.estado === 'completado') {
+          addConsoleLine('ok', `✅ Sincronización exitosa. USD=${result.resultados?.USD?.tasa || '—'} | EUR=${result.resultados?.EUR?.tasa || '—'}`);
+        } else {
+          addConsoleLine('warn', `⚠️ Ciclo ejecutado: ${result.estado || 'sin cambios'}`);
+        }
+      } else {
+        addConsoleLine('error', `❌ Error en sincronización: ${data.message || 'Error desconocido'}`);
+      }
+    } catch (e) {
+      addConsoleLine('error', `❌ Excepción en red: ${e.message}`);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+      await loadStatus();
+    }
+  }
+
+  // --- Modal Logic ---
+  function openConfigModal() {
+    document.getElementById('config-modal').style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (!_configCargada) {
+      loadConfig();
+    }
+  }
+
+  // --- Modal Logic ---
+  function closeConfigModal() {
+    document.getElementById('config-modal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  async function loadConfig() {
+    try {
+      const res = await fetch('/administracion/tasaBCV/api/config');
+      const data = await res.json();
+      if (data.status === 'ok') {
+        const cfg = data.config;
+        document.getElementById('cfg-host').value = cfg.host || '';
+        document.getElementById('cfg-instance').value = cfg.instance || '';
+        document.getElementById('cfg-port').value = cfg.port || '';
+        document.getElementById('cfg-database').value = cfg.database || '';
+        document.getElementById('cfg-user').value = cfg.user || '';
+        document.getElementById('cfg-password').value = cfg.password || '';
+        _configCargada = true;
+      }
+    } catch (e) {
+      alert("Error cargando configuración de BD: " + e.message);
+    }
+  }
+
+  async function saveConfig() {
+    const btn = document.getElementById('btn-save-conn');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = 'Guardando...';
+
+    const payload = {
+      host: document.getElementById('cfg-host').value,
+      instance: document.getElementById('cfg-instance').value,
+      port: document.getElementById('cfg-port').value,
+      database: document.getElementById('cfg-database').value,
+      user: document.getElementById('cfg-user').value,
+      password: document.getElementById('cfg-password').value
+    };
+
+    try {
+      const res = await fetch('/administracion/tasaBCV/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (res.ok && data.status === 'ok') {
+        const conn = data.connection_status;
+        if (conn.ok) {
+          alert("✓ Configuración guardada y conexión exitosa.");
+        } else {
+          alert("⚠️ Configuración guardada, pero falló la conexión:\n" + conn.message);
+        }
+        closeConfigModal();
+        loadStatus();
+      } else {
+        alert("❌ Error: " + (data.message || "No se pudo guardar la configuración."));
+      }
+    } catch (e) {
+      alert("Error de red: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+
+  async function testConnection() {
+    const btn = document.getElementById('btn-test-conn');
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Conectando...';
+
+    const payload = {
+      host: document.getElementById('cfg-host').value,
+      instance: document.getElementById('cfg-instance').value,
+      port: document.getElementById('cfg-port').value,
+      database: document.getElementById('cfg-database').value,
+      user: document.getElementById('cfg-user').value,
+      password: document.getElementById('cfg-password').value
+    };
+
+    try {
+      const res = await fetch('/administracion/tasaBCV/api/config/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (data.connected) {
+        alert("✅ ¡Prueba de conexión exitosa!\nSe pudo contactar con Profit y leer la tabla saTasa.");
+      } else {
+        alert("❌ Falló la conexión:\n" + data.message);
+      }
+    } catch (e) {
+      alert("Error de red al probar conexión: " + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = origText;
+    }
+  }
+
+  // --- Init ---
+  document.addEventListener('DOMContentLoaded', () => {
+    loadStatus();
+    // Refrescar status cada 1 minuto
+    setInterval(loadStatus, 60000);
+  });
+</script>
+{% endblock %}

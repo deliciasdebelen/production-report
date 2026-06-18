@@ -10,7 +10,7 @@ from .automation_scheduler import scheduler, send_email_notification
 import datetime
 import traceback
 
-OPENCLAW_PROMPT = """Ejecuta una revisión en la base de datos SQL Server 'carmal_a' del servidor 192.168.1.205.
+OPENCLAW_PROMPT = """Ejecuta una revisión en la base de datos SQL Server 'carmal_a' del servidor 192.168.1.48.
 Debes buscar y reportar discrepancias en dos casos específicos de hoy o días recientes:
 1. En la tabla saDevolucionCliente, verifica si la suma de los montos de sus renglones (saDevolucionClienteReng) no coincide con el subtotal, total neto, total bruto o IVA del documento cabecera.
 2. En la tabla saNotaCreditoCliente originadas por devoluciones, verifica si poseen un "saldo" erróneo mayor a 0 que genera diferencias.

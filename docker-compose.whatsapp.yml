@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  whatsapp_gateway:
+    image: evoapicloud/evolution-api:latest
+    container_name: whatsapp-gateway
+    restart: unless-stopped
+    ports:
+      - "8050:8080" # Exposed on port 8050 on the host to avoid conflicts
+    environment:
+      # --- Evolution API Server Config ---
+      - SERVER_TYPE=express
+      - SERVER_PORT=8080
+      - LOG_LEVEL=ERROR,WARN,INFO
+      - DEL_INSTANCE_SECONDS=0
+      
+      # --- Local File Persistence (Simple & Secure) ---
+      - DATABASE_ENABLED=false
+      - DATABASE_PROVIDER=postgresql
+      - STORE_MESSAGES=false
+      
+      # --- Security: API Authentication Key ---
+      - AUTHENTICATION_TYPE=apikey
+      - AUTHENTICATION_API_KEY=carmal_whatsapp_secure_key_2026
+      
+      # --- Global Webhook (Send WhatsApp events to FastAPI) ---
+      - WEBHOOK_GLOBAL_ENABLED=true
+      - WEBHOOK_GLOBAL_URL=http://production-report:8000/api/chatbot/webhook
+      - WEBHOOK_GLOBAL_KEY=carmal_webhook_key_2026
+      
+      # --- Webhook Events to listen to ---
+      - WEBHOOK_EVENTS_APPLICATION_MESSAGE_CREATED=true
+      
+      # --- WhatsApp Session Parameters ---
+      - CONFIG_SESSION_PHONE_CLIENT=Inv. Carmal Chatbot
+      - CONFIG_SESSION_PHONE_NAME=Android
+      
+    volumes:
+      # Persist WhatsApp session credentials locally so they don't log out
+      - whatsapp_sessions:/evolution/instances
+    networks:
+      - app-network
+
+volumes:
+  whatsapp_sessions:
+    driver: local
+
+networks:
+  app-network:
+    external: true
+    name: production-report_app-network

@@ -28,6 +28,8 @@
         <button onclick="openTab(event, 'tab-ai')" class="tab-btn"
             style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Parámetros
             IA</button>
+        <button onclick="openTab(event, 'tab-validations')" class="tab-btn"
+            style="padding: 1rem 1.5rem; border: none; background: transparent; cursor: pointer; font-weight: 500; color: var(--text-muted); border-bottom: 3px solid transparent;">Validaciones</button>
     </div>
 
     <!-- Tab: USERS -->
@@ -1029,6 +1031,108 @@
     </div>
 </div>
 
+    <!-- Tab: VALIDATIONS -->
+    <div id="tab-validations" class="tab-content" style="display: none; padding: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem;">
+            <div>
+                <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text-current); margin: 0 0 0.5rem 0;">Validaciones de Consistencia Profit Plus</h2>
+                <p style="color: var(--text-muted); margin: 0; font-size: 0.9rem;">
+                    Monitoreo y corrección en tiempo real de inconsistencias de inventario, lotes y stock en SQL Server (192.168.1.48).
+                </p>
+            </div>
+            <button onclick="triggerConsistencyCheck()" id="btn-run-consistency"
+                style="background: var(--primary); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s; box-shadow: var(--shadow-sm);">
+                <span>Ejecutar Corrección Manual</span>
+            </button>
+        </div>
+
+        <!-- Status Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; box-shadow: var(--shadow-xs);">
+                <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Estatus de Automatización</div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span style="height: 10px; width: 10px; border-radius: 50%; background: #22c55e;"></span>
+                    <span style="font-size: 1.15rem; font-weight: 700; color: #1e293b;">SQL Agent Activo</span>
+                </div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">Programado cada 30 min (7 AM - 6 PM, Lun-Vie)</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; box-shadow: var(--shadow-xs);">
+                <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Última Corrida</div>
+                <div id="consistency-last-date" style="font-size: 1.15rem; font-weight: 700; color: #1e293b;">-</div>
+                <div id="consistency-last-user" style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">-</div>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.25rem; box-shadow: var(--shadow-xs);">
+                <div style="color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; margin-bottom: 0.5rem;">Descuadres Detectados Hoy</div>
+                <div id="consistency-issue-count" style="font-size: 1.15rem; font-weight: 700; color: #1e293b;">0</div>
+                <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">Total corregido automáticamente</div>
+            </div>
+        </div>
+
+        <!-- Validation Sequence Walkthrough -->
+        <div style="background: #f8fafc; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1.5rem; margin-bottom: 2rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 600; color: var(--text-current); margin: 0 0 1rem 0;">Secuencia Completa de Validaciones (2 Pases)</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.8rem;">
+                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">1. Inventario: Traslado</div>
+                    <ul style="list-style: none; padding: 0; margin: 0; color: #475569; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <li>• Monto Distribuido</li>
+                        <li>• Prorrateo de Costos</li>
+                    </ul>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">2. Inventario: Lotes</div>
+                    <ul style="list-style: none; padding: 0; margin: 0; color: #475569; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <li>• Documentos con/sin Lote</li>
+                        <li>• Lote Entrada/Salida Datos</li>
+                    </ul>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">3. Stock Almacén</div>
+                    <ul style="list-style: none; padding: 0; margin: 0; color: #475569; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <li>• Actual, Por Llegar (P/S)</li>
+                        <li>• Comprometido, Despachar</li>
+                    </ul>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 0.75rem;">
+                    <div style="font-weight: 600; color: var(--primary); margin-bottom: 0.5rem;">4. Integridad de Stock Lotes</div>
+                    <ul style="list-style: none; padding: 0; margin: 0; color: #475569; display: flex; flex-direction: column; gap: 0.25rem;">
+                        <li>• Stock de Lotes</li>
+                        <li>• pValidarLoteStock</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Logs History -->
+        <div style="background: white; border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
+            <div style="padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); background: #f8fafc; display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-weight: 600; color: var(--text-current);">Historial de Ejecuciones Recientes (SQL Server)</span>
+                <button onclick="loadConsistencyLogs()" style="border: none; background: transparent; cursor: pointer; color: var(--primary); font-weight: 600; font-size: 0.85rem;">🔄 Actualizar logs</button>
+            </div>
+            <div style="max-height: 500px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left;">
+                    <thead>
+                        <tr style="background: #f1f5f9; color: #475569; border-bottom: 1px solid var(--border); font-weight: 600;">
+                            <th style="padding: 0.75rem 1rem;">ID</th>
+                            <th style="padding: 0.75rem 1rem;">Fecha Ejecución</th>
+                            <th style="padding: 0.75rem 1rem;">Iniciador</th>
+                            <th style="padding: 0.75rem 1rem;">Pase</th>
+                            <th style="padding: 0.75rem 1rem;">Procedimiento</th>
+                            <th style="padding: 0.75rem 1rem;">Estatus</th>
+                            <th style="padding: 0.75rem 1rem;">Detalles del Descuadre Corregido</th>
+                            <th style="padding: 0.75rem 1rem;">Duración</th>
+                        </tr>
+                    </thead>
+                    <tbody id="consistency-logs-body">
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">Cargando historial de validaciones...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
 <!-- COMMON PREVIEW TABLE template -->
 <div id="previewTemplate" style="display:none;">
     <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px;">
@@ -1062,6 +1166,99 @@
         evt.currentTarget.style.color = 'var(--text-current)';
         evt.currentTarget.style.borderBottomColor = 'var(--primary)';
         evt.currentTarget.style.fontWeight = '600';
+
+        if (tabId === 'tab-validations') {
+            loadConsistencyLogs();
+        }
+    }
+
+    async function loadConsistencyLogs() {
+        try {
+            const res = await fetch('/maintenance/consistency/logs');
+            if (!res.ok) throw new Error("Server error");
+            const logs = await res.json();
+            
+            const tbody = document.getElementById('consistency-logs-body');
+            tbody.innerHTML = '';
+            
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-muted);">No hay registros de validaciones.</td></tr>';
+                return;
+            }
+            
+            let lastDate = '-';
+            let lastUser = '-';
+            let issuesToday = 0;
+            
+            const todayStr = new Date().toISOString().split('T')[0];
+            
+            logs.forEach(log => {
+                if (lastDate === '-') {
+                    lastDate = log.date;
+                    lastUser = log.user;
+                }
+                
+                if (log.date.startsWith(todayStr) && log.motivo && log.motivo !== 'Sin novedades') {
+                    issuesToday++;
+                }
+                
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                tr.style.hover = 'background-color: #f8fafc;';
+                
+                const badgeColor = log.status === 'SUCCESS' ? 'background: #dcfce7; color: #166534;' : 'background: #fee2e2; color: #991b1b;';
+                const badge = `<span style="padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; ${badgeColor}">${log.status}</span>`;
+                
+                const reasonColor = log.motivo === 'Sin novedades' ? 'color: #94a3b8; font-style: italic;' : 'color: #1e293b; font-weight: 500;';
+                
+                tr.innerHTML = `
+                    <td style="padding: 0.75rem 1rem; color: #64748b;">${log.id}</td>
+                    <td style="padding: 0.75rem 1rem; white-space: nowrap;">${log.date}</td>
+                    <td style="padding: 0.75rem 1rem; white-space: nowrap;">${log.user}</td>
+                    <td style="padding: 0.75rem 1rem; text-align: center;">${log.pass}</td>
+                    <td style="padding: 0.75rem 1rem; font-family: monospace; font-size: 0.8rem; color: #0f172a; white-space: nowrap;">${log.proc}</td>
+                    <td style="padding: 0.75rem 1rem;">${badge}</td>
+                    <td style="padding: 0.75rem 1rem; max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; ${reasonColor}" title="${log.motivo}">${log.motivo}</td>
+                    <td style="padding: 0.75rem 1rem; color: #64748b;">${log.duration.toFixed(2)}s</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('consistency-last-date').innerText = lastDate;
+            document.getElementById('consistency-last-user').innerText = lastUser;
+            document.getElementById('consistency-issue-count').innerText = issuesToday;
+            
+        } catch (e) {
+            console.error(e);
+            document.getElementById('consistency-logs-body').innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 2rem; color: #ef4444;">Error al conectar con el servidor para obtener logs.</td></tr>';
+        }
+    }
+    
+    async function triggerConsistencyCheck() {
+        const btn = document.getElementById('btn-run-consistency');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<span>Ejecutando validaciones (Paso 1 y 2)...</span>';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        
+        try {
+            const res = await fetch('/maintenance/consistency/run', { method: 'POST' });
+            if (!res.ok) throw new Error("Error initiating");
+            const data = await res.json();
+            alert("✓ " + data.message + " Los resultados se guardarán en el historial.");
+            
+            // Poll for logs
+            setTimeout(loadConsistencyLogs, 5000);
+            setTimeout(loadConsistencyLogs, 15000);
+            setTimeout(loadConsistencyLogs, 25000);
+        } catch (e) {
+            alert("❌ Ocurrió un error al disparar la validación.");
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            btn.style.opacity = '1';
+        }
     }
 
     function confirmDelete(type) {

@@ -12,7 +12,7 @@ if os.getenv("TESTING") == "1":
     SQLALCHEMY_DATABASE_URL = _db_url or "sqlite:///./test.db"
 elif not _db_url or "sqlite" in _db_url:
     # Ensure no local SQLite instances are recreated in production
-    SQLALCHEMY_DATABASE_URL = "postgresql://app_user:production_password@db:5432/production_db"
+    SQLALCHEMY_DATABASE_URL = "postgresql://app_user:production_password@production_report_db:5432/production_db"
 else:
     SQLALCHEMY_DATABASE_URL = _db_url
 

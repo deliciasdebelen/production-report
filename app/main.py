@@ -3,9 +3,30 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 import shutil
 import os
+import logging
+import pathlib
+
+def _load_env_startup():
+    env_path = pathlib.Path("/app/.env")
+    if env_path.exists():
+        try:
+            for line in env_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                os.environ[k.strip()] = v.strip()
+        except Exception as e:
+            print(f"Error loading /app/.env at startup: {e}")
+
+_load_env_startup()
+
 from fastapi.staticfiles import StaticFiles
 import json
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
 from . import models, schemas, auth_utils
 from app.database import engine, Base, get_db, SessionLocal
 from app.external_db import get_external_db, external_engine
@@ -73,8 +94,17 @@ app.include_router(automation_admin.router)
 from .routers import mismatch_admin
 app.include_router(mismatch_admin.router)
 
-from .routers import projects
-app.include_router(projects.router)
+from .routers import alerts
+app.include_router(alerts.router)
+
+from .routers import cxc
+app.include_router(cxc.router)
+
+from .routers import bancos_config
+app.include_router(bancos_config.router)
+
+from .routers import tasa_bcv
+app.include_router(tasa_bcv.router)
 
 from app.utils_id import get_next_order_number
 from app.services.automation_scheduler import setup_scheduler, scheduler
@@ -92,12 +122,180 @@ def get_next_id(model_name: str, db: Session = Depends(get_db)):
 
 @app.get("/api/debug/db-connection")
 def debug_db_connection():
+    """Prueba la conexión al SQL Server externo (Profit Plus)."""
     try:
         with external_engine.connect() as conn:
             result = conn.execute(text("SELECT @@VERSION")).fetchone()
-            return {"status": "ok", "version": result[0]}
+            return {"status": "ok", "connected": True, "version": str(result[0])[:80]}
     except Exception as e:
-        return {"status": "error", "details": str(e)}
+        return {"status": "error", "connected": False, "details": str(e)}
+
+@app.get("/api/debug/pg-connection")
+def debug_pg_connection():
+    """Prueba la conexión a PostgreSQL (base de datos interna)."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT version()")).fetchone()
+            return {"status": "ok", "connected": True, "version": str(result[0])[:80]}
+    except Exception as e:
+        return {"status": "error", "connected": False, "details": str(e)}
+
+
+# ── Configuración del Sistema ────────────────────────────────
+import pathlib, json as _json
+from .dependencies import get_current_user as _get_current_user
+
+# ── Endpoints de Prueba de IA ──────────────────────────────
+@app.post("/api/debug/test-gemini")
+async def test_gemini_endpoint(request: Request, user: models.User = Depends(_get_current_user)):
+    try:
+        data = await request.json()
+        api_key = data.get("api_key", "").strip()
+        
+        # Si el usuario envió los marcadores de oculto, usar la del entorno
+        mask_chars = {"•", "●"}
+        if not api_key or all(c in mask_chars for c in api_key):
+            api_key = os.getenv("GEMINI_API_KEY", "")
+            
+        if not api_key:
+            return {"status": "error", "message": "API Key vacía"}
+            
+        import urllib.request
+        import json
+        url = f"https://generativelanguage.googleapis.com/v1beta/models?key={api_key}"
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=8) as response:
+            resp_data = json.loads(response.read().decode())
+            if "models" in resp_data:
+                return {"status": "ok", "model": "gemini-1.5-flash / gemini-2.5-flash"}
+            return {"status": "error", "message": "Respuesta inesperada de Google API"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/debug/test-ollama")
+async def test_ollama_endpoint(request: Request, user: models.User = Depends(_get_current_user)):
+    try:
+        data = await request.json()
+        url = data.get("url", "").strip() or "http://localhost:11434"
+        model = data.get("model", "").strip()
+        
+        import urllib.request
+        import json
+        
+        tags_url = f"{url.rstrip('/')}/api/tags"
+        req = urllib.request.Request(tags_url, method="GET")
+        with urllib.request.urlopen(req, timeout=5) as response:
+            resp_data = json.loads(response.read().decode())
+            models_list = [m.get("name") for m in resp_data.get("models", [])]
+            
+            if model in models_list or f"{model}:latest" in models_list:
+                return {"status": "ok", "model": model}
+            
+            return {
+                "status": "warning", 
+                "message": f"Ollama responde, pero el modelo '{model}' no está descargado. Modelos disponibles: {', '.join(models_list) or 'Ninguno'}"
+            }
+    except Exception as e:
+        return {"status": "error", "message": f"No se pudo conectar a Ollama: {str(e)}"}
+
+ENV_FILE = pathlib.Path("/app/.env")  # ruta en el container
+
+SENSITIVE = {"SECRET_KEY", "FM_TOKEN", "TELEGRAM_BOT_TOKEN", "PROFIT_PWD",
+             "BNC_MASTER_KEY", "BNC_CLIENT_GUID", "GEMINI_API_KEY"}
+EXPOSED_KEYS = [
+    "HOST", "PORT", "REDIS_URL", "DATABASE_URL",
+    "FM_BASE_URL", "FM_TOKEN",
+    "SQLSRV_HOST_CXC", "PROFIT_DB", "PROFIT_USER", "PROFIT_PWD",
+    "SECRET_KEY",
+    "OCR_IA_PROVIDER", "GEMINI_API_KEY", "OLLAMA_API_URL", "OLLAMA_MODEL",
+]
+
+@app.get("/api/sys/config")
+async def get_sys_config(user: models.User = Depends(_get_current_user)):
+    """Retorna la configuración actual del sistema (valores sensibles enmascarados)."""
+    config = {}
+    for key in EXPOSED_KEYS:
+        val = os.getenv(key, "")
+        if key in SENSITIVE and val:
+            config[key] = val  # el frontend decide cuánto mostrar
+        else:
+            config[key] = val
+    # También incluir profit statics del service
+    try:
+        from app.services.profit_cxc_service import PROFIT_HOST, PROFIT_DB, PROFIT_USER
+        config["PROFIT_HOST"] = PROFIT_HOST
+        config["PROFIT_DB"]   = PROFIT_DB
+        config["PROFIT_USER"] = PROFIT_USER
+    except Exception:
+        pass
+    return {"status": "ok", "config": config}
+
+
+@app.post("/api/sys/config")
+async def post_sys_config(request: Request, user: models.User = Depends(_get_current_user)):
+    """
+    Actualiza variables de configuración.
+    Escribe en el archivo .env y actualiza os.environ en proceso.
+    Campos sensibles solo se actualizan si el valor difiere de los marcadores (••••).
+    """
+    try:
+        data: dict = await request.json()
+        if not data:
+            return JSONResponse(status_code=400, content={"status": "error", "message": "Sin datos"})
+
+        # Filtrar marcadores de contraseña sin cambios
+        mask_chars = {"•", "●"}
+        updates = {k: v for k, v in data.items()
+                   if v and not all(c in mask_chars for c in str(v))}
+        if not updates:
+            return {"status": "ok", "message": "Sin cambios efectivos que guardar."}
+
+        # 1. Actualizar os.environ en proceso (efecto inmediato sin reinicio)
+        for k, v in updates.items():
+            os.environ[k] = str(v)
+
+        # 2. Leer .env existente (si existe)
+        env_lines = []
+        written_keys = set()
+        if ENV_FILE.exists():
+            env_lines = ENV_FILE.read_text(encoding="utf-8").splitlines()
+
+        new_lines = []
+        for line in env_lines:
+            stripped = line.strip()
+            if stripped.startswith("#") or "=" not in stripped:
+                new_lines.append(line)
+                continue
+            key = stripped.split("=", 1)[0].strip()
+            if key in updates:
+                new_lines.append(f"{key}={updates[key]}")
+                written_keys.add(key)
+            else:
+                new_lines.append(line)
+
+        # Agregar claves nuevas que no estaban en el archivo
+        for k, v in updates.items():
+            if k not in written_keys:
+                new_lines.append(f"{k}={v}")
+
+        # 3. Escribir .env actualizado
+        try:
+            ENV_FILE.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+            saved_to_file = True
+        except Exception as fe:
+            saved_to_file = False
+            logger.warning(f"No se pudo escribir .env: {fe}")
+
+        msg = f"Configuración actualizada ({', '.join(updates.keys())})"
+        if saved_to_file:
+            msg += ". Cambios persistidos en .env"
+        else:
+            msg += ". ⚠️ Solo en memoria (reiniciar para persistir)"
+
+        return {"status": "ok", "message": msg, "updated": list(updates.keys())}
+    except Exception as e:
+        logger.error(f"post_sys_config error: {e}")
+        return JSONResponse(status_code=500, content={"status": "error", "message": str(e)})
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -137,6 +335,14 @@ def startup_db_client():
     setup_scheduler()
     setup_mismatch_scheduler(scheduler)
 
+    # Start the BCV Tasa scheduler
+    from app.services.bcv_tasa_service import setup_bcv_scheduler
+    setup_bcv_scheduler(scheduler)
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
 # --- Views ---
 
 @app.get("/login", response_class=HTMLResponse)
@@ -168,6 +374,17 @@ async def read_root(request: Request, user: models.User = Depends(get_current_us
     if not user: return RedirectResponse("/login")
     if user.role == 9: return RedirectResponse("/support/create")
     return templates.TemplateResponse("index.html", {"request": request, "title": "Home", "user": user})
+
+@app.get("/sistema", response_class=HTMLResponse)
+async def view_sistema_dashboard(request: Request, user: models.User = Depends(get_current_user)):
+    if not user: return RedirectResponse("/login")
+    if user.role != 4:
+        return templates.TemplateResponse("403.html", {"request": request, "user": user})
+    return templates.TemplateResponse("administracion/index.html", {
+        "request": request,
+        "title": "Administración",
+        "user": user
+    })
 
 @app.get("/report", response_class=HTMLResponse)
 async def view_report(request: Request, user: models.User = Depends(get_current_active_user)):
@@ -248,6 +465,13 @@ async def view_support_report(request: Request, user: models.User = Depends(get_
     if user.role not in [4, 8]:
          raise HTTPException(status_code=403, detail="Access denied")
     return templates.TemplateResponse("support/report.html", {"request": request, "title": "Reporte de Tickets", "current_user": user, "user": user})
+
+@app.get("/support/ticket/{id}/confirm", response_class=HTMLResponse)
+async def view_support_ticket_confirm(id: int, request: Request, db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == id).first()
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    return templates.TemplateResponse("support/confirm_ticket.html", {"request": request, "title": "Confirmar Cierre de Ticket", "ticket": ticket})
 
 
 
@@ -812,8 +1036,5 @@ def get_assistant_alerts(db: Session = Depends(get_db)):
         except Exception as e:
             print(f"Error processing alert {log.id}: {e}")
             continue
-            
+
     return alerts
-
-
-

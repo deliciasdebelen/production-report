@@ -441,7 +441,7 @@ async def search_documents(
         
         # Condition for campo5 is empty (NULL or empty string)
         # Using LTRIM/RTRIM for extra safety in MSSQL
-        campo5_cond = "(campo5 IS NULL OR LTRIM(RTRIM(campo5)) = '')"
+        campo5_cond = "(f.campo5 IS NULL OR LTRIM(RTRIM(f.campo5)) = '')"
         
         results_list = []
         inv_results = []
@@ -476,7 +476,7 @@ async def search_documents(
                     SELECT 'invoice' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
                     FROM saFacturaVenta f
                     LEFT JOIN saCliente c ON f.co_cli = c.co_cli
-                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (campo5 IS NULL OR campo5 = '')
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (f.campo5 IS NULL OR f.campo5 = '')
                     ORDER BY f.doc_num DESC
                     LIMIT 20
                 """)
@@ -487,7 +487,7 @@ async def search_documents(
                     SELECT 'delivery_note' as doc_type, f.doc_num, f.descrip AS invoice_desc, c.cli_des AS client_name 
                     FROM saNotaEntregaVenta f
                     LEFT JOIN saCliente c ON f.co_cli = c.co_cli
-                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (campo5 IS NULL OR campo5 = '')
+                    WHERE (f.doc_num LIKE :q OR c.cli_des LIKE :q) AND (f.campo5 IS NULL OR f.campo5 = '')
                     ORDER BY f.doc_num DESC
                     LIMIT 20
                 """)
@@ -529,7 +529,7 @@ async def search_delivery_notes(
     try:
         # Determine SQL dialect for limit syntax
         dialect = db.bind.dialect.name
-        campo5_cond = "(campo5 IS NULL OR LTRIM(RTRIM(campo5)) = '')"
+        campo5_cond = "(f.campo5 IS NULL OR LTRIM(RTRIM(f.campo5)) = '')"
         
         if dialect == "mssql":
             query = text(f"""
@@ -1252,6 +1252,48 @@ async def create_dispatch(
     db.commit()
     db.refresh(new_log)
     
+    # --- Update External DB (campo5/campo6) to prevent duplication ---
+    try:
+        if imported_invoices:
+            # Parse imported_invoices (e.g. "FACT:000123,NOTA:000456")
+            docs = imported_invoices.split(',')
+            current_date_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            for doc in docs:
+                doc = doc.strip()
+                if ':' in doc:
+                    parts = doc.split(':')
+                    prefix = parts[0].strip().upper()
+                    doc_num = parts[1].strip()
+                    
+                    table_name = "saFacturaVenta" if prefix == "FACT" else "saNotaEntregaVenta"
+                    
+                    update_sql = f"""
+                        UPDATE {table_name}
+                        SET campo5 = :date_val, campo6 = :guide_val
+                        WHERE doc_num LIKE :doc_val
+                    """
+                    external_db.execute(text(update_sql), {
+                        "date_val": current_date_str,
+                        "guide_val": final_ref[:60],
+                        "doc_val": f"%{doc_num}%"
+                    })
+            
+            # CRITICAL: Commit to apply changes and release write locks
+            external_db.commit()
+    except Exception as ext_e:
+        print(f"Error updating external DB (campo5/campo6): {ext_e}")
+        external_db.rollback()
+    
+    # --- Force Release External DB Read Locks ---
+    # The previous calculation loops executed SELECTs on external_db.
+    # In MSSQL, these can hold Shared Locks until the transaction is committed or rolled back.
+    # If unreleased, they cause deadlocks during subsequent reads (e.g. print_dispatch).
+    try:
+        external_db.commit() 
+    except:
+        external_db.rollback()
+
     # --- Trigger Audit ---
     background_tasks.add_task(audit_dispatch_task, new_log.id)
 
@@ -1528,7 +1570,8 @@ async def search_guides(
 async def annul_dispatch(
     dispatch_id: int,
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    external_db: Session = Depends(get_external_db)
 ):
     if not user: raise HTTPException(401)
     if user.role not in [1, 4]: # Logic or Admin ONLY
@@ -1541,10 +1584,59 @@ async def annul_dispatch(
     if dispatch.is_annulled:
         return {"status": "success", "message": "Esta guía ya estaba anulada."}
         
+    # Sincronización con Profit Plus: Limpiar campo5 y campo6
+    try:
+        external_docs = set()
+        
+        # 1. Parsear desde document_ref (formato: "GUIA-XXXX | Fact: FACT:XXX,NOTA:YYY")
+        if dispatch.document_ref and '| Fact:' in dispatch.document_ref:
+            try:
+                imported_str = dispatch.document_ref.split('| Fact:')[1].strip()
+                for doc in imported_str.split(','):
+                    doc = doc.strip()
+                    if ':' in doc:
+                        parts = doc.split(':', 1)
+                        prefix = parts[0].strip().upper()
+                        doc_num = parts[1].strip()
+                        external_docs.add((prefix, doc_num))
+            except Exception as pe:
+                print(f"Error parsing document_ref for annulment: {pe}")
+                
+        # 2. Parsear desde items_json por si acaso
+        if dispatch.items_json:
+            try:
+                import json
+                items_list = json.loads(dispatch.items_json)
+                for item in items_list:
+                    fact = item.get('fact', '').strip()
+                    if fact and "Manual" not in fact:
+                        if fact.startswith("NOTA:") or fact.startswith("NE:"):
+                            doc_num = fact.split(':')[-1].strip()
+                            external_docs.add(("NOTA", doc_num))
+                        elif fact.startswith("FACT:"):
+                            doc_num = fact.split(':')[-1].strip()
+                            external_docs.add(("FACT", doc_num))
+                        else:
+                            external_docs.add(("FACT", fact))
+            except Exception as pe:
+                print(f"Error parsing items_json for annulment: {pe}")
+                
+        # 3. Ejecutar las actualizaciones en Profit
+        from sqlalchemy import text
+        for prefix, doc_num in external_docs:
+            table_name = "saFacturaVenta" if prefix == "FACT" else "saNotaEntregaVenta"
+            update_sql = f"UPDATE {table_name} SET campo5 = NULL, campo6 = NULL WHERE doc_num LIKE :doc_val"
+            external_db.execute(text(update_sql), {"doc_val": f"%{doc_num}%"})
+        external_db.commit()
+    except Exception as ext_e:
+        print(f"Error clearing external DB on annulment: {ext_e}")
+        external_db.rollback()
+        
     dispatch.is_annulled = True
     db.commit()
     
     return {"status": "success", "message": f"Guía {dispatch.document_ref} anulada exitosamente."}
+
 
 @router.get("/api/consolidated_report")
 async def get_consolidated_report(
@@ -1810,25 +1902,27 @@ async def view_print_consolidated_report(
     })
 
 def generate_next_guide_number(db: Session):
-    # Find all refs starting with GUIA-
-    last_dispatches = db.query(LogisticsDispatch.document_ref)\
-        .filter(LogisticsDispatch.document_ref.like('GUIA-%'))\
-        .order_by(LogisticsDispatch.id.desc())\
-        .limit(100).all() 
-        
-    max_num = 0
-    for r in last_dispatches:
-        try:
-            base_ref = r.document_ref.split('|')[0].strip()
-            match = re.search(r'GUIA-(\d+)', base_ref)
+    import re
+    from app.models import LogisticsDispatch
+    try:
+        last_dispatch = db.query(LogisticsDispatch).filter(LogisticsDispatch.document_ref.like('GUIA-%')).order_by(LogisticsDispatch.document_ref.desc()).first()
+        if last_dispatch and last_dispatch.document_ref:
+            match = re.search(r'GUIA-([0-9]+)', last_dispatch.document_ref)
             if match:
-                num = int(match.group(1))
-                if num > max_num:
-                    max_num = num
-        except: pass
-        
-    next_num = max_num + 1
+                last_num = int(match.group(1))
+                next_num = last_num + 1
+                return f"GUIA-{next_num:08d}"
+    except Exception as e:
+        print(f"Error generating next guide number: {e}")
+    
+    try:
+        from sqlalchemy.sql import func
+        max_id = db.query(func.max(LogisticsDispatch.id)).scalar() or 0
+    except:
+        max_id = 0
+    next_num = max_id + 1
     return f"GUIA-{next_num:08d}"
+
 
 
 

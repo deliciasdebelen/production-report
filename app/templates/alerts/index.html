@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h1 style="color: #1e293b; font-weight: 600; letter-spacing: -0.02em;">Inteligencia y Auditoria</h1>
+
+<style>
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    .stat-card {
+        border-top-width: 4px !important;
+        border-top-style: solid !important;
+        border-radius: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
+    }
+</style>
+
+<div class="dashboard-grid">
+    <!-- Alertas de Stock -->
+    <a href="/alerts/stock" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #0ea5e9;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">&#128737;</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Alertas de Stock</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Control en vivo de descuadres de lotes, KPIs de criticidad e informes ejecutivos de IA.</p>
+        </div>
+    </a>
+
+    <!-- Proyecto Tasa BCV -->
+    <a href="/administracion/tasaBCV" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #7c3aed;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">&#128181;</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Proyecto Tasa BCV</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Sincronizacion automatizada del scraping oficial BCV con el ERP Profit y Postgres.</p>
+        </div>
+    </a>
+
+    <!-- Validacion de Consistencias -->
+    <a id="btn-consistency-monitor" href="#" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #f59e0b;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">&#128269;</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Validacion de Consistencias</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Auditoria automatica de discrepancias en devoluciones, facturacion y triggers.</p>
+        </div>
+    </a>
+
+    <!-- Respaldos -->
+    <a href="/alerts/Respaldos" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #16a34a;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">&#128190;</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Respaldos</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Estado de respaldos de bases de datos SQL Server. Verifica existencia en servidores de respaldo y ejecuta backups si es necesario.</p>
+        </div>
+    </a>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const monitorBtn = document.getElementById("btn-consistency-monitor");
+        if (monitorBtn) {
+            const port = window.location.hostname === "192.168.1.193" ? "8005" : "8002";
+            monitorBtn.href = window.location.protocol + "//" + window.location.hostname + ":" + port;
+        }
+    });
+</script>
+{% endblock %}

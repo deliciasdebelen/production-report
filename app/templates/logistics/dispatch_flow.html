@@ -1,0 +1,540 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- FontAwesome for Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- SortableJS for Drag and Drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<style>
+    /* Odoo-style Kanban CSS */
+    .kanban-board {
+        display: flex;
+        overflow-x: auto;
+        padding: 20px 0;
+        gap: 15px;
+        min-height: calc(100vh - 150px);
+        align-items: flex-start;
+    }
+
+    .kanban-col {
+        background: #f3f4f6;
+        border-radius: 8px;
+        min-width: 300px;
+        max-width: 300px;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid #e5e7eb;
+    }
+
+    .kanban-col-header {
+        padding: 12px 15px;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #fff;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .kanban-col-header.prep {
+        border-top: 3px solid #6366f1;
+    }
+
+    .kanban-col-header.lotes {
+        border-top: 3px solid #f59e0b;
+    }
+
+    .kanban-col-header.docs {
+        border-top: 3px solid #3b82f6;
+    }
+
+    .kanban-col-header.transito {
+        border-top: 3px solid #10b981;
+    }
+
+    .kanban-cards {
+        flex: 1;
+        padding: 10px;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .kanban-card {
+        background: #ffffff;
+        border-radius: 6px;
+        padding: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border-left: 3px solid #cbd5e1;
+        cursor: grab;
+        transition: transform 0.1s, box-shadow 0.1s;
+    }
+
+    .kanban-card:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .kanban-card:active {
+        cursor: grabbing;
+    }
+
+    .card-title {
+        font-weight: 700;
+        color: #1f2937;
+        font-size: 0.95rem;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .card-meta {
+        font-size: 0.8rem;
+        color: #6b7280;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-bottom: 8px;
+    }
+
+    .card-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .tag {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 12px;
+        background: #e0e7ff;
+        color: #4338ca;
+        font-weight: 600;
+    }
+
+    /* Pending Orders Modal styling */
+    #pending-orders-list {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .pending-order-item {
+        border-left: 3px solid #8b5cf6;
+    }
+</style>
+
+<div class="mb-6 flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
+    <div>
+        <h1 class="text-2xl font-bold text-gray-800"><i class="fa-solid fa-truck-fast text-indigo-600 mr-2"></i> Rutas y
+            Despachos</h1>
+        <p class="text-gray-500 text-sm mt-1">Arrastra las rutas a través del proceso logístico.</p>
+    </div>
+    <div class="flex gap-2">
+        <button onclick="openNewRouteModal()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-sm transition-colors">
+            <i class="fa-solid fa-plus mr-1"></i> Nueva Ruta
+        </button>
+    </div>
+</div>
+
+<div class="kanban-board" id="board">
+
+    <!-- COL 1: PREP -->
+    <div class="kanban-col">
+        <div class="kanban-col-header prep">
+            <span><i class="fa-solid fa-boxes-packing mr-1"></i> Preparación</span>
+            <span class="text-xs bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded-full" id="count-PREP">0</span>
+        </div>
+        <div class="kanban-cards" id="col-PREP" data-status="PREP">
+            <!-- Cards injected via JS -->
+        </div>
+    </div>
+
+    <!-- COL 2: LOTES -->
+    <div class="kanban-col">
+        <div class="kanban-col-header lotes">
+            <span><i class="fa-solid fa-barcode mr-1"></i> Asignación Lotes</span>
+            <span class="text-xs bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded-full" id="count-LOTES">0</span>
+        </div>
+        <div class="kanban-cards" id="col-LOTES" data-status="LOTES"></div>
+    </div>
+
+    <!-- COL 3: DOCS -->
+    <div class="kanban-col">
+        <div class="kanban-col-header docs">
+            <span><i class="fa-solid fa-file-signature mr-1"></i> Documentación (SADA)</span>
+            <span class="text-xs bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded-full" id="count-DOCS">0</span>
+        </div>
+        <div class="kanban-cards" id="col-DOCS" data-status="DOCS"></div>
+    </div>
+
+    <!-- COL 4: TRANSITO -->
+    <div class="kanban-col">
+        <div class="kanban-col-header transito">
+            <span><i class="fa-solid fa-route mr-1"></i> En Tránsito</span>
+            <span class="text-xs bg-gray-200 text-gray-700 font-bold px-2 py-1 rounded-full"
+                id="count-TRANSITO">0</span>
+        </div>
+        <div class="kanban-cards" id="col-TRANSITO" data-status="TRANSITO"></div>
+    </div>
+
+</div>
+
+<!-- Modal: New Route -->
+<div id="newRouteModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-full max-w-md shadow-xl">
+        <h3 class="text-xl font-bold mb-4 text-gray-800">Crear Ruta de Despacho</h3>
+
+        <form id="newRouteForm" onsubmit="createRoute(event)">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Nombre de la Ruta / Destino</label>
+                <input type="text" id="route_name" required
+                    class="w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Chofer (Opcional)</label>
+                <input type="text" id="driver_name" class="w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Placa Vehículo (Opcional)</label>
+                <input type="text" id="vehicle_plate" class="w-full border border-gray-300 rounded-md shadow-sm p-2">
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button type="button" onclick="closeNewRouteModal()"
+                    class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50">Cancelar</button>
+                <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">Crear
+                    Camión</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Assigned Orders (Inside PREP) -->
+<div id="ordersModal"
+    class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50 flex items-center justify-center">
+    <div class="bg-white p-6 rounded-lg w-full max-w-4xl shadow-xl flex flex-col h-[80vh]">
+        <div class="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
+            <h3 class="text-xl font-bold text-gray-800" id="ordersModalTitle">Gestionar Documentos</h3>
+            <button onclick="closeOrdersModal()" class="text-gray-500 hover:text-red-500"><i
+                    class="fa-solid fa-xmark fa-xl"></i></button>
+        </div>
+
+        <div class="flex-1 flex gap-6 min-h-0">
+            <!-- Left: Attached orders -->
+            <div class="w-1/2 flex flex-col">
+                <h4 class="font-semibold text-gray-700 mb-2">Pedidos asignados a esta ruta:</h4>
+                <div id="attached-orders-list"
+                    class="flex-1 overflow-y-auto bg-gray-50 p-3 rounded border border-gray-200 flex flex-col gap-2">
+                    <!-- Javascript injected -->
+                </div>
+            </div>
+
+            <!-- Right: Available Pending Orders (REDIS CACHED) -->
+            <div class="w-1/2 flex flex-col">
+                <h4 class="font-semibold text-gray-700 mb-2">Pedidos Pendientes (Profit Plus)</h4>
+                <div class="mb-2 relative">
+                    <input type="text" id="search-pending" placeholder="Buscar Cliente o Factura..."
+                        onkeyup="filterPendingOrders()"
+                        class="w-full border border-gray-300 rounded px-3 py-2 pl-9 text-sm">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                </div>
+                <div id="pending-orders-list"
+                    class="flex-1 overflow-y-autobg-white border border-gray-200 rounded p-1 flex flex-col gap-1">
+                    <div class="text-center text-gray-500 p-4"><i class="fa-solid fa-spinner fa-spin"></i> Cargando
+                        desde caché hiperveloz...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let kanbanData = {};
+    let currentRouteId = null;
+    let cachedPendingOrders = [];
+
+    document.addEventListener("DOMContentLoaded", () => {
+        loadBoard();
+        setupDragAndDrop();
+    });
+
+    async function loadBoard() {
+        try {
+            const res = await fetch("/logistics/api/dispatch-flow/routes");
+            kanbanData = await res.json();
+            renderBoard();
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    function renderBoard() {
+        ['PREP', 'LOTES', 'DOCS', 'TRANSITO'].forEach(status => {
+            const container = document.getElementById(`col-${status}`);
+            const counter = document.getElementById(`count-${status}`);
+            container.innerHTML = "";
+
+            const routes = kanbanData[status] || [];
+            counter.innerText = routes.length;
+
+            routes.forEach(route => {
+                const card = document.createElement('div');
+                card.className = "kanban-card";
+                card.setAttribute("data-id", route.id);
+
+                // Color tweaks based on status
+                if (status === 'PREP') card.style.borderLeftColor = "#6366f1";
+                if (status === 'LOTES') card.style.borderLeftColor = "#f59e0b";
+                if (status === 'TRANSITO') card.style.borderLeftColor = "#10b981";
+
+                let html = `
+                    <div class="card-title">
+                        <span>${route.route_name}</span>
+                        <span class="text-gray-400 text-xs mt-1">#${route.id}</span>
+                    </div>
+                    ${route.driver_name ? `<div class="card-meta"><i class="fa-solid fa-user-tie"></i> ${route.driver_name} ${route.vehicle_plate ? `(${route.vehicle_plate})` : ''}</div>` : ''}
+                    
+                    <div class="card-tags mt-2">
+                        <span class="tag"><i class="fa-solid fa-file-invoice"></i> ${route.order_count} Docs</span>
+                    </div>
+                `;
+
+                // If in PREP, add a quick button to attach orders
+                if (status === 'PREP') {
+                    html += `<div class="mt-3 border-t pt-2 text-right">
+                        <button onclick="openOrdersModal(${route.id}, '${route.route_name}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold"><i class="fa-solid fa-paperclip"></i> Anexar Facturas</button>
+                    </div>`;
+                }
+
+                card.innerHTML = html;
+                container.appendChild(card);
+            });
+        });
+    }
+
+    function setupDragAndDrop() {
+        const columns = ['PREP', 'LOTES', 'DOCS', 'TRANSITO'];
+
+        columns.forEach(status => {
+            new Sortable(document.getElementById(`col-${status}`), {
+                group: 'kanban',
+                animation: 150,
+                ghostClass: 'bg-indigo-50',
+                onEnd: async function (evt) {
+                    const itemEl = evt.item;
+                    const routeId = itemEl.getAttribute("data-id");
+                    const newStatus = evt.to.getAttribute("data-status");
+                    const oldStatus = evt.from.getAttribute("data-status");
+
+                    if (newStatus !== oldStatus) {
+                        try {
+                            const formData = new FormData();
+                            formData.append("status", newStatus);
+
+                            const res = await fetch(`/logistics/api/dispatch-flow/routes/${routeId}/status`, {
+                                method: 'PUT',
+                                body: formData
+                            });
+
+                            if (!res.ok) {
+                                alert("Error moviendo tarjeta.");
+                                loadBoard(); // Revert
+                            } else {
+                                // Update counts instantly without full reload to feel snappy
+                                document.getElementById(`count-${oldStatus}`).innerText = evt.from.children.length;
+                                document.getElementById(`count-${newStatus}`).innerText = evt.to.children.length;
+
+                                // Color update
+                                if (newStatus === 'PREP') itemEl.style.borderLeftColor = "#6366f1";
+                                if (newStatus === 'LOTES') itemEl.style.borderLeftColor = "#f59e0b";
+                                if (newStatus === 'TRANSITO') itemEl.style.borderLeftColor = "#10b981";
+                                if (newStatus === 'DOCS') itemEl.style.borderLeftColor = "#3b82f6";
+                            }
+                        } catch (e) {
+                            loadBoard();
+                        }
+                    }
+                },
+            });
+        });
+    }
+
+    // Modal Logistics
+    function openNewRouteModal() { document.getElementById('newRouteModal').classList.remove('hidden'); }
+    function closeNewRouteModal() { document.getElementById('newRouteModal').classList.add('hidden'); }
+
+    async function createRoute(e) {
+        e.preventDefault();
+        const fd = new FormData();
+        fd.append("route_name", document.getElementById('route_name').value);
+        fd.append("driver_name", document.getElementById('driver_name').value);
+        fd.append("vehicle_plate", document.getElementById('vehicle_plate').value);
+
+        const res = await fetch("/logistics/api/dispatch-flow/routes", { method: "POST", body: fd });
+        if (res.ok) {
+            closeNewRouteModal();
+            document.getElementById('newRouteForm').reset();
+            loadBoard();
+        } else alert("Error al crear");
+    }
+
+    // Order attaching logic
+    async function openOrdersModal(routeId, routeName) {
+        currentRouteId = routeId;
+        document.getElementById('ordersModalTitle').innerText = `Gestión de Ruta: ${routeName}`;
+        document.getElementById('ordersModal').classList.remove('hidden');
+        document.getElementById('search-pending').value = '';
+
+        // Find existing attached orders locally from our data
+        const route = kanbanData['PREP'].find(r => r.id == routeId);
+        renderAttachedOrders(route ? route.orders : []);
+
+        // Trigger high-speed Redis-backed fetch
+        if (cachedPendingOrders.length === 0) {
+            await fetchPendingOrders();
+        } else {
+            renderPendingOrders(cachedPendingOrders);
+        }
+    }
+
+    function closeOrdersModal() {
+        document.getElementById('ordersModal').classList.add('hidden');
+        loadBoard(); // Reload board to update counts
+    }
+
+    function renderAttachedOrders(orders) {
+        const list = document.getElementById('attached-orders-list');
+        list.innerHTML = "";
+
+        if (orders.length === 0) {
+            list.innerHTML = `<div class="text-sm text-gray-500 italic p-2 text-center">Sin documentos asignados. El camión está vacío.</div>`;
+            return;
+        }
+
+        orders.forEach(o => {
+            list.innerHTML += `
+             <div class="bg-white p-3 rounded shadow-sm border border-gray-200 flex justify-between items-center">
+                 <div>
+                     <div class="font-bold text-sm text-gray-800">${o.type}: ${o.num}</div>
+                     <div class="text-xs text-gray-500">${o.client}</div>
+                 </div>
+                 <button onclick="removeOrderFromRoute('${o.num}')" class="text-red-500 hover:text-red-700 bg-red-50 p-1.5 rounded"><i class="fa-solid fa-trash"></i></button>
+             </div>
+            `;
+        });
+    }
+
+    async function fetchPendingOrders() {
+        const list = document.getElementById('pending-orders-list');
+        list.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i> Leyendo desde caché...</div>`;
+
+        try {
+            const res = await fetch("/logistics/api/dispatch-flow/pending-orders");
+            cachedPendingOrders = await res.json();
+            renderPendingOrders(cachedPendingOrders);
+        } catch (e) {
+            list.innerHTML = `<div class="text-sm text-red-500 p-2 text-center">Error leyendo Profit Plus</div>`;
+        }
+    }
+
+    function renderPendingOrders(orders) {
+        const list = document.getElementById('pending-orders-list');
+        list.innerHTML = "";
+
+        if (orders.length === 0) {
+            list.innerHTML = `<div class="text-sm text-gray-500 italic p-2 text-center">No se encontraron facturas pendientes.</div>`;
+            return;
+        }
+
+        // Limit to 50 for pure rendering speed of the DOM
+        const displayOrders = orders.slice(0, 100);
+
+        displayOrders.forEach(o => {
+            const displayColor = o.doc_type === 'FACT' ? 'blue' : 'emerald';
+            list.innerHTML += `
+             <div class="p-3 bg-white border-b border-gray-100 hover:bg-gray-50 flex justify-between items-center transition-colors pending-order-item" style="border-left-color: var(--tw-color-${displayColor}-500, #3b82f6)">
+                 <div>
+                     <div class="font-bold text-sm text-gray-800"><span class="bg-${displayColor}-100 text-${displayColor}-700 text-[10px] px-1.5 py-0.5 rounded mr-1">${o.doc_type}</span> ${o.doc_num}</div>
+                     <div class="text-xs text-gray-600 truncate max-w-[200px]" title="${o.client_name}">${o.client_name}</div>
+                     <div class="text-[10px] text-gray-400 mt-0.5"><i class="fa-regular fa-calendar"></i> Emisión: ${o.date}</div>
+                 </div>
+                 <button onclick="assignOrderToRoute('${o.doc_type}', '${o.doc_num}', '${o.client_name.replace(/'/g, "\\'")}')" class="text-indigo-600 hover:text-white border border-indigo-600 hover:bg-indigo-600 transition-colors p-1 px-3 rounded text-sm font-semibold">
+                     <i class="fa-solid fa-arrow-left"></i> Anexar
+                 </button>
+             </div>
+            `;
+        });
+    }
+
+    function filterPendingOrders() {
+        const term = document.getElementById('search-pending').value.toLowerCase();
+        const filtered = cachedPendingOrders.filter(o =>
+            o.doc_num.toLowerCase().includes(term) ||
+            o.client_name.toLowerCase().includes(term)
+        );
+        renderPendingOrders(filtered);
+    }
+
+    async function assignOrderToRoute(docType, docNum, clientName) {
+        if (!currentRouteId) return;
+
+        const fd = new FormData();
+        fd.append("doc_type", docType);
+        fd.append("doc_num", docNum);
+        fd.append("client_name", clientName);
+
+        try {
+            const res = await fetch(`/logistics/api/dispatch-flow/routes/${currentRouteId}/orders`, {
+                method: 'POST',
+                body: fd
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                // Instantly update UI locally
+                const route = kanbanData['PREP'].find(r => r.id == currentRouteId);
+                if (route) {
+                    route.orders.push({ type: docType, num: docNum, client: clientName });
+                    renderAttachedOrders(route.orders);
+                }
+
+                // Remove from cached pending to avoid double assignment UI
+                cachedPendingOrders = cachedPendingOrders.filter(o => !(o.doc_type === docType && o.doc_num === docNum));
+                filterPendingOrders(); // Re-render right side
+            } else {
+                alert(data.detail || "Error asignando");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    async function removeOrderFromRoute(docNum) {
+        if (!currentRouteId) return;
+
+        try {
+            const res = await fetch(`/logistics/api/dispatch-flow/routes/${currentRouteId}/orders/${docNum}`, {
+                method: 'DELETE'
+            });
+
+            if (res.ok) {
+                const route = kanbanData['PREP'].find(r => r.id == currentRouteId);
+                if (route) {
+                    route.orders = route.orders.filter(o => o.num !== docNum);
+                    renderAttachedOrders(route.orders);
+                }
+                // (Optimal: Push it back into cachedPendingOrders, but we can just let user refresh)
+            }
+        } catch (e) { console.error(e); }
+    }
+
+</script>
+{% endblock %}

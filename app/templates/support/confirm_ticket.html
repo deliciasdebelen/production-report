@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirmar Cierre de Ticket</title>
+    <!-- Use the same base styles if possible, but keep it self-contained for simplicity -->
+    <style>
+        :root {
+            --odoo-primary: #714B67;
+            --odoo-secondary: #017e84;
+            --odoo-bg: #f9fafb;
+            --odoo-border: #e5e7eb;
+            --odoo-text: #374151;
+            --odoo-light: #f3f4f6;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--odoo-bg);
+            color: var(--odoo-text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            border-top: 4px solid var(--odoo-primary);
+        }
+        h1 {
+            color: var(--odoo-primary);
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+        .ticket-code {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #4b5563;
+            margin-bottom: 20px;
+        }
+        .details {
+            text-align: left;
+            background: var(--odoo-light);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid var(--odoo-border);
+        }
+        .details p {
+            margin: 0 0 10px 0;
+            line-height: 1.5;
+        }
+        .details p:last-child {
+            margin-bottom: 0;
+        }
+        .btn-confirm {
+            background-color: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: 100%;
+        }
+        .btn-confirm:hover {
+            background-color: #059669;
+        }
+        .btn-confirm:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        #success-msg {
+            display: none;
+            color: #059669;
+            background-color: #d1fae5;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-weight: 500;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Confirmación de Cierre</h1>
+        <div class="ticket-code">Ticket {{ ticket.code }}</div>
+        
+        <div class="details">
+            <p><strong>Asunto / Descripción:</strong><br>{{ ticket.description }}</p>
+            {% if ticket.close_comment %}
+            <p><strong>Comentario de Resolución:</strong><br>{{ ticket.close_comment }}</p>
+            {% endif %}
+            <p><strong>Estado Actual:</strong> {{ ticket.status.name }}</p>
+        </div>
+
+        {% if ticket.status.name == "Confirmado" %}
+            <div style="color: #059669; background-color: #d1fae5; padding: 15px; border-radius: 6px; font-weight: 500;">
+                Este ticket ya ha sido confirmado. ¡Gracias!
+            </div>
+        {% else %}
+            <p style="margin-bottom: 20px; color: #6b7280; font-size: 0.95rem;">
+                Por favor, haz clic en el botón inferior para confirmar que la incidencia ha sido resuelta satisfactoriamente.
+            </p>
+            
+            <button id="btnConfirm" class="btn-confirm" onclick="confirmTicket()">
+                <span id="btnText">Confirmar Cierre de Ticket</span>
+                <span id="btnSpinner" class="loading"></span>
+            </button>
+            
+            <div id="success-msg">
+                ¡Gracias! El ticket ha sido marcado como Confirmado exitosamente. Ya puedes cerrar esta ventana.
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        async function confirmTicket() {
+            const btn = document.getElementById('btnConfirm');
+            const btnText = document.getElementById('btnText');
+            const btnSpinner = document.getElementById('btnSpinner');
+            const successMsg = document.getElementById('success-msg');
+
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            btnSpinner.style.display = 'inline-block';
+
+            try {
+                const response = await fetch(`/api/support/ticket/{{ ticket.id }}/confirm`, {
+                    method: 'POST'
+                });
+
+                if (response.ok) {
+                    btn.style.display = 'none';
+                    successMsg.style.display = 'block';
+                } else {
+                    alert('Hubo un error al confirmar el ticket. Por favor, intente nuevamente.');
+                    btn.disabled = false;
+                    btnText.style.display = 'inline-block';
+                    btnSpinner.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Hubo un error de conexión.');
+                btn.disabled = false;
+                btnText.style.display = 'inline-block';
+                btnSpinner.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

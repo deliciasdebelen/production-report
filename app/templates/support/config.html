@@ -36,6 +36,16 @@
                             actualización de todos los tickets.</div>
                     </div>
                 </div>
+
+                <div class="odoo-form-group" style="margin-top: 15px;">
+                    <div class="odoo-label">Correos con Copia (CC)</div>
+                    <div class="odoo-control">
+                        <input type="text" id="ccEmails" class="odoo-input"
+                            placeholder="auditoria@empresa.com, gerente@empresa.com" style="width: 100%; max-width: 500px;">
+                        <div class="odoo-help" style="margin-top: 5px; color: #6b7280; font-size: 0.85rem;">Separar
+                            múltiples correos con coma (,). Estos correos recibirán una copia <b>solo</b> si el ticket corresponde a: Administrativo, Facturación, Contabilidad, Calidad, Almacén, o Planificación.</div>
+                    </div>
+                </div>
                 <div style="margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
                     <h2 style="font-size: 1.25rem; margin-bottom: 20px; color: var(--odoo-primary);">Servidor de Correo
                         Saliente (SMTP)</h2>
@@ -237,6 +247,7 @@
             // Populate settings
             if (configData.settings) {
                 if (configData.settings.notification_emails) document.getElementById('notificationEmails').value = configData.settings.notification_emails;
+                if (configData.settings.cc_emails) document.getElementById('ccEmails').value = configData.settings.cc_emails;
                 if (configData.settings.smtp_server) document.getElementById('smtpServer').value = configData.settings.smtp_server;
                 if (configData.settings.smtp_port) document.getElementById('smtpPort').value = configData.settings.smtp_port;
                 if (configData.settings.smtp_user) document.getElementById('smtpUser').value = configData.settings.smtp_user;
@@ -283,14 +294,36 @@
     }
 
     async function saveSettings() {
-        const emails = document.getElementById('notificationEmails').value;
+        const rawEmails = document.getElementById('notificationEmails').value;
+        const rawCcEmails = document.getElementById('ccEmails').value;
         const smtpServer = document.getElementById('smtpServer').value;
         const smtpPort = document.getElementById('smtpPort').value;
         const smtpUser = document.getElementById('smtpUser').value;
         const smtpPassword = document.getElementById('smtpPassword').value;
 
+        // ── Validar y limpiar lista de correos ──────────────────────────────
+        const emailList = rawEmails.split(',').map(e => e.trim()).filter(e => e.length > 0);
+        const ccEmailList = rawCcEmails.split(',').map(e => e.trim()).filter(e => e.length > 0);
+        
+        const invalidEmails = [...emailList, ...ccEmailList].filter(e => !e.includes('@') || e.split('@').length !== 2 || e.split('@')[1].indexOf('.') === -1);
+
+        if (invalidEmails.length > 0) {
+            alert('⚠️ Los siguientes correos no son válidos:\n\n' + invalidEmails.join('\n') + '\n\nVerifica que cada dirección contenga "@" y un dominio válido (ej: usuario@empresa.com)');
+            document.getElementById('notificationEmails').focus();
+            return;
+        }
+
+        // Normalizar: sin espacios extra, separados por coma sin espacio
+        const emails = emailList.join(',');
+        const ccEmails = ccEmailList.join(',');
+        
+        // Actualizar el input con el valor limpio
+        document.getElementById('notificationEmails').value = emails;
+        document.getElementById('ccEmails').value = ccEmails;
+
         const formData = new FormData();
         formData.append('notification_emails', emails);
+        formData.append('cc_emails', ccEmails);
         formData.append('smtp_server', smtpServer);
         formData.append('smtp_port', smtpPort);
         formData.append('smtp_user', smtpUser);
@@ -303,10 +336,10 @@
                 toast.style.display = 'inline';
                 setTimeout(() => toast.style.display = 'none', 3000);
             } else {
-                alert("Error al guardar ajustes");
+                alert('Error al guardar ajustes');
             }
         } catch (e) {
-            console.error("Error saving settings", e);
+            console.error('Error saving settings', e);
         }
     }
 

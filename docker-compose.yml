@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  web:
+  production_report_web:
     build: .
     container_name: production-report
     restart: unless-stopped
@@ -10,22 +10,45 @@ services:
     volumes:
       # Mount database directory for persistence
       - ./data:/app/data
-      # Mount production.db in the app root
-      - ./production.db:/app/production.db
       # Mount application code for hot-reloading & production fixes
       - ./app:/app/app
       # Fix SSL Legacy issues
       - ./custom_openssl.cnf:/etc/ssl/openssl.cnf
     environment:
       - PYTHONUNBUFFERED=1
-      - DATABASE_URL=sqlite:////app/production.db
+      - DATABASE_URL=postgresql://app_user:production_password@production_report_db:5432/production_db
       - OPENSSL_CONF=/etc/ssl/openssl.cnf
+      # ── BNC Banco Nacional de Crédito (DEV) ──────────────────
+      - BNC_API_URL=https://servicios.bncenlinea.com:16500/api
+      - BNC_CLIENT_GUID=ce7c95ff-2eac-4464-ad84-1330b31fb3b1
+      - BNC_MASTER_KEY=980f5e8f83e51312f476b8819eccf3e8
+      - BNC_ACCOUNT_NUMBER=01910098712198417249
+      - BNC_PHONE_NUMBER=584241321019
+      - BNC_CLIENT_ID=
+    depends_on:
+      production_report_db:
+        condition: service_started
     healthcheck:
       test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/login').read()" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - app-network
+
+  production_report_db:
+    image: postgres:15
+    container_name: production-report-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app_user
+      POSTGRES_PASSWORD: production_password
+      POSTGRES_DB: production_db
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
     networks:
       - app-network
 

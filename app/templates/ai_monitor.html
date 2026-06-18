@@ -1,0 +1,413 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Neon Grafana-style Dark Theme Overrides */
+    .ai-dashboard-wrapper {
+        background-color: #0b0c10;
+        min-height: calc(100vh - 50px);
+        padding: 24px;
+        color: #c5c6c7;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .ai-dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #1f2833;
+        padding-bottom: 16px;
+    }
+
+    .ai-dashboard-header h1 {
+        color: #ffffff;
+        font-size: 1.6rem;
+        margin: 0;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+    }
+
+    .grafana-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+        gap: 20px;
+    }
+
+    .grafana-panel {
+        background-color: #12161c;
+        border: 1px solid #1f2833;
+        border-radius: 8px;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        transition: all 0.3s ease;
+    }
+
+    .grafana-panel:hover {
+        border-color: #3b4252;
+        box-shadow: 0 8px 15px rgba(0,0,0,0.5);
+    }
+
+    .grafana-panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-bottom: 1px solid #1f2833;
+        background: rgba(255,255,255,0.02);
+        border-radius: 8px 8px 0 0;
+    }
+
+    .grafana-panel-title {
+        font-size: 1rem;
+        color: #e0e6ed;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .grafana-panel-body {
+        padding: 16px;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-huge {
+        font-size: 2.2rem;
+        font-weight: 600;
+        color: #ffffff;
+        line-height: 1.1;
+        text-shadow: 0 0 10px rgba(255,255,255,0.1);
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        color: #8b9eb3;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        font-weight: 500;
+        margin-bottom: 4px;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 200px;
+        width: 100%;
+        margin-top: 16px;
+    }
+
+    /* Task Queue Styling */
+    .task-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .task-item {
+        background-color: #1a1f26;
+        border-left: 4px solid #10b981;
+        padding: 14px;
+        margin-bottom: 10px;
+        border-radius: 0 6px 6px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .btn-grafana {
+        background: #1f2833;
+        color: #c5c6c7;
+        border: 1px solid #45a29e;
+        border-radius: 4px;
+        padding: 8px 16px;
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-grafana:hover {
+        background: #45a29e;
+        color: #0b0c10;
+    }
+
+    .badge-status {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+        border-radius: 12px;
+        font-weight: bold;
+        letter-spacing: 0.5px;
+    }
+    .badge-online { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+    .badge-offline { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<div class="ai-dashboard-wrapper">
+    <div class="ai-dashboard-header">
+        <div>
+            <h1><i class="fas fa-satellite-dish text-success me-2" style="text-shadow: 0 0 10px #10b981;"></i>Centro de Operaciones IA</h1>
+            <div class="stat-label mt-2">Métricas globales en tiempo real - Refresco: 5s</div>
+        </div>
+        <div>
+            <a href="/alerts" class="btn-grafana"><i class="fas fa-arrow-left me-1"></i> Volver a Alertas</a>
+        </div>
+    </div>
+
+    <div class="grafana-grid" id="chartsGrid">
+        <!-- Cards will be pre-rendered by JS -->
+    </div>
+
+    <div class="grafana-grid mt-4" style="grid-template-columns: 1fr;">
+        <div class="grafana-panel">
+            <div class="grafana-panel-header">
+                <div class="grafana-panel-title">
+                    <i class="fas fa-terminal" style="color: #45a29e;"></i> Bitácora de Operaciones (Luna)
+                </div>
+            </div>
+            <div class="grafana-panel-body" id="tasksQueue">
+                <div class="text-center py-5" style="color: #8b9eb3;">
+                    <i class="fas fa-circle-notch fa-spin fs-2 mb-3"></i><br>
+                    Estableciendo enlace de telemetría...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const MAX_DATA_POINTS = 20;
+    const charts = {};
+    const historyData = {};
+
+    // All 4 containers defined with neon colors
+    const containerConfig = {
+        'ollama': { title: 'Motor Llama 3 (Ollama)', color: '#a855f7', rgb: '168, 85, 247' },
+        'luna_web': { title: 'Motor Whisper (Luna)', color: '#10b981', rgb: '16, 185, 129' },
+        'autogen_studio': { title: 'Gestor AutoGen', color: '#3b82f6', rgb: '59, 130, 246' },
+        'luna_bot': { title: 'Bot de Telegram (Luna)', color: '#f59e0b', rgb: '245, 158, 11' }
+    };
+
+    function initGrid() {
+        const grid = document.getElementById('chartsGrid');
+        grid.innerHTML = ''; // clear
+
+        Object.keys(containerConfig).forEach(name => {
+            const config = containerConfig[name];
+
+            // Pre-fill history
+            historyData[name] = {
+                labels: Array(MAX_DATA_POINTS).fill(''),
+                cpu: Array(MAX_DATA_POINTS).fill(0),
+                ram: Array(MAX_DATA_POINTS).fill(0)
+            };
+
+            const html = `
+                <div class="grafana-panel" id="panel-${name}">
+                    <div class="grafana-panel-header">
+                        <div class="grafana-panel-title" style="text-shadow: 0 0 8px rgba(${config.rgb}, 0.5);">
+                            <span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:${config.color}; box-shadow: 0 0 8px ${config.color};"></span>
+                            ${config.title}
+                        </div>
+                        <span id="status-${name}" class="badge-status badge-offline">CONECTANDO</span>
+                    </div>
+                    <div class="grafana-panel-body">
+                        <div class="d-flex justify-content-between mb-2">
+                            <div>
+                                <div class="stat-label">Carga CPU</div>
+                                <div class="stat-huge" id="cpu-val-${name}" style="color: ${config.color}; text-shadow: 0 0 15px rgba(${config.rgb}, 0.4);">0%</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="stat-label">Uso de Memoria</div>
+                                <div class="stat-huge" id="ram-val-${name}" style="color: #cbd5e1;">0%</div>
+                                <div class="stat-label mt-1" id="ram-raw-${name}" style="text-transform:none; font-size: 0.8rem;">0 MB</div>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="chart-${name}"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            grid.insertAdjacentHTML('beforeend', html);
+
+            // Initialize Chart.js
+            const ctx = document.getElementById('chart-' + name).getContext('2d');
+
+            // Create gradient for CPU fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+            gradient.addColorStop(0, `rgba(${config.rgb}, 0.5)`);
+            gradient.addColorStop(1, `rgba(${config.rgb}, 0.0)`);
+
+            charts[name] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: historyData[name].labels,
+                    datasets: [
+                        {
+                            label: 'CPU (%)',
+                            data: historyData[name].cpu,
+                            borderColor: config.color,
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHoverRadius: 4
+                        },
+                        {
+                            label: 'RAM (%)',
+                            data: historyData[name].ram,
+                            borderColor: '#94a3b8',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 0 },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { mode: 'index', intersect: false, backgroundColor: '#1f2833', titleColor: '#fff', bodyColor: '#cbd5e1' }
+                    },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: '#1f2833', drawBorder: false },
+                            ticks: { color: '#8b9eb3', maxTicksLimit: 5 },
+                            suggestedMax: 100
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        axis: 'x',
+                        intersect: false
+                    }
+                }
+            });
+        });
+    }
+
+    async function fetchStats() {
+        try {
+            const res = await fetch('/ai_monitor/api/stats');
+            if(!res.ok) return;
+            const data = await res.json();
+
+            // Create a map of active containers from the response
+            const activeStats = {};
+            if(data.docker_stats) {
+                data.docker_stats.forEach(st => {
+                    activeStats[st.name] = st;
+                });
+            }
+
+            // Loop through all predefined containers
+            Object.keys(containerConfig).forEach(name => {
+                const st = activeStats[name];
+                const hist = historyData[name];
+
+                let cpuVal = 0;
+                let ramVal = 0;
+                let ramRaw = "0 B";
+
+                const statusBadge = document.getElementById('status-' + name);
+                const cpuLabel = document.getElementById('cpu-val-' + name);
+                const ramLabel = document.getElementById('ram-val-' + name);
+                const ramRawLabel = document.getElementById('ram-raw-' + name);
+
+                if(st) {
+                    // Container is ONLINE
+                    cpuVal = parseFloat(st.cpu.replace('%','')) || 0;
+                    ramVal = parseFloat(st.mem_perc.replace('%','')) || 0;
+                    ramRaw = st.mem;
+
+                    statusBadge.className = "badge-status badge-online";
+                    statusBadge.innerText = "ONLINE";
+                    cpuLabel.innerText = st.cpu;
+                    ramLabel.innerText = st.mem_perc;
+                    ramRawLabel.innerText = ramRaw;
+
+                    // Change CPU color to red if high usage
+                    const configColor = containerConfig[name].color;
+                    cpuLabel.style.color = cpuVal > 80 ? '#ef4444' : configColor;
+                } else {
+                    // Container is OFFLINE
+                    statusBadge.className = "badge-status badge-offline";
+                    statusBadge.innerText = "OFFLINE";
+                    cpuLabel.innerText = "0.00%";
+                    ramLabel.innerText = "0.00%";
+                    ramRawLabel.innerText = "0 B";
+                    cpuLabel.style.color = '#475569';
+                }
+
+                // Shift arrays and push new data
+                hist.cpu.shift();
+                hist.cpu.push(cpuVal);
+                hist.ram.shift();
+                hist.ram.push(ramVal);
+
+                charts[name].update();
+            });
+
+            // 2. Process Luna Tasks
+            const tasksContainer = document.getElementById('tasksQueue');
+            if(data.luna_tasks && data.luna_tasks.length > 0) {
+                let html = '<ul class="task-list">';
+                data.luna_tasks.forEach(task => {
+                    html += `
+                        <li class="task-item">
+                            <div>
+                                <div style="color: #f4f5f5; font-weight: 500;">[Grupo ${task.group_id}] ${task.group_name || 'Reunión'}</div>
+                                <div style="color: #10b981; font-size: 0.85rem; margin-top: 6px; display:flex; align-items:center;">
+                                    <i class="fas fa-cog fa-spin me-2 text-success"></i> ${task.status}
+                                </div>
+                            </div>
+                            <div style="color: #45a29e; font-weight: bold; font-size: 1.5rem; text-shadow: 0 0 10px rgba(69, 162, 158, 0.4);">
+                                ${task.progress}%
+                            </div>
+                        </li>
+                    `;
+                });
+                html += '</ul>';
+                tasksContainer.innerHTML = html;
+            } else {
+                tasksContainer.innerHTML = `
+                    <div class="text-center py-5" style="color: #475569;">
+                        <i class="fas fa-shield-alt fs-1 mb-3" style="color: #1f2833;"></i><br>
+                        Sistemas inactivos. No hay procesamiento en cola.
+                    </div>
+                `;
+            }
+
+        } catch(e) {
+            console.error("Polling error:", e);
+            // Mark all as OFFLINE on fetch error
+            Object.keys(containerConfig).forEach(name => {
+                const badge = document.getElementById('status-' + name);
+                if(badge) {
+                    badge.className = "badge-status badge-offline";
+                    badge.innerText = "ERROR DE CONEXIÓN";
+                }
+            });
+        }
+    }
+
+    // Initialize and start
+    initGrid();
+    fetchStats();
+    setInterval(fetchStats, 5000);
+</script>
+{% endblock %}

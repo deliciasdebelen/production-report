@@ -1,0 +1,307 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Odoo 17 Style High-Density Layout for Audi */
+    .o-action-manager {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: #ffffff;
+        border: 1px solid #d4d4d5;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+    
+    .o-control-panel {
+        background-color: #ffffff;
+        border-bottom: 1px solid #d4d4d5;
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .o-cp-title {
+        font-size: 1.4rem;
+        font-weight: 500;
+        color: #111827;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .o-avatar-audi {
+        width: 32px;
+        height: 32px;
+        border-radius: 3px;
+        background-color: #714B67;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 18px;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    }
+    
+    .o-content-layout {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+        background: #f9fafb;
+    }
+    
+    .o-sidebar {
+        width: 320px;
+        background: #ffffff;
+        border-right: 1px solid #d4d4d5;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .o-sidebar-header {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #4b5563;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .o-list-view {
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    .o-list-item {
+        padding: 12px 16px;
+        border-bottom: 1px solid #f3f4f6;
+        cursor: pointer;
+        transition: background-color 0.1s ease;
+    }
+    
+    .o-list-item:hover {
+        background-color: #f3f8f9; /* Soft Odoo Hover Hovering */
+    }
+    
+    .o-list-item.selected {
+        background-color: #e0f2f1; /* Odoo list selection pale generic */
+        border-left: 3px solid #00A09D; /* Odoo primary teal style accent */
+        padding-left: 13px;
+    }
+    
+    .o-item-title {
+        font-weight: 500;
+        color: #111827;
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .o-item-date {
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+    
+    .o-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: normal;
+    }
+    
+    .bg-success-light { background: #d1e7dd; color: #0f5132; }
+    .bg-danger-light { background: #f8d7da; color: #842029; }
+    
+    .o-main-content {
+        flex: 1;
+        padding: 0;
+        overflow-y: auto;
+        background: #ffffff;
+    }
+    
+    .o-report-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 30px 40px;
+    }
+
+    .o-report-header {
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 15px;
+        margin-bottom: 25px;
+    }
+
+    .o-report-title {
+        font-size: 1.8rem;
+        color: #111827;
+        margin: 0 0 8px 0;
+        font-weight: 500;
+    }
+
+    .o-report-meta {
+        color: #6b7280;
+        font-size: 0.9rem;
+    }
+    
+    .o-markdown-body {
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: #374151;
+        font-size: 1rem;
+        line-height: 1.6;
+    }
+    
+    .o-markdown-body h1, .o-markdown-body h2, .o-markdown-body h3 {
+        color: #111827;
+        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 8px;
+        margin-top: 24px;
+        margin-bottom: 16px;
+        font-weight: 600;
+    }
+
+    .o-markdown-body h2 { font-size: 1.4rem; }
+    .o-markdown-body h3 { font-size: 1.15rem; }
+
+    .o-markdown-body ul {
+        padding-left: 20px;
+    }
+
+    .o-markdown-body li {
+        margin-bottom: 6px;
+    }
+    
+    .o-empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #6b7280;
+        text-align: center;
+    }
+    
+    .o-empty-icon {
+        font-size: 4rem;
+        color: #d1d5db;
+        margin-bottom: 16px;
+    }
+
+</style>
+
+<div style="height: calc(100vh - 80px); padding: 15px;">
+    <div class="o-action-manager">
+        
+        <!-- Control Panel (Top Header) -->
+        <div class="o-control-panel">
+            <h1 class="o-cp-title">
+                <div class="o-avatar-audi">A</div>
+                Auditoría IA (Audi)
+            </h1>
+            <div style="display: flex; gap: 10px;">
+                <!-- Odoo style buttons: Usually inside control panel -->
+                <button class="o-btn o-btn-secondary" style="border: 1px solid #d1d5db; background: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; color: #374151; font-weight: 500;" onclick="alert('Funcionalidad de forzar auditoría manual será implementada a solicitud.')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
+                        <polyline points="1 4 1 10 7 10"></polyline>
+                        <polyline points="23 20 23 14 17 14"></polyline>
+                        <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                    </svg>
+                    Forzar Ejecución
+                </button>
+            </div>
+        </div>
+        
+        <!-- Main Content Layout (Master/Detail) -->
+        <div class="o-content-layout">
+            
+            <!-- Sidebar: Repots List -->
+            <div class="o-sidebar">
+                <div class="o-sidebar-header">
+                    Historial de Inspecciones
+                </div>
+                <div class="o-list-view">
+                    {% if not logs %}
+                        <div style="padding: 20px; text-align: center; color: #9ca3af; font-size: 0.9rem;">
+                            Cero reportes encontrados. Audi generará el primero a las 08:30 AM.
+                        </div>
+                    {% else %}
+                        {% for log in logs %}
+                        <div class="o-list-item {% if loop.first %}selected{% endif %}" onclick="showReport({{ loop.index0 }}, this)">
+                            <div class="o-item-title">
+                                <span>Reporte P1-PT</span>
+                                <span class="o-item-date">{{ log.created_at.strftime("%H:%M") }}</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px;">
+                                <span class="o-item-date">{{ log.created_at.strftime("%d/%m/%Y") }}</span>
+                                <span class="o-badge {% if 'Discrepancias' in log.status %}bg-danger-light{% else %}bg-success-light{% endif %}">
+                                    {{ log.status }}
+                                </span>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Detail Content -->
+            <div class="o-main-content">
+                {% if not logs %}
+                    <div class="o-empty-state">
+                        <div class="o-empty-icon">✓</div>
+                        <h2 style="font-size: 1.4rem; color: #374151; font-weight: 500; margin: 0 0 8px 0;">Todo está al día</h2>
+                        <p style="margin: 0;">Audi está monitoreando pasivamente la base de datos.</p>
+                    </div>
+                {% else %}
+                    {% for log in logs %}
+                    <div id="report-view-{{ loop.index0 }}" style="{% if not loop.first %}display: none;{% endif %}">
+                        <div class="o-report-container">
+                            
+                            <div class="o-report-header">
+                                <h2 class="o-report-title">
+                                    Resultado de Auditoría
+                                </h2>
+                                <div class="o-report-meta" style="display: flex; gap: 15px; align-items: center;">
+                                    <span>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 2px;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                        {{ log.created_at.strftime("%d %b %Y, %H:%M") }}
+                                    </span>
+                                    <span>
+                                        Estado: <strong class="{% if 'Discrepancias' in log.status %}text-danger{% else %}text-success{% endif %}">{{ log.status }}</strong>
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="o-markdown-body">
+                                {{ log.html_content | safe }}
+                            </div>
+                            
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+    function showReport(index, element) {
+        document.querySelectorAll('[id^="report-view-"]').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        document.querySelectorAll('.o-list-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        document.getElementById(`report-view-${index}`).style.display = 'block';
+        element.classList.add('selected');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,901 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<!-- Import Google Fonts for high-end UI aesthetics -->
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<div class="h-100 d-flex flex-column main-container-layout">
+
+    <!-- Odoo Control Panel -->
+    <div class="control-panel py-3 px-4 bg-white border-bottom shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="breadcrumb-container">
+                <ol class="breadcrumb mb-0" style="background: transparent; padding: 0;">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none"
+                            style="color: #714B67; font-weight: 500;">Inicio</a></li>
+                    <li class="breadcrumb-item active" id="breadcrumb-current" style="color: #6b7280; font-weight: 500;">Tablero de Control e Inteligencia</li>
+                </ol>
+            </div>
+
+            <div class="search-options d-flex gap-2">
+                <div id="timestamp" class="text-muted small align-self-center me-2 bg-light px-3 py-1.5 rounded-pill" style="font-weight: 500;">Cargando...</div>
+                <button class="btn btn-light btn-sm border" onclick="fetchData()" title="Actualizar Datos" style="border-radius: 8px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
+                    <span>🔄</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-end mt-3">
+            <h1 class="page-title mb-0" id="main-page-title" style="font-size: 1.85rem; font-weight: 600; color: #1e293b; letter-spacing: -0.02em;">
+                Inteligencia y Auditoría
+            </h1>
+        </div>
+    </div>
+
+    <!-- Scrollable Content -->
+    <div class="o_content" style="flex: 1; overflow-auto; padding: 24px; background-color: #f8fafc;">
+
+        <!-- Back Navigation Header (Only visible when viewing an option) -->
+        <div id="back-nav-container" class="d-none mb-4">
+            <button class="btn back-btn d-inline-flex align-items-center gap-2" onclick="showPortalHome()">
+                <span class="back-arrow">←</span> Volver al Panel Principal
+            </button>
+        </div>
+
+        <!-- ==================== PORTAL HOME (Launcher) ==================== -->
+        <div id="portal-home" class="main-view-section py-3">
+            <div class="text-center mb-5 mt-2">
+                <p class="text-muted" style="font-size: 1.1rem; max-width: 600px; margin: 0 auto; line-height: 1.6;">
+                    Seleccione un panel de control para gestionar la auditoría, sincronizaciones de divisas o validación de discrepancias.
+                </p>
+            </div>
+            
+            <div class="row g-4 justify-content-center" style="max-width: 1050px; margin: 0 auto;">
+                <!-- Option 1: Alertas de Stock -->
+                <div class="col-md-4">
+                    <div class="card h-100 portal-card option-card-alerts border-0" onclick="selectPortalOption('view-alerts', 'Alertas de Stock')">
+                        <div class="card-body p-4 text-center d-flex flex-column align-items-center justify-content-between">
+                            <span class="badge badge-pill badge-alerts mb-3">MÓDULO DE MONITOREO</span>
+                            <div class="portal-icon-container mb-4 icon-alerts">
+                                🛡️
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-2 text-dark" style="font-size: 1.3rem; letter-spacing: -0.01em;">Alertas de Stock</h3>
+                                <p class="text-muted mb-4" style="font-size: 0.88rem; line-height: 1.5;">
+                                    Control en vivo de descuadres de lotes, KPIs de criticidad e informes ejecutivos de IA.
+                                </p>
+                            </div>
+                            <div class="action-trigger-text text-alerts fw-semibold">
+                                Abrir Panel <span class="arrow-move">➔</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 2: Proyecto Tasa BCV -->
+                <div class="col-md-4">
+                    <div class="card h-100 portal-card option-card-tasa border-0" onclick="selectPortalOption('view-tasa-bcv', 'Proyecto Tasa BCV')">
+                        <div class="card-body p-4 text-center d-flex flex-column align-items-center justify-content-between">
+                            <span class="badge badge-pill badge-tasa mb-3">INTEGRACIÓN DE TASAS</span>
+                            <div class="portal-icon-container mb-4 icon-tasa">
+                                💵
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-2 text-dark" style="font-size: 1.3rem; letter-spacing: -0.01em;">Proyecto Tasa BCV</h3>
+                                <p class="text-muted mb-4" style="font-size: 0.88rem; line-height: 1.5;">
+                                    Sincronización automatizada del scraping oficial BCV con el ERP Profit y Postgres.
+                                </p>
+                            </div>
+                            <div class="action-trigger-text text-tasa fw-semibold">
+                                Abrir Panel <span class="arrow-move">➔</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 3: Consistencias -->
+                <div class="col-md-4">
+                    <div class="card h-100 portal-card option-card-consistencias border-0" onclick="selectPortalOption('view-consistencias', 'Consistencias (NCR)')">
+                        <div class="card-body p-4 text-center d-flex flex-column align-items-center justify-content-between">
+                            <span class="badge badge-pill badge-consistencias mb-3">AUDITORÍA DB</span>
+                            <div class="portal-icon-container mb-4 icon-consistencias">
+                                🔍
+                            </div>
+                            <div>
+                                <h3 class="fw-bold mb-2 text-dark" style="font-size: 1.3rem; letter-spacing: -0.01em;">Consistencias (NCR)</h3>
+                                <p class="text-muted mb-4" style="font-size: 0.88rem; line-height: 1.5;">
+                                    Auditoría automática de discrepancias en devoluciones, facturación y triggers.
+                                </p>
+                            </div>
+                            <div class="action-trigger-text text-consistencias fw-semibold">
+                                Abrir Panel <span class="arrow-move">➔</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 1: ALERTAS DE STOCK ==================== -->
+        <div id="view-alerts" class="main-view-section d-none">
+            
+            <!-- Top Alert banner for decoupled frontend -->
+            <div class="row g-3 mb-4">
+                <div class="col-12">
+                    <a href="http://192.168.1.193:8000/alerts" target="_blank" class="text-decoration-none">
+                        <div class="card shadow-sm stat-card border-0" style="border-top: 4px solid #00A09D !important; border-radius: 12px; background: #fff;">
+                            <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div style="font-size: 2.2rem; background: #e0f2fe; width: 60px; height: 60px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">🛡️</div>
+                                    <div>
+                                        <h3 class="mb-1 fw-bold text-dark" style="font-size: 1.15rem;">Acceder al Frontend Desacoplado de Alertas</h3>
+                                        <p class="text-muted mb-0" style="font-size: 0.88rem;">Abrir panel de control independiente en <span class="text-primary font-monospace">http://192.168.1.193:8000/alerts</span></p>
+                                    </div>
+                                </div>
+                                <div class="text-muted fw-bold" style="font-size: 1.4rem;">➔</div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Odoo Stat Cards (Smart Buttons concept) -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="kpi-metric-card d-flex align-items-center p-3 bg-white border rounded shadow-sm">
+                        <div class="stat-icon-kpi me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 48px; height: 48px; background: linear-gradient(135deg, #ef4444, #b91c1c); font-size: 1.4rem;">
+                            🚨
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold" id="kpi-critical" style="color: #1e293b; font-size: 1.6rem;">0</h3>
+                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Críticos (>5%)</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="kpi-metric-card d-flex align-items-center p-3 bg-white border rounded shadow-sm">
+                        <div class="stat-icon-kpi me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 48px; height: 48px; background: linear-gradient(135deg, #f59e0b, #d97706); font-size: 1.4rem;">
+                            📉
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold" id="kpi-total" style="color: #1e293b; font-size: 1.6rem;">0</h3>
+                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Inconsistencias</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="kpi-metric-card d-flex align-items-center p-3 bg-white border rounded shadow-sm">
+                        <div class="stat-icon-kpi me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 48px; height: 48px; background: linear-gradient(135deg, #0ea5e9, #0369a1); font-size: 1.4rem;">
+                            🛒
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold" id="kpi-purchasing" style="color: #1e293b; font-size: 1.6rem;">0</h3>
+                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Compras Sugeridas</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="kpi-metric-card d-flex align-items-center p-3 bg-white border rounded shadow-sm">
+                        <div class="stat-icon-kpi me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
+                            style="width: 48px; height: 48px; background: linear-gradient(135deg, #10b981, #047857); font-size: 1.4rem;">
+                            🤖
+                        </div>
+                        <div>
+                            <h3 class="mb-0 fw-bold" style="color: #1e293b; font-size: 1.6rem;">ON</h3>
+                            <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.72rem; letter-spacing: 0.05em;">Estado IA</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Odoo Notebook Tabs -->
+            <div class="o_notebook">
+                <ul class="nav nav-tabs o_nav_tabs" role="tablist" style="border-bottom: 2px solid #e2e8f0;">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold text-uppercase tab-trigger"
+                            style="border-radius: 0; color: #475569; border: none; border-bottom: 3px solid transparent; font-size: 0.8rem; letter-spacing: 0.05em;"
+                            data-bs-toggle="tab" data-bs-target="#audit-tab"
+                            onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
+                            Auditoría de Stock
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-uppercase tab-trigger"
+                            style="border-radius: 0; color: #475569; border: none; border-bottom: 3px solid transparent; font-size: 0.8rem; letter-spacing: 0.05em;"
+                            data-bs-toggle="tab" data-bs-target="#purchasing-tab"
+                            onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
+                            Compras Proyectadas
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold text-uppercase tab-trigger"
+                            style="border-radius: 0; color: #475569; border: none; border-bottom: 3px solid transparent; font-size: 0.8rem; letter-spacing: 0.05em;"
+                            data-bs-toggle="tab" data-bs-target="#summary-tab"
+                            onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
+                            Análisis Ejecutivo
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="bg-white border border-top-0 shadow-sm p-4" style="min-height: 400px; border-radius: 0 0 12px 12px;">
+                <div class="tab-content">
+                    <!-- Audit Tab -->
+                    <div class="tab-pane fade show active" id="audit-tab">
+                        <div class="table-responsive">
+                            <table id="table-audit" class="table table-hover align-middle custom-table">
+                                <thead>
+                                    <tr>
+                                        <th class="py-3">Código</th>
+                                        <th class="py-3">Descripción</th>
+                                        <th class="py-3 text-end">Stock Admin</th>
+                                        <th class="py-3 text-end">Lotes (Real)</th>
+                                        <th class="py-3 text-end">Descuadre</th>
+                                        <th class="py-3 text-center">Severidad</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- JS inserts here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Purchasing Tab -->
+                    <div class="tab-pane fade" id="purchasing-tab">
+                        <div class="alert alert-info border-0 shadow-sm d-flex align-items-center mb-4" role="alert"
+                            style="background-color: #f0f9ff; color: #0369a1; border-radius: 8px;">
+                            <span class="me-2" style="font-size: 1.1rem;">ℹ️</span>
+                            <div style="font-weight: 500; font-size: 0.9rem;">Se calcula una <strong>Reserva de Seguridad del 30%</strong> sobre el consumo proyectado mensual de materia prima.</div>
+                        </div>
+                        <div class="table-responsive">
+                            <table id="table-purchasing" class="table table-hover align-middle custom-table">
+                                <thead>
+                                    <tr>
+                                        <th class="py-3">Materia Prima</th>
+                                        <th class="py-3 text-end">Consumo Proyectado</th>
+                                        <th class="py-3 text-end">Meta (+30%)</th>
+                                        <th class="py-3 text-center">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- JS inserts here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade" id="summary-tab">
+                        <div id="ai-summary-content" class="markdown-body p-2"
+                            style="line-height: 1.6; color: #334155; font-size: 0.95rem;">
+                            <div class="text-center text-muted my-5">
+                                <span class="spinner-border spinner-border-sm me-2"></span> Cargando inteligencia...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 2: PROYECTO TASA BCV ==================== -->
+        <div id="view-tasa-bcv" class="main-view-section d-none">
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                        <div class="card-header bg-white border-bottom py-3 px-4">
+                            <h3 class="card-title mb-0 fw-bold" style="color: #1e293b; font-size: 1.25rem;">
+                                Sincronización Automática de Tasa BCV
+                            </h3>
+                        </div>
+                        <div class="card-body p-4">
+                            <p class="text-muted" style="font-size: 0.95rem; line-height: 1.6;">
+                                Este módulo gestiona el raspado (scraping) automático de la tasa oficial publicada por el Banco Central de Venezuela y la actualiza en las bases de datos de Postgres y Profit de forma desacoplada.
+                            </p>
+                            
+                            <!-- Status Container -->
+                            <div id="bcv-status-container" class="my-4">
+                                <div class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Cargando información del servicio...
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-3 mt-4 pt-3 border-top">
+                                <button id="btn-sync-tasa" class="btn btn-primary px-4 py-2" onclick="syncTasaNow()"
+                                    style="background-color: #714B67; border-color: #714B67; font-weight: 500; border-radius: 8px;">
+                                    🔄 Sincronizar Tasa Ahora (Forzar)
+                                </button>
+                                <a href="/administracion/tasaBCV" class="btn btn-outline-secondary px-4 py-2" style="font-weight: 500; border-radius: 8px;">
+                                    ⚙️ Ir a Configuración Completa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 p-4" style="border-radius: 12px; background: #ffffff;">
+                        <h4 class="fw-bold mb-3" style="color: #1e293b; font-size: 1.1rem;">Funcionamiento del Servicio</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.6; color: #475569;">
+                            El microservicio de tasa se ejecuta de forma desacoplada. Extrae el valor oficial del BCV y actualiza localmente la tasa de cambio en la base de datos PostgreSQL, la cual luego viaja al CRM Profit.
+                        </p>
+                        <hr class="my-3">
+                        <h4 class="fw-bold mb-2" style="color: #1e293b; font-size: 1rem;">Enlaces de Interés</h4>
+                        <ul class="ps-3 mb-0" style="font-size: 0.9rem; color: #475569; line-height: 1.8;">
+                            <li><a href="/administracion/tasaBCV" class="text-decoration-none fw-medium" style="color: #714B67;">Historial de logs de ejecución</a></li>
+                            <li>Definición de moneda (saMoneda)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== VIEW 3: VALIDACION DE CONSISTENCIAS ==================== -->
+        <div id="view-consistencias" class="main-view-section d-none">
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+                        <div class="card-header bg-white border-bottom py-3 px-4">
+                            <h3 class="card-title mb-0 fw-bold" style="color: #1e293b; font-size: 1.25rem;">
+                                Validación de Consistencia de Datos (NCR / Devoluciones)
+                            </h3>
+                        </div>
+                        <div class="card-body p-4">
+                            <p class="text-muted" style="font-size: 0.95rem; line-height: 1.6;">
+                                Realiza un escaneo y validación de consistencias a través de las bases de datos de Logística y Profit. Permite auditar si existen discrepancias debido a los triggers en facturas de venta, notas de crédito y devoluciones de mercancías.
+                            </p>
+
+                            <!-- Status Container -->
+                            <div id="consistencias-status-container" class="my-4">
+                                <div class="text-center py-4 text-muted">
+                                    <span class="spinner-border spinner-border-sm me-2"></span> Cargando configuración de consistencias...
+                                </div>
+                            </div>
+
+                            <div class="d-flex gap-3 mt-4 pt-3 border-top">
+                                <button id="btn-run-consistencias" class="btn btn-warning text-white px-4 py-2" onclick="runConsistenciasNow()"
+                                    style="background-color: #f0ad4e; border-color: #f0ad4e; font-weight: 500; border-radius: 8px;">
+                                    🚀 Ejecutar Auditoría Ahora
+                                </button>
+                                <a href="/mismatch-admin" class="btn btn-outline-secondary px-4 py-2" style="font-weight: 500; border-radius: 8px;">
+                                    📧 Configurar Notificaciones por Correo
+                                </a>
+                            </div>
+
+                            <!-- Interactive Output Area (Terminal Style) -->
+                            <div id="consistencias-output-box" class="mt-4 d-none">
+                                <div class="terminal-window shadow-sm">
+                                    <div class="terminal-header d-flex align-items-center justify-content-between px-3 py-2 bg-dark border-bottom border-secondary" style="border-radius: 8px 8px 0 0;">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="dot bg-danger"></span>
+                                            <span class="dot bg-warning"></span>
+                                            <span class="dot bg-success"></span>
+                                            <span class="text-muted small ms-2" style="font-family: monospace; font-size: 0.75rem;">bash - audit_terminal.sh</span>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-secondary py-0 px-2 text-white" style="font-size: 0.72rem; border-color: #4b5563;" onclick="copyTerminalOutput()">Copiar</button>
+                                    </div>
+                                    <div id="terminal-body" class="terminal-body bg-dark text-light p-3" style="font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; max-height: 300px; overflow-y: auto; border-radius: 0 0 8px 8px; text-align: left;">
+                                        <!-- Code insert here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card shadow-sm border-0 p-4" style="border-radius: 12px; background: #ffffff;">
+                        <h4 class="fw-bold mb-3" style="color: #1e293b; font-size: 1.1rem;">Integridad de Transacciones</h4>
+                        <p style="font-size: 0.9rem; line-height: 1.6; color: #475569;">
+                            Las auditorías buscan discrepancias de cálculo en renglones, totales y estados de documentos debido a anulaciones o devoluciones asincrónicas que puedan afectar la cuadratura contable.
+                        </p>
+                        <hr class="my-3">
+                        <h4 class="fw-bold mb-2" style="color: #1e293b; font-size: 1rem;">Políticas del Scheduler</h4>
+                        <ul class="ps-3 mb-0" style="font-size: 0.9rem; color: #475569; line-height: 1.8;">
+                            <li>Corrección automática de discrepancias</li>
+                            <li>Rastreo de integridad referencial</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Custom High-End Styling Overrides -->
+<style>
+    /* Font family overrides */
+    * {
+        font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    .main-container-layout {
+        background-color: #f8fafc;
+    }
+
+    /* Back Button Redesign */
+    .back-btn {
+        background: #ffffff;
+        border: 1px solid #e2e8f0 !important;
+        color: #475569;
+        font-weight: 500;
+        padding: 8px 18px;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .back-btn:hover {
+        background: #f8fafc;
+        color: #0f172a;
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+    }
+    .back-arrow {
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+    .back-btn:hover .back-arrow {
+        transform: translateX(-3px);
+    }
+
+    /* Portal Card Redesign (Launcher Cards) */
+    .portal-card {
+        border: 1px solid #e2e8f0 !important;
+        box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.03) !important;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+        background: #ffffff;
+    }
+    
+    .option-card-alerts:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 30px -10px rgba(2, 132, 199, 0.12) !important;
+        background: radial-gradient(circle at top right, #f8fafc, #ffffff) !important;
+        border-color: #38bdf8 !important;
+    }
+    .option-card-tasa:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 30px -10px rgba(124, 58, 237, 0.12) !important;
+        background: radial-gradient(circle at top right, #faf5ff, #ffffff) !important;
+        border-color: #c084fc !important;
+    }
+    .option-card-consistencias:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 20px 30px -10px rgba(217, 119, 6, 0.12) !important;
+        background: radial-gradient(circle at top right, #fffbeb, #ffffff) !important;
+        border-color: #fbbf24 !important;
+    }
+
+    /* Icon Containers */
+    .portal-icon-container {
+        font-size: 3.2rem;
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        box-shadow: inset 0 2px 4px rgba(255,255,255,0.9);
+    }
+    .icon-alerts { background-color: #e0f2fe; color: #0284c7; }
+    .icon-tasa { background-color: #f3e8ff; color: #7c3aed; }
+    .icon-consistencias { background-color: #fef3c7; color: #d97706; }
+
+    .portal-card:hover .portal-icon-container {
+        transform: scale(1.08) rotate(3deg);
+    }
+
+    /* Badge Pills */
+    .badge-pill {
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        padding: 5px 12px;
+        border-radius: 50px;
+    }
+    .badge-alerts { background: #f0f9ff; color: #0369a1; }
+    .badge-tasa { background: #fdf4ff; color: #86198f; }
+    .badge-consistencias { background: #fffbeb; color: #92400e; }
+
+    /* Action Trigger Link Styles */
+    .action-trigger-text {
+        font-size: 0.88rem;
+        transition: all 0.2s ease;
+    }
+    .text-alerts { color: #0284c7; }
+    .text-tasa { color: #7c3aed; }
+    .text-consistencias { color: #d97706; }
+    
+    .arrow-move {
+        display: inline-block;
+        transition: transform 0.2s ease;
+    }
+    .portal-card:hover .arrow-move {
+        transform: translateX(4px);
+    }
+
+    /* KPI Cards Overrides */
+    .kpi-metric-card {
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 12px !important;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .kpi-metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05) !important;
+        border-color: #cbd5e1 !important;
+    }
+
+    /* Tab triggers styling */
+    .tab-trigger:hover {
+        color: #714B67 !important;
+    }
+
+    /* Custom Premium Table Styling */
+    .custom-table {
+        margin-bottom: 0;
+        font-size: 0.9rem;
+    }
+    .custom-table thead {
+        background-color: #f8fafc;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    .custom-table thead th {
+        font-weight: 600;
+        color: #475569;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border: none;
+    }
+    .custom-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: background 0.15s ease;
+    }
+    .custom-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+    .custom-table tbody td {
+        border: none;
+        color: #334155;
+    }
+
+    /* Terminal Window Styles */
+    .terminal-window {
+        border: 1px solid #1e293b;
+        border-radius: 8px;
+        box-shadow: 0 12px 20px -5px rgba(0,0,0,0.3);
+    }
+    .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    .bg-danger { background-color: #ef4444 !important; }
+    .bg-warning { background-color: #f59e0b !important; }
+    .bg-success { background-color: #10b981 !important; }
+    
+    .terminal-body {
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-all;
+    }
+
+    /* Section Animations */
+    .main-view-section {
+        animation: fadeIn 0.28s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        showPortalHome();
+    });
+
+    function selectPortalOption(viewId, optionName) {
+        // Fade out home portal and show option views
+        document.getElementById('portal-home').classList.add('d-none');
+        
+        document.querySelectorAll('.main-view-section').forEach(view => {
+            if (view.id !== 'portal-home') {
+                view.classList.add('d-none');
+            }
+        });
+        
+        document.getElementById(viewId).classList.remove('d-none');
+        document.getElementById('back-nav-container').classList.remove('d-none');
+        
+        // Update headers
+        document.getElementById('breadcrumb-current').innerText = optionName;
+        document.getElementById('main-page-title').innerText = optionName;
+
+        // Fetch fresh data for that view
+        if (viewId === 'view-alerts') {
+            fetchData();
+        } else if (viewId === 'view-tasa-bcv') {
+            loadTasaBCVStatus();
+        } else if (viewId === 'view-consistencias') {
+            loadConsistenciasConfig();
+        }
+    }
+
+    function showPortalHome() {
+        document.querySelectorAll('.main-view-section').forEach(view => {
+            view.classList.add('d-none');
+        });
+        
+        document.getElementById('back-nav-container').classList.add('d-none');
+        document.getElementById('portal-home').classList.remove('d-none');
+        
+        // Reset header values
+        document.getElementById('breadcrumb-current').innerText = "Tablero de Control e Inteligencia";
+        document.getElementById('main-page-title').innerText = "Inteligencia y Auditoría";
+    }
+
+    function resetTabs(clickedTab) {
+        document.querySelectorAll('.nav-link').forEach(t => {
+            if (t !== clickedTab) {
+                t.style.borderBottomColor = 'transparent';
+                t.style.color = '#475569';
+            }
+        });
+    }
+
+    async function fetchData() {
+        const tsEl = document.getElementById('timestamp');
+        tsEl.innerHTML = 'Actualizando...';
+
+        try {
+            const res = await fetch('/alerts/api/data');
+            const data = await res.json();
+
+            if (data.status === 'no_data') {
+                tsEl.innerHTML = 'Sin datos recientes.';
+                return;
+            }
+
+            // Update Timestamp
+            tsEl.innerHTML = `Actualizado: <strong>${data.timestamp}</strong>`;
+
+            // Render Tables
+            renderAudit(data.audit);
+            renderPurchasing(data.purchasing);
+
+            // Render AI Summary
+            if (data.summary) {
+                document.getElementById('ai-summary-content').innerHTML = marked.parse(data.summary);
+            }
+
+            // KPIs
+            calculateKPIs(data.audit, data.purchasing);
+
+        } catch (e) {
+            console.error(e);
+            tsEl.innerHTML = 'Error de conexión.';
+        }
+    }
+
+    function renderAudit(items) {
+        const tbody = document.querySelector('#table-audit tbody');
+        tbody.innerHTML = '';
+
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            const descuadre = Math.abs(item.descuadre);
+            const stockMin = item.stock_min;
+            let percentage = 0;
+            if (stockMin > 0) percentage = (descuadre / stockMin);
+
+            let status = '<span class="badge" style="background-color: #e2e8f0; color: #475569; font-weight: 500;">Normal</span>';
+
+            // Critical Logic
+            if (stockMin == 0 || percentage > 0.05) {
+                status = '<span class="badge" style="background-color: #fee2e2; color: #ef4444; font-weight: 600;">CRÍTICO</span>';
+                tr.style.fontWeight = "500";
+            } else if (descuadre > 0) {
+                status = '<span class="badge" style="background-color: #fef3c7; color: #d97706; font-weight: 600;">Atención</span>';
+            }
+
+            tr.innerHTML = `
+                <td><code style="color: #0284c7; font-weight: 600; font-size: 0.85rem;">${item.co_art}</code></td>
+                <td style="font-weight: 500;">${item.art_des}</td>
+                <td class="text-end fw-semibold text-muted">${Number(item.stock_min).toFixed(2)}</td>
+                <td class="text-end fw-bold">${Number(item.total_lotes).toFixed(2)}</td>
+                <td class="text-end text-danger fw-semibold">-${Number(descuadre).toFixed(2)}</td>
+                <td class="text-center">${status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function renderPurchasing(items) {
+        const tbody = document.querySelector('#table-purchasing tbody');
+        tbody.innerHTML = '';
+
+        items.forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="font-weight: 500;">${item.materia_prima}</td>
+                <td class="text-end fw-semibold text-muted">${Number(item.consumo_proyectado).toFixed(2)}</td>
+                <td class="text-end fw-bold" style="color: #714B67;">${Number(item.meta_con_reserva).toFixed(2)}</td>
+                <td class="text-center"><span class="badge bg-light text-primary border" style="font-weight: 600;">Verificar</span></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function calculateKPIs(audit, purchasing) {
+        document.getElementById('kpi-total').innerText = audit.length;
+        document.getElementById('kpi-purchasing').innerText = purchasing.length;
+
+        let critical = 0;
+        audit.forEach(item => {
+            const d = Math.abs(item.descuadre);
+            const s = item.stock_min;
+            if (s == 0 || (s > 0 && (d / s) > 0.05)) {
+                critical++;
+            }
+        });
+        document.getElementById('kpi-critical').innerText = critical;
+    }
+
+    // Dynamic rates loaded from API (Scraper vs Profit)
+    async function loadTasaBCVStatus() {
+        const el = document.getElementById('bcv-status-container');
+        if (!el) return;
+        el.innerHTML = `<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando estado de tasas...</div>`;
+        try {
+            const res = await fetch('/administracion/tasaBCV/api/status');
+            const data = await res.json();
+            if (data.status === 'ok') {
+                const bcv_usd = data.tasas_bcv.USD ? Number(data.tasas_bcv.USD).toFixed(4) : '—';
+                const bcv_eur = data.tasas_bcv.EUR ? Number(data.tasas_bcv.EUR).toFixed(4) : '—';
+                const profit_usd = data.tasas_profit.hoy.USD ? Number(data.tasas_profit.hoy.USD).toFixed(4) : '—';
+                const profit_eur = data.tasas_profit.hoy.EUR ? Number(data.tasas_profit.hoy.EUR).toFixed(4) : '—';
+                
+                el.innerHTML = `
+                    <div class="row g-4">
+                        <!-- Card 1: Scraped Rate -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm p-4 bg-white" style="border-left: 5px solid #10b981 !important; border-radius: 10px;">
+                                <h4 class="fw-semibold text-muted mb-3" style="font-size: 0.95rem;">🏛️ Tasa Oficial BCV (Scrape)</h4>
+                                <div class="d-flex align-items-baseline justify-content-between mb-2">
+                                    <span class="text-success fw-bold" style="font-size: 2.1rem; letter-spacing: -0.02em;">${bcv_usd}</span>
+                                    <span class="text-muted fw-semibold small">Bs. / USD</span>
+                                </div>
+                                <div class="d-flex align-items-baseline justify-content-between">
+                                    <span class="text-primary fw-bold" style="font-size: 1.8rem; letter-spacing: -0.02em;">${bcv_eur}</span>
+                                    <span class="text-muted fw-semibold small">Bs. / EUR</span>
+                                </div>
+                                <div class="text-muted small mt-3 pt-2 border-top">Fecha Valor Oficial: <strong>${data.fecha_valor_bcv || '—'}</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Card 2: Profit Active Rate -->
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm p-4 bg-white" style="border-left: 5px solid #7c3aed !important; border-radius: 10px;">
+                                <h4 class="fw-semibold text-muted mb-3" style="font-size: 0.95rem;">🐘 Tasa Activa en Profit ERP</h4>
+                                <div class="d-flex align-items-baseline justify-content-between mb-2">
+                                    <span class="text-success fw-bold" style="font-size: 2.1rem; letter-spacing: -0.02em;">${profit_usd}</span>
+                                    <span class="text-muted fw-semibold small">Bs. / USD</span>
+                                </div>
+                                <div class="d-flex align-items-baseline justify-content-between">
+                                    <span class="text-primary fw-bold" style="font-size: 1.8rem; letter-spacing: -0.02em;">${profit_eur}</span>
+                                    <span class="text-muted fw-semibold small">Bs. / EUR</span>
+                                </div>
+                                <div class="text-muted small mt-3 pt-2 border-top">Estado del Ciclo: <span class="badge bg-light text-dark border font-monospace px-2 py-1">${data.estado_ciclo || '—'}</span></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                el.innerHTML = `<div class="alert alert-warning border-0">No se pudo cargar el estado de tasas.</div>`;
+            }
+        } catch(e) {
+            console.error(e);
+            el.innerHTML = `<div class="alert alert-danger border-0">Error de conexión al cargar tasas.</div>`;
+        }
+    }
+
+    // Force Sync Rate
+    async function syncTasaNow() {
+        const btn = document.getElementById('btn-sync-tasa');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Sincronizando...`;
+        try {
+            const res = await fetch('/administracion/tasaBCV/api/sync?forzar=true', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success' || data.status === 'ok') {
+                alert('Tasa sincronizada con éxito: ' + (data.message || 'Proceso completado'));
+                loadTasaBCVStatus();
+            } else {
+                alert('Error en sincronización: ' + (data.message || 'Detalle no provisto'));
+            }
+        } catch(e) {
+            alert('Error de conexión al sincronizar: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+
+    // Dynamic config for consistencies
+    async function loadConsistenciasConfig() {
+        const el = document.getElementById('consistencias-status-container');
+        if (!el) return;
+        el.innerHTML = `<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Cargando configuración de consistencias...</div>`;
+        try {
+            const res = await fetch('/mismatch-admin/api/config');
+            const data = await res.json();
+            if (data.id) {
+                const status_badge = data.is_active 
+                    ? `<span class="badge bg-success px-2 py-1">Activo (Planificado)</span>`
+                    : `<span class="badge bg-secondary px-2 py-1">Inactivo</span>`;
+                el.innerHTML = `
+                    <div class="p-3 border rounded bg-white shadow-sm" style="border-radius: 10px;">
+                        <h4 class="fw-bold mb-3 text-dark" style="font-size: 1.05rem;">⚙️ Configuración del Analizador</h4>
+                        <div class="mb-2"><strong>Estado del Scheduler:</strong> ${status_badge}</div>
+                        <div class="mb-2"><strong>Frecuencia de Escaneo:</strong> Cron <code>${data.cron_schedule}</code></div>
+                        <div><strong>Emails de Destino:</strong> <span class="font-monospace text-secondary">${data.emails || 'Ninguno configurado'}</span></div>
+                    </div>
+                `;
+            } else {
+                el.innerHTML = `<div class="alert alert-warning border-0">No se pudo cargar la configuración de consistencias.</div>`;
+            }
+        } catch(e) {
+            console.error(e);
+            el.innerHTML = `<div class="alert alert-danger border-0">Error de conexión al cargar consistencias.</div>`;
+        }
+    }
+
+    // Run Consistency Task Now
+    async function runConsistenciasNow() {
+        const btn = document.getElementById('btn-run-consistencias');
+        const origText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Analizando...`;
+        
+        const outputEl = document.getElementById('consistencias-output-box');
+        const termBody = document.getElementById('terminal-body');
+        outputEl.classList.remove('d-none');
+        termBody.innerHTML = `<div class="text-center py-4 text-muted"><span class="spinner-border spinner-border-sm me-2"></span>Ejecutando auditoría y validación en la base de datos...</div>`;
+        
+        try {
+            const res = await fetch('/mismatch-admin/api/run-now', { method: 'POST' });
+            const data = await res.json();
+            if (data.status === 'success') {
+                termBody.innerHTML = `Auditoría ejecutada con éxito el ${new Date().toLocaleString()}\n-------------------------------------------------------------\n${data.output || 'Sin respuesta del terminal'}`;
+                loadConsistenciasConfig();
+            } else {
+                termBody.innerHTML = `Error: ${data.message || 'Fallo al ejecutar la auditoría'}`;
+            }
+        } catch(e) {
+            termBody.innerHTML = `Error de conexión: ${e.message}`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        }
+    }
+
+    function copyTerminalOutput() {
+        const body = document.getElementById('terminal-body');
+        if (!body) return;
+        navigator.clipboard.writeText(body.innerText).then(() => {
+            alert('Texto de auditoría copiado al portapapeles.');
+        }).catch(err => {
+            console.error('Error al copiar texto:', err);
+        });
+    }
+</script>
+{% endblock %}

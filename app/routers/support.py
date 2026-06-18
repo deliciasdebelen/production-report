@@ -31,6 +31,7 @@ def get_support_config(db: Session = Depends(get_db)):
     settings = db.query(models.SupportSettings).first()
     settings_data = {
         "notification_emails": settings.notification_emails if settings else "",
+        "cc_emails": settings.cc_emails if settings and hasattr(settings, 'cc_emails') else "",
         "smtp_server": settings.smtp_server if settings else "smtp.gmail.com",
         "smtp_port": settings.smtp_port if settings else 587,
         "smtp_user": settings.smtp_user if settings else "",
@@ -49,6 +50,7 @@ def get_support_config(db: Session = Depends(get_db)):
 @router.post("/settings")
 def update_support_settings(
     notification_emails: str = Form(""),
+    cc_emails: str = Form(""),
     smtp_server: str = Form("smtp.gmail.com"),
     smtp_port: int = Form(587),
     smtp_user: str = Form(""),
@@ -60,16 +62,21 @@ def update_support_settings(
         raise HTTPException(status_code=403, detail="Not authorized")
         
     # Sanitizar: sólo emails que contengan '@' y al menos un punto en el dominio
-    valid_emails = [
-        e.strip() for e in notification_emails.split(",")
-        if e.strip() and "@" in e.strip() and "." in e.strip().split("@")[-1]
-    ]
-    clean_notification_emails = ",".join(valid_emails)
+    def clean_emails(emails_str):
+        valid_emails = [
+            e.strip() for e in emails_str.split(",")
+            if e.strip() and "@" in e.strip() and "." in e.strip().split("@")[-1]
+        ]
+        return ",".join(valid_emails)
+
+    clean_notification_emails = clean_emails(notification_emails)
+    clean_cc_emails = clean_emails(cc_emails)
 
     settings = db.query(models.SupportSettings).first()
     if not settings:
         settings = models.SupportSettings(
             notification_emails=clean_notification_emails,
+            cc_emails=clean_cc_emails,
             smtp_server=smtp_server,
             smtp_port=smtp_port,
             smtp_user=smtp_user,
@@ -78,6 +85,7 @@ def update_support_settings(
         db.add(settings)
     else:
         settings.notification_emails = clean_notification_emails
+        settings.cc_emails = clean_cc_emails
         settings.smtp_server = smtp_server
         settings.smtp_port = smtp_port
         settings.smtp_user = smtp_user
@@ -253,6 +261,19 @@ def create_ticket(
         global_emails = [e.strip() for e in settings.notification_emails.split(",") if e.strip()]
         recipients.extend(global_emails)
 
+    # Lógica de CCEmails basada en el departamento
+    dept = db.query(models.SupportDepartment).get(db_ticket.department_id)
+    if dept and settings and hasattr(settings, 'cc_emails') and settings.cc_emails:
+        dept_name = dept.name.lower().strip()
+        cc_departments = ["administrativo", "administración", "administracion", "facturación", "facturacion", 
+                          "contabilidad", "calidad", "almacén", "almacen", "planificación", "planificacion", 
+                          "planificacion-produccion", "planificación y producción"]
+        
+        # Check if dept_name matches any in the list
+        if any(d in dept_name for d in cc_departments):
+            cc_emails_list = [e.strip() for e in settings.cc_emails.split(",") if e.strip()]
+            recipients.extend(cc_emails_list)
+
     recipients = list(set(recipients))
 
     # BackgroundTasks: la respuesta se devuelve inmediatamente y el email
@@ -377,6 +398,11 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
              if update.close_comment:
                  ticket.close_comment = update.close_comment
                  body_email += f"Comentario de Resolución:\n{update.close_comment}\n\n"
+             
+             # Añadir link de confirmación al correo
+             confirm_url = f"http://192.168.1.79:8000/support/ticket/{ticket.id}/confirm"
+             body_email += f"Por favor, confirme que su incidencia ha sido resuelta visitando el siguiente enlace:\n{confirm_url}\n\n"
+             
         elif st and st.name.lower() == "respuesta usuario":
              if update.close_comment:
                  ticket.close_comment = update.close_comment
@@ -432,6 +458,24 @@ def update_ticket(id: int, update: schemas.SupportTicketUpdate,
     if changed:
         db.commit()
         
+    return {"status": "ok"}
+
+@router.post("/ticket/{id}/confirm")
+def confirm_ticket_closure(id: int, db: Session = Depends(get_db)):
+    ticket = db.query(models.SupportTicket).filter(models.SupportTicket.id == id).first()
+    if not ticket:
+        raise HTTPException(404, "Ticket no encontrado")
+        
+    st_confirm = db.query(models.SupportStatus).filter(models.SupportStatus.name == "Confirmado").first()
+    if not st_confirm:
+        st_confirm = models.SupportStatus(name="Confirmado", color_hex="#10b981")
+        db.add(st_confirm)
+        db.commit()
+        db.refresh(st_confirm)
+        
+    ticket.status_id = st_confirm.id
+    db.commit()
+    
     return {"status": "ok"}
 
 @router.get("/report-data")

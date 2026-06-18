@@ -1,324 +1,63 @@
 {% extends "layout.html" %}
 
 {% block content %}
-<div class="h-100 d-flex flex-column">
+<h1 style="color: #1e293b; font-weight: 600; letter-spacing: -0.02em;">Inteligencia y Auditoría</h1>
 
-    <!-- Odoo Control Panel -->
-    <div class="control-panel">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="breadcrumb-container">
-                <ol class="breadcrumb mb-0">
-                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none"
-                            style="color: #714B67;">Inicio</a></li>
-                    <li class="breadcrumb-item active">Alertas y Auditoría</li>
-                </ol>
-            </div>
-
-            <div class="search-options d-flex gap-2">
-                <div id="timestamp" class="text-muted small align-self-center me-2">Cargando...</div>
-                <button class="btn btn-secondary btn-sm" onclick="fetchData()" title="Actualizar Datos">
-                    <span class="nav-icon">🔄</span>
-                </button>
-            </div>
-        </div>
-
-        <div class="d-flex justify-content-between align-items-end mt-3">
-            <h1 class="page-title mb-0" style="font-size: 1.8rem; font-weight: 500; color: #212529;">
-                Tablero de Control
-            </h1>
-            <!-- Action Buttons -->
-            <div>
-                <button class="btn btn-primary" onclick="alert('Funcionalidad en desarrollo')"
-                    style="background-color: #714B67; border-color: #714B67;">
-                    🛠️ Generar Ajustes SQL
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Scrollable Content -->
-    <div class="o_content" style="flex: 1; overflow-auto; padding: 16px 20px;">
-
-        <!-- Odoo Stat Cards (Smart Buttons concept) -->
-        <div class="row g-3 mb-4">
-            <div class="col-md-3">
-                <div class="odoo-stat-card d-flex align-items-center p-3 border rounded bg-white shadow-sm">
-                    <div class="stat-icon me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; background: #d9534f; font-size: 1.5rem;">
-                        🚨
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold" id="kpi-critical" style="color: #212529;">0</h3>
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Críticos
-                            (>5%)</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="odoo-stat-card d-flex align-items-center p-3 border rounded bg-white shadow-sm">
-                    <div class="stat-icon me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; background: #f0ad4e; font-size: 1.5rem;">
-                        📉
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold" id="kpi-total" style="color: #212529;">0</h3>
-                        <small class="text-muted text-uppercase fw-bold"
-                            style="font-size: 0.75rem;">Inconsistencias</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="odoo-stat-card d-flex align-items-center p-3 border rounded bg-white shadow-sm">
-                    <div class="stat-icon me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; background: #5bc0de; font-size: 1.5rem;">
-                        🛒
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold" id="kpi-purchasing" style="color: #212529;">0</h3>
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Compras
-                            Sugeridas</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="odoo-stat-card d-flex align-items-center p-3 border rounded bg-white shadow-sm">
-                    <div class="stat-icon me-3 text-white rounded-circle d-flex align-items-center justify-content-center"
-                        style="width: 48px; height: 48px; background: #5cb85c; font-size: 1.5rem;">
-                        🤖
-                    </div>
-                    <div>
-                        <h3 class="mb-0 fw-bold" style="color: #212529;">ON</h3>
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.75rem;">Estado IA</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Odoo Notebook Tabs -->
-        <div class="o_notebook">
-            <ul class="nav nav-tabs o_nav_tabs" role="tablist" style="border-bottom: 1px solid #dee2e6;">
-                <li class="nav-item">
-                    <button class="nav-link active fw-bold text-uppercase"
-                        style="border-radius: 0; color: #495057; border: none; border-bottom: 3px solid transparent;"
-                        data-bs-toggle="tab" data-bs-target="#audit-tab"
-                        onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
-                        Auditoría de Stock
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link fw-bold text-uppercase"
-                        style="border-radius: 0; color: #495057; border: none; border-bottom: 3px solid transparent;"
-                        data-bs-toggle="tab" data-bs-target="#purchasing-tab"
-                        onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
-                        Compras Proyectadas
-                    </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link fw-bold text-uppercase"
-                        style="border-radius: 0; color: #495057; border: none; border-bottom: 3px solid transparent;"
-                        data-bs-toggle="tab" data-bs-target="#summary-tab"
-                        onclick="this.style.borderBottomColor='#714B67'; this.style.color='#714B67'; resetTabs(this);">
-                        Análisis Ejecutivo
-                    </button>
-                </li>
-            </ul>
-        </div>
-
-        <div class="bg-white border border-top-0 shadow-sm p-3" style="min-height: 400px;">
-            <div class="tab-content">
-
-                <!-- Audit Tab -->
-                <div class="tab-pane fade show active" id="audit-tab">
-                    <div class="table-responsive">
-                        <table id="table-audit"
-                            class="table table-hover o_list_table table-striped table-sm align-middle"
-                            style="font-size: 0.9rem;">
-                            <thead
-                                style="background-color: #f8f9fa; color: #666; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">
-                                <tr>
-                                    <th class="py-2">Código</th>
-                                    <th class="py-2">Descripción</th>
-                                    <th class="py-2 text-end">Stock Admin</th>
-                                    <th class="py-2 text-end">Lotes (Real)</th>
-                                    <th class="py-2 text-end">Descuadre</th>
-                                    <th class="py-2 text-center">Severidad</th>
-                                </tr>
-                            </thead>
-                            <tbody style="color: #4c4c4c;">
-                                <!-- JS inserts here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Purchasing Tab -->
-                <div class="tab-pane fade" id="purchasing-tab">
-                    <div class="alert alert-info border-0 shadow-sm d-flex align-items-center" role="alert"
-                        style="background-color: #e3f2fd; color: #0c5460;">
-                        <span class="me-2">ℹ️</span>
-                        <div>Se calcula una <strong>Reserva de Seguridad del 30%</strong> sobre el consumo proyectado
-                            mensual.</div>
-                    </div>
-                    <div class="table-responsive">
-                        <table id="table-purchasing"
-                            class="table table-hover o_list_table table-striped table-sm align-middle"
-                            style="font-size: 0.9rem;">
-                            <thead
-                                style="background-color: #f8f9fa; color: #666; font-weight: 600; text-transform: uppercase; font-size: 0.8rem;">
-                                <tr>
-                                    <th class="py-2">Materia Prima</th>
-                                    <th class="py-2 text-end">Consumo Proyectado</th>
-                                    <th class="py-2 text-end">Meta (+30%)</th>
-                                    <th class="py-2 text-center">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody style="color: #4c4c4c;">
-                                <!-- JS inserts here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Summary Tab -->
-                <div class="tab-pane fade" id="summary-tab">
-                    <div id="ai-summary-content" class="markdown-body p-3"
-                        style="font-family: 'Inter', sans-serif; line-height: 1.6; color: #374151;">
-                        <div class="text-center text-muted my-5">
-                            <span class="spinner-border spinner-border-sm me-2"></span> Cargando inteligencia...
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-</div>
-
-<!-- Odoo Tab Logic Helper -->
 <style>
-    /* Styling overrides for "Active" tab maintained in JS or specific CSS */
-    .nav-link.active {
-        border-bottom-color: #714B67 !important;
-        color: #714B67 !important;
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
     }
-
-    .breadcrumb-item+.breadcrumb-item::before {
-        content: "/";
+    .stat-card {
+        border-top-width: 4px !important;
+        border-top-style: solid !important;
+        border-radius: 8px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08) !important;
     }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<div class="dashboard-grid">
+    <!-- Alertas de Stock -->
+    <a href="/alerts/stock" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #0ea5e9;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🛡️</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Alertas de Stock</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Control en vivo de descuadres de lotes, KPIs de criticidad e informes ejecutivos de IA.</p>
+        </div>
+    </a>
+
+    <!-- Proyecto Tasa BCV -->
+    <a href="/administracion/tasaBCV" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #7c3aed;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">💵</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Proyecto Tasa BCV</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Sincronización automatizada del scraping oficial BCV con el ERP Profit y Postgres.</p>
+        </div>
+    </a>
+
+    <!-- Validación de Consistencias -->
+    <a id="btn-consistency-monitor" href="#" style="text-decoration: none;">
+        <div class="card stat-card" style="border-top-color: #f59e0b;">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔍</div>
+            <h3 style="font-size: 1.1rem; color: var(--text-main); font-weight: 600; margin-bottom: 0.5rem;">Validación de Consistencias</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.4; margin-bottom: 0;">Auditoría automática de discrepancias en devoluciones, facturación y triggers.</p>
+        </div>
+    </a>
+</div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', fetchData);
-
-    function resetTabs(clickedTab) {
-        document.querySelectorAll('.nav-link').forEach(t => {
-            if (t !== clickedTab) {
-                t.style.borderBottomColor = 'transparent';
-                t.style.color = '#495057';
-            }
-        });
-    }
-
-    async function fetchData() {
-        const tsEl = document.getElementById('timestamp');
-        tsEl.innerHTML = 'Actualizando...';
-
-        try {
-            const res = await fetch('/alerts/api/data');
-            const data = await res.json();
-
-            if (data.status === 'no_data') {
-                tsEl.innerHTML = 'Sin datos recientes.';
-                return;
-            }
-
-            // Update Timestamp
-            tsEl.innerHTML = `Actualizado: <strong>${data.timestamp}</strong>`;
-
-            // Render Audit
-            renderAudit(data.audit);
-
-            // Render Purchasing
-            renderPurchasing(data.purchasing);
-
-            // Render Summary
-            if (data.summary) {
-                document.getElementById('ai-summary-content').innerHTML = marked.parse(data.summary);
-            }
-
-            // KPIs
-            calculateKPIs(data.audit, data.purchasing);
-
-        } catch (e) {
-            console.error(e);
-            tsEl.innerHTML = 'Error de conexión.';
+    document.addEventListener('DOMContentLoaded', () => {
+        const monitorBtn = document.getElementById('btn-consistency-monitor');
+        if (monitorBtn) {
+            const port = window.location.hostname === '192.168.1.193' ? '8005' : '8002';
+            monitorBtn.href = window.location.protocol + '//' + window.location.hostname + ':' + port;
         }
-    }
-
-    function renderAudit(items) {
-        const tbody = document.querySelector('#table-audit tbody');
-        tbody.innerHTML = '';
-
-        items.forEach(item => {
-            const tr = document.createElement('tr');
-            const descuadre = Math.abs(item.descuadre);
-            const stockMin = item.stock_min;
-            let percentage = 0;
-            if (stockMin > 0) percentage = (descuadre / stockMin);
-
-            let status = '<span class="badge" style="background-color: #e0e0e0; color: #333;">Normal</span>';
-            let rowStyle = '';
-
-            // Critical Logic
-            if (stockMin == 0 || percentage > 0.05) {
-                status = '<span class="badge" style="background-color: #d9534f; color: white;">CRÍTICO</span>';
-                tr.style.fontWeight = "500";
-            } else if (descuadre > 0) {
-                status = '<span class="badge" style="background-color: #f0ad4e; color: white;">Atención</span>';
-            }
-
-            tr.innerHTML = `
-                <td>${item.co_art}</td>
-                <td>${item.art_des}</td>
-                <td class="text-end">${Number(item.stock_min).toFixed(2)}</td>
-                <td class="text-end fw-bold">${Number(item.total_lotes).toFixed(2)}</td>
-                <td class="text-end text-danger">-${Number(descuadre).toFixed(2)}</td>
-                <td class="text-center">${status}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function renderPurchasing(items) {
-        const tbody = document.querySelector('#table-purchasing tbody');
-        tbody.innerHTML = '';
-
-        items.forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${item.materia_prima}</td>
-                <td class="text-end">${Number(item.consumo_proyectado).toFixed(2)}</td>
-                <td class="text-end fw-bold" style="color: #714B67;">${Number(item.meta_con_reserva).toFixed(2)}</td>
-                <td class="text-center"><span class="badge" style="background-color: #5bc0de; color: white;">Verificar</span></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
-
-    function calculateKPIs(audit, purchasing) {
-        document.getElementById('kpi-total').innerText = audit.length;
-        document.getElementById('kpi-purchasing').innerText = purchasing.length;
-
-        let critical = 0;
-        audit.forEach(item => {
-            const d = Math.abs(item.descuadre);
-            const s = item.stock_min;
-            if (s == 0 || (s > 0 && (d / s) > 0.05)) {
-                critical++;
-            }
-        });
-        document.getElementById('kpi-critical').innerText = critical;
-    }
+    });
 </script>
 {% endblock %}

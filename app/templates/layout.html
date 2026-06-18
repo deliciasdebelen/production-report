@@ -125,6 +125,26 @@
                         style="display:block; position: absolute; top: -2px; right: 2px; background: #875A7B; color: white; border-radius: 50%; padding: 1px 4px; font-size: 0.65rem; font-weight: bold;">2</span>
                 </div>
 
+                <!-- ⚙️ Configuración del Sistema -->
+                {% if user %}
+                <div style="position:relative; padding: 0 6px;">
+                    <button id="btn-sys-config" onclick="abrirSysConfig()"
+                        title="Configuración del Sistema — Instancia, BD y Credenciales"
+                        style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);
+                               border-radius:7px;padding:5px 10px;cursor:pointer;color:white;
+                               display:flex;align-items:center;gap:5px;font-size:0.8rem;font-weight:600;
+                               transition:background 0.2s;"
+                        onmouseover="this.style.background='rgba(255,255,255,0.22)'"
+                        onmouseout="this.style.background='rgba(255,255,255,0.12)'">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                        </svg>
+                        Configurar
+                    </button>
+                </div>
+                {% endif %}
+
                 <!-- Divider -->
                 <div style="width: 1px; height: 18px; background: rgba(255,255,255,0.2); margin: 0 10px;"></div>
 
@@ -143,6 +163,55 @@
                     </svg>
                 </a>
                 {% endif %}
+            </div>
+
+            <!-- ══ MODAL: Configuración del Sistema ══ -->
+            <div id="sysConfigModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);
+                 z-index:9999;align-items:center;justify-content:center;">
+              <div style="background:#fff;border-radius:14px;width:min(700px,96vw);max-height:88vh;
+                          overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.35);">
+                <!-- Header -->
+                <div style="background:linear-gradient(135deg,#714B67,#a855a0);padding:18px 22px;
+                             display:flex;align-items:center;justify-content:space-between;">
+                  <div>
+                    <div style="color:white;font-weight:800;font-size:1.05rem;">⚙️ Configuración del Sistema</div>
+                    <div style="color:rgba(255,255,255,0.75);font-size:0.78rem;margin-top:2px;">
+                      Instancia · Base de Datos · Profit Plus · Fuerza Móvil
+                    </div>
+                  </div>
+                  <button onclick="cerrarSysConfig()"
+                          style="background:rgba(255,255,255,0.15);border:none;color:white;font-size:1.2rem;
+                                 cursor:pointer;border-radius:6px;width:30px;height:30px;line-height:1;">✕</button>
+                </div>
+                <!-- Tabs -->
+                <div style="display:flex;border-bottom:2px solid #e2e8f0;background:#f8fafc;overflow-x:auto;">
+                  <button class="syscfg-tab active" onclick="switchCfgTab('app')"    id="tab-app">🖥️ Instancia</button>
+                  <button class="syscfg-tab"         onclick="switchCfgTab('db')"     id="tab-db">🗄️ Base de Datos</button>
+                  <button class="syscfg-tab"         onclick="switchCfgTab('profit')" id="tab-profit">📊 Profit Plus</button>
+                  <button class="syscfg-tab"         onclick="switchCfgTab('fm')"     id="tab-fm">📲 Fuerza Móvil</button>
+                </div>
+                <!-- Body -->
+                <div style="overflow-y:auto;padding:22px;flex:1;" id="sysconfig-body">
+                  <div style="text-align:center;padding:30px;color:#94a3b8;">⏳ Cargando...</div>
+                </div>
+                <!-- Footer -->
+                <div style="padding:14px 22px;border-top:1px solid #e2e8f0;display:flex;
+                            align-items:center;justify-content:space-between;background:#f8fafc;flex-wrap:wrap;gap:8px;">
+                  <span id="syscfg-msg" style="font-size:0.8rem;color:#64748b;"></span>
+                  <div style="display:flex;gap:10px;">
+                    <a href="/maintenance" target="_blank"
+                       style="padding:7px 16px;border-radius:7px;font-size:0.82rem;font-weight:600;
+                              background:#e2e8f0;color:#475569;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+                      🔧 Mantenimiento Avanzado
+                    </a>
+                    <button onclick="guardarSysConfig()"
+                            style="padding:7px 18px;border-radius:7px;font-size:0.82rem;font-weight:600;
+                                   background:#714B67;color:white;border-none;cursor:pointer;">
+                      💾 Guardar Cambios
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Discuss Dropdown (Hidden) -->
@@ -245,6 +314,7 @@
                         </div>
                     </div>
 
+
                     <!-- Reportes Section -->
                     {% if user and user.role != 9 %}
                     <div class="nav-section">
@@ -266,6 +336,21 @@
                     </div>
                     {% endif %}
 
+                    <!-- Auditoria IA Section -->
+                    {% if user and user.role in [1, 4, 8] %}
+                    <div class="nav-section">
+                        <div class="nav-section-title" onclick="toggleNavSection(this)">
+                            <span>Auditoría IA</span>
+                            <span class="nav-chevron">▼</span>
+                        </div>
+                        <div class="nav-section-content">
+                            <a href="/audi" class="nav-link {% if request.url.path == '/audi' %}active{% endif %}" title="Reportes de Audi">
+                                <span class="nav-icon">🤖</span> <span class="nav-text">Audi (Logística)</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Ventas Section -->
                     {% if user and user.role != 9 %}
                     <div class="nav-section">
@@ -280,6 +365,9 @@
                             <a href="/sales/forecast" class="nav-link" title="Proyecciones">
                                 <span class="nav-icon">📈</span> <span class="nav-text">Proyecciones</span>
                             </a>
+                            <a href="/ventas/chatbot" class="nav-link {% if request.url.path == '/ventas/chatbot' %}active{% endif %}" title="Chatbot AI">
+                                <span class="nav-icon">🤖</span> <span class="nav-text">Chatbot AI</span>
+                            </a>
                         </div>
                     </div>
                     {% endif %}
@@ -292,8 +380,11 @@
                             <span class="nav-chevron">▼</span>
                         </div>
                         <div class="nav-section-content">
-                            <a href="/administracion" class="nav-link" title="Dashboard">
-                                <span class="nav-icon">🏢</span> <span class="nav-text">Dashboard Administrativo</span>
+                            <a href="/administracion/cxc" class="nav-link {% if request.url.path.startswith('/administracion/cxc') %}active{% endif %}" title="Conciliación CXC">
+                                <span class="nav-icon">🏦</span> <span class="nav-text">Conciliación CXC</span>
+                            </a>
+                            <a href="/administracion/tasaBCV" class="nav-link {% if request.url.path.startswith('/administracion/tasaBCV') or request.url.path.startswith('/administracion/tasabcv') %}active{% endif %}" title="Tasa BCV">
+                                <span class="nav-icon">💸</span> <span class="nav-text">Tasa BCV</span>
                             </a>
                         </div>
                     </div>
@@ -349,6 +440,9 @@
                             <span class="nav-chevron">▼</span>
                         </div>
                         <div class="nav-section-content">
+                            <a href="/sistema" class="nav-link {% if request.url.path == '/sistema' %}active{% endif %}" title="Dashboard">
+                                <span class="nav-icon">🏢</span> <span class="nav-text">Dashboard Administrativo</span>
+                            </a>
                             <a href="/maintenance" class="nav-link" title="Configuración">
                                 <span class="nav-icon">⚙️</span> <span class="nav-text">Configuración</span>
                             </a>
@@ -513,6 +607,244 @@
             header.classList.toggle('expanded', !isExpanded);
         }
     </script>
+
+    <!-- ══ System Config Modal CSS + JS ══ -->
+    <style>
+    .syscfg-tab {
+        padding: 10px 18px; border: none; background: none; cursor: pointer;
+        font-size: 0.82rem; font-weight: 600; color: #64748b;
+        border-bottom: 3px solid transparent; transition: all 0.18s;
+        white-space: nowrap;
+    }
+    .syscfg-tab:hover { color: #714B67; background: rgba(113,75,103,0.06); }
+    .syscfg-tab.active { color: #714B67; border-bottom-color: #714B67; background: white; }
+    .syscfg-field { margin-bottom: 16px; }
+    .syscfg-label { font-size: 0.78rem; font-weight: 700; color: #374151; margin-bottom: 5px; display: block; }
+    .syscfg-input {
+        width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 8px;
+        font-size: 0.85rem; color: #111827; font-family: monospace;
+        box-sizing: border-box; transition: border-color 0.2s;
+    }
+    .syscfg-input:focus { outline: none; border-color: #714B67; box-shadow: 0 0 0 3px rgba(113,75,103,0.12); }
+    .syscfg-hint { font-size: 0.72rem; color: #94a3b8; margin-top: 4px; }
+    .syscfg-group { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .syscfg-group-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #714B67; margin-bottom: 12px; }
+    .syscfg-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media(max-width:500px){ .syscfg-row { grid-template-columns: 1fr; } }
+    .syscfg-test-btn {
+        padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+        border: 1px solid #d1d5db; background: white; cursor: pointer; color: #374151;
+        margin-top: 8px; transition: all 0.15s;
+    }
+    .syscfg-test-btn:hover { background: #f1f5f9; border-color: #714B67; color: #714B67; }
+    </style>
+    <script>
+    // ══ System Config Modal ══════════════════════
+    let _syscfgTab = 'app';
+    let _syscfgData = {};   // loaded from server
+
+    function abrirSysConfig() {
+        const modal = document.getElementById('sysConfigModal');
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        cargarSysConfig();
+    }
+
+    function cerrarSysConfig() {
+        document.getElementById('sysConfigModal').style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // Close on backdrop click
+    document.getElementById('sysConfigModal').addEventListener('click', function(e) {
+        if (e.target === this) cerrarSysConfig();
+    });
+
+    function switchCfgTab(tab) {
+        _syscfgTab = tab;
+        document.querySelectorAll('.syscfg-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        renderSysConfigTab();
+    }
+
+    async function cargarSysConfig() {
+        try {
+            const r = await fetch('/api/sys/config');
+            const d = await r.json();
+            _syscfgData = d.config || {};
+        } catch(e) {
+            _syscfgData = {};
+        }
+        renderSysConfigTab();
+    }
+
+    function campo(id, label, value, hint='', type='text') {
+        return `<div class="syscfg-field">
+            <label class="syscfg-label" for="scf-${id}">${label}</label>
+            <input class="syscfg-input" id="scf-${id}" type="${type}" value="${escHtml(value||'')}" placeholder="${hint}">
+            ${hint ? `<div class="syscfg-hint">${hint}</div>` : ''}
+        </div>`;
+    }
+
+    function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+    function renderSysConfigTab() {
+        const d = _syscfgData;
+        const body = document.getElementById('sysconfig-body');
+        let html = '';
+        if (_syscfgTab === 'app') {
+            html = `
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">🖥️ Servidor de Aplicación</div>
+              <div class="syscfg-row">
+                ${campo('host',  'Host / IP de Escucha', d.HOST || '0.0.0.0',       'ej: 0.0.0.0 para todas las interfaces')}
+                ${campo('port',  'Puerto',                d.PORT || '8000',           'ej: 8000')}
+              </div>
+              ${campo('secret_key', 'Secret Key (JWT)', d.SECRET_KEY ? '••••••••••••••••' : '', 'Clave secreta para tokens de sesión — dejar en blanco para no cambiar', 'password')}
+              ${campo('redis_url',  'Redis URL',  d.REDIS_URL || '', 'redis://host:6379/0')}
+              <p class="syscfg-hint">⚠️ Cambiar Host/Puerto requiere reiniciar el contenedor Docker.</p>
+            </div>
+            <div class="syscfg-group" style="background:#fffbeb;border-color:#fcd34d;">
+              <div class="syscfg-group-title" style="color:#92400e;">📦 Información del Contenedor</div>
+              <div style="font-size:0.8rem;color:#78350f;">
+                <b>Servidor:</b> 192.168.1.193:8000 &nbsp;|&nbsp;
+                <b>Container:</b> production-report &nbsp;|&nbsp;
+                <b>Red Docker:</b> production-report-db
+              </div>
+            </div>`;
+        } else if (_syscfgTab === 'db') {
+            html = `
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">🗄️ PostgreSQL — Base de Datos Principal</div>
+              ${campo('db_url', 'DATABASE_URL (completo)', d.DATABASE_URL || '', 'postgresql://usuario:clave@host:5432/nombre_bd')}
+              <p class="syscfg-hint">Formato: <code>postgresql://app_user:password@host:5432/production_db</code><br>
+              Cambiar esta URL requiere reiniciar la aplicación.</p>
+              <button class="syscfg-test-btn" onclick="testConexion('db')">🔍 Probar Conexión</button>
+              <span id="test-db-result" style="font-size:0.78rem;margin-left:8px;"></span>
+            </div>
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">📡 Redis — Caché y Sesiones</div>
+              ${campo('redis_url2', 'REDIS_URL', d.REDIS_URL || '', 'redis://host:6379/0')}
+              <button class="syscfg-test-btn" onclick="testConexion('redis')">🔍 Probar Redis</button>
+              <span id="test-redis-result" style="font-size:0.78rem;margin-left:8px;"></span>
+            </div>`;
+        } else if (_syscfgTab === 'profit') {
+            html = `
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">📊 Profit Plus — SQL Server</div>
+              <div class="syscfg-row">
+                ${campo('profit_host', 'IP / Host SQL Server', d.PROFIT_HOST || d.SQLSRV_HOST_CXC || '192.168.60.15', 'ej: 192.168.60.15')}
+                ${campo('profit_db',   'Base de Datos',         d.PROFIT_DB   || 'carmal_a',          'ej: carmal_a')}
+              </div>
+              <div class="syscfg-row">
+                ${campo('profit_user', 'Usuario',               d.PROFIT_USER || 'profit',             'ej: profit')}
+                ${campo('profit_pwd',  'Contraseña',            d.PROFIT_USER ? '••••••••' : '',        'Dejar en blanco para no cambiar', 'password')}
+              </div>
+              <button class="syscfg-test-btn" onclick="testConexion('profit')">🔍 Probar Conexión Profit</button>
+              <span id="test-profit-result" style="font-size:0.78rem;margin-left:8px;"></span>
+            </div>
+            <div class="syscfg-group" style="background:#f0fdf4;border-color:#86efac;">
+              <div class="syscfg-group-title" style="color:#166534;">ℹ️ Nota Técnica</div>
+              <div style="font-size:0.8rem;color:#15803d;">
+                La conexión a Profit usa ODBC Driver 17 for SQL Server (pyodbc).<br>
+                Al cambiar la instancia/BD, asegúrese de que el nuevo servidor SQL tenga el mismo nombre de BD (<b>carmal_a</b>) y usuario (<b>profit</b>) o actualice ambos campos.
+              </div>
+            </div>`;
+        } else if (_syscfgTab === 'fm') {
+            html = `
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">📲 Fuerza Móvil — API</div>
+              ${campo('fm_url',   'URL Base FM', d.FM_BASE_URL || '', 'http://fmdbelen.ddns.net:9595/FMDBELEN/public')}
+              ${campo('fm_token', 'Bearer Token', d.FM_TOKEN ? '••••••••••••••••••••' : '', 'Token de autenticación FM', 'password')}
+              <button class="syscfg-test-btn" onclick="testConexion('fm')">🔍 Probar API FM</button>
+              <span id="test-fm-result" style="font-size:0.78rem;margin-left:8px;"></span>
+            </div>
+            <div class="syscfg-group">
+              <div class="syscfg-group-title">🔑 Token Actual</div>
+              <div style="font-size:0.75rem;color:#64748b;word-break:break-all;font-family:monospace;background:#f1f5f9;padding:8px;border-radius:6px;">
+                ${d.FM_TOKEN ? d.FM_TOKEN.substring(0,20) + '•'.repeat(Math.max(0, (d.FM_TOKEN.length||40)-20)) : '(no configurado)'}
+              </div>
+            </div>`;
+        }
+        body.innerHTML = html;
+    }
+
+    async function testConexion(tipo) {
+        const resEl = document.getElementById('test-' + tipo + '-result');
+        if (!resEl) return;
+        resEl.textContent = '⏳ Probando...';
+        resEl.style.color = '#94a3b8';
+        try {
+            let url = tipo === 'profit' ? '/administracion/cxc/api/profit/status'
+                    : tipo === 'fm'     ? '/administracion/cxc/api/fm/status'
+                    : tipo === 'db'     ? '/api/debug/db-connection'
+                    : '/api/debug/redis-connection';
+            const r = await fetch(url);
+            const d = await r.json();
+            const ok = d.connected === true || d.status === 'ok' || d.status === 'online' || r.ok;
+            resEl.textContent = ok ? '✅ Conectado' : '❌ Sin conexión';
+            resEl.style.color = ok ? '#16a34a' : '#dc2626';
+        } catch(e) {
+            resEl.textContent = '❌ Error: ' + e.message;
+            resEl.style.color = '#dc2626';
+        }
+    }
+
+    async function guardarSysConfig() {
+        const msgEl = document.getElementById('syscfg-msg');
+        const payload = {};
+
+        // Recopilar campos según la pestaña activa
+        const fields = {
+            'app':    ['host','port','secret_key','redis_url'],
+            'db':     ['db_url','redis_url2'],
+            'profit': ['profit_host','profit_db','profit_user','profit_pwd'],
+            'fm':     ['fm_url','fm_token'],
+        };
+        const map = {
+            'host':        'HOST',      'port':        'PORT',
+            'secret_key':  'SECRET_KEY','redis_url':   'REDIS_URL',
+            'db_url':      'DATABASE_URL','redis_url2': 'REDIS_URL',
+            'profit_host': 'SQLSRV_HOST_CXC','profit_db':   'PROFIT_DB',
+            'profit_user': 'PROFIT_USER',   'profit_pwd':  'PROFIT_PWD',
+            'fm_url':      'FM_BASE_URL',   'fm_token':    'FM_TOKEN',
+        };
+        (fields[_syscfgTab] || []).forEach(f => {
+            const el = document.getElementById('scf-' + f);
+            if (el && el.value && el.value !== '••••••••••••••••••••' && el.value !== '••••••••') {
+                payload[map[f]] = el.value;
+            }
+        });
+
+        if (!Object.keys(payload).length) {
+            msgEl.textContent = '⚠️ No hay cambios para guardar.';
+            msgEl.style.color = '#92400e';
+            return;
+        }
+
+        msgEl.textContent = '⏳ Guardando...';
+        msgEl.style.color = '#64748b';
+        try {
+            const r = await fetch('/api/sys/config', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const d = await r.json();
+            if (d.status === 'ok') {
+                msgEl.textContent = '✅ ' + (d.message || 'Guardado correctamente. Reiniciando servicios...');
+                msgEl.style.color = '#16a34a';
+            } else {
+                msgEl.textContent = '❌ ' + (d.message || 'Error al guardar');
+                msgEl.style.color = '#dc2626';
+            }
+        } catch(e) {
+            msgEl.textContent = '❌ Error: ' + e.message;
+            msgEl.style.color = '#dc2626';
+        }
+    }
+    </script>
+
     <div class="sidebar-overlay" onclick="toggleSidebar()"></div>
     {% block scripts %}{% endblock %}
 </body>

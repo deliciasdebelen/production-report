@@ -93,71 +93,59 @@ class AuditService:
 
     def _fetch_external_totals(self, doc_ref: str):
         """
-        Queries Profit Plus for document totals.
+        Queries Profit Plus for document totals via SP.
         Returns dict: {'boxes': float}
         """
-        # Determine table based on prefix or generic search
-        # Ref convention: prefix-number (FACT-2233)
-        
         try:
-            # Query simplified for saFacturaVenta
-            # We need to strip prefix for number sometimes, depends on Profit setup.
-            # Assuming Profit stores 'doc_num' matching the suffix number usually.
-            
-            # Using LIKE to find doc
-            # TODO: Refine this query with actual schema knowledge from previous tasks
-            # Schema: saFacturaVenta (co_tipo_doc, nro_doc) 
-            # We will try exact match on nro_doc if we strip prefix, or full string.
-            
             # Determine table based on prefix
-            is_nent = "NENT" in doc_ref.upper()
-            is_fact = "FACT" in doc_ref.upper()
+            is_nent = "NENT" in doc_ref.upper() or "NOTA" in doc_ref.upper()
             
-            clean_ref = doc_ref.split('-')[-1].strip() # 12345
+            # Ref convention: prefix-number (FACT-12345) or prefix:number (FACT:12345)
+            clean_ref = doc_ref.split('-')[-1].split(':')[-1].strip()
             
-            # Logic: Explicit Routing
+            boxes_sum = 0.0
+            
             if is_nent:
-                sql = text(f"""
-                    SELECT SUM(total_bultos) as boxes
-                    FROM saNotaEntregaVenta
-                    WHERE nro_doc LIKE '%{clean_ref}'
-                """)
-                result = self.ext_db.execute(sql).fetchone()
-                if result and result[0] is not None:
-                     return {"boxes": float(result[0])}
-            
-            elif is_fact:
-                sql = text(f"""
-                    SELECT SUM(total_bultos) as boxes
-                    FROM saFacturaVenta
-                    WHERE nro_doc LIKE '%{clean_ref}'
-                """)
-                result = self.ext_db.execute(sql).fetchone()
-                if result and result[0] is not None:
-                     return {"boxes": float(result[0])}
-            
+                sql = text("EXEC SP_CRM_NotasEntregaPendientesPorClienteV2 @doc_num = :d")
             else:
                 # Fallback / Generic Search (Try Invoice first as default)
-                sql_fact = text(f"""
-                    SELECT SUM(total_bultos) as boxes
-                    FROM saFacturaVenta
-                    WHERE nro_doc LIKE '%{clean_ref}'
-                """)
-                result = self.ext_db.execute(sql_fact).fetchone()
-                if result and result[0] is not None:
-                     return {"boxes": float(result[0])}
-                     
-                # Try Note
-                sql_nent = text(f"""
-                    SELECT SUM(total_bultos) as boxes
-                    FROM saNotaEntregaVenta
-                    WHERE nro_doc LIKE '%{clean_ref}'
-                """)
-                result_nent = self.ext_db.execute(sql_nent).fetchone()
-                if result_nent and result_nent[0] is not None:
-                     return {"boxes": float(result_nent[0])}
+                sql = text("EXEC SP_CRM_FacturasPendientesPorClienteV2 @doc_num = :d")
+                
+            result = self.ext_db.execute(sql, {"d": clean_ref}).fetchall()
             
-            return None
+            if not result:
+                 # Si no consigue factura, y tampoco se sabia si era nota, intentar como nota como fallback
+                 if not is_nent:
+                     sql = text("EXEC SP_CRM_NotasEntregaPendientesPorClienteV2 @doc_num = :d")
+                     result = self.ext_db.execute(sql, {"d": clean_ref}).fetchall()
+                     
+            if not result:
+                return None
+                
+            # Summarize boxes from SP result
+            for row in result:
+                # Depending on SQLAlchemy version, row might be tuple or have _mapping
+                row_map = row._mapping if hasattr(row, '_mapping') else row._asdict() if hasattr(row, '_asdict') else dict(row)
+                
+                raw_boxes = None
+                for c in ['Cantidad Cajas', 'cantidad_cajas', 'cajas']:
+                    if c in row_map:
+                        raw_boxes = row_map[c]
+                        break
+                    else:
+                        for k in row_map.keys():
+                            if c.lower() in str(k).lower():
+                                raw_boxes = row_map[k]
+                                break
+                    if raw_boxes is not None: break
+                        
+                if raw_boxes is not None:
+                    try:
+                        boxes_sum += float(raw_boxes)
+                    except:
+                        pass
+
+            return {"boxes": boxes_sum}
             
         except Exception as e:
             print(f"External Query Error: {e}")

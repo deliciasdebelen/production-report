@@ -1,0 +1,690 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Styling extension to blend into Odoo UI */
+    :root {
+        --carmal-primary: #875A7B;
+        --carmal-primary-hover: #6c4862;
+        --carmal-success: #28a745;
+        --carmal-danger: #dc3545;
+        --carmal-warning: #ffc107;
+        --carmal-dark: #333333;
+        --carmal-light: #f8f9fa;
+        --carmal-gray: #6b7280;
+        --carmal-border: #dee2e6;
+    }
+
+    .chatbot-container {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 24px;
+        margin-top: 16px;
+    }
+
+    @media (max-width: 992px) {
+        .chatbot-container {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .carmal-card {
+        background: #ffffff;
+        border: 1px solid var(--carmal-border);
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        margin-bottom: 24px;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        overflow: hidden;
+    }
+
+    .carmal-card-header {
+        background: var(--carmal-light);
+        border-bottom: 1px solid var(--carmal-border);
+        padding: 16px 20px;
+        font-weight: 600;
+        color: var(--carmal-dark);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .carmal-card-body {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 8px;
+        color: #4b5563;
+        font-size: 0.9rem;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 14px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.95rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .form-control:focus {
+        border-color: var(--carmal-primary);
+        box-shadow: 0 0 0 3px rgba(135, 90, 123, 0.2);
+        outline: none;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    @media (max-width: 576px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .carmal-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 20px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .carmal-btn-primary {
+        background-color: var(--carmal-primary);
+        color: #ffffff;
+    }
+
+    .carmal-btn-primary:hover {
+        background-color: var(--carmal-primary-hover);
+    }
+
+    .carmal-btn-secondary {
+        background-color: #e5e7eb;
+        color: #374151;
+    }
+
+    .carmal-btn-secondary:hover {
+        background-color: #d1d5db;
+    }
+
+    .carmal-btn-success {
+        background-color: var(--carmal-success);
+        color: white;
+    }
+
+    .carmal-btn-success:hover {
+        background-color: #218838;
+    }
+
+    /* Switch Style */
+    .switch-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 50px;
+        height: 26px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .3s;
+        border-radius: 34px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 4px;
+        bottom: 4px;
+        background-color: white;
+        transition: .3s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: var(--carmal-primary);
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(24px);
+    }
+
+    /* QR / Status Container styling */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    .status-badge-connected {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: var(--carmal-success);
+        border: 1px solid rgba(40, 167, 69, 0.2);
+    }
+
+    .status-badge-disconnected {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: var(--carmal-danger);
+        border: 1px solid rgba(220, 53, 69, 0.2);
+    }
+
+    .status-badge-checking {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #d39e00;
+        border: 1px solid rgba(255, 193, 7, 0.2);
+    }
+
+    .qr-box {
+        width: 100%;
+        aspect-ratio: 1;
+        border: 2px dashed var(--carmal-border);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        background: #fafafa;
+        margin-top: 16px;
+        position: relative;
+        padding: 16px;
+    }
+
+    .qr-box img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    /* Dynamic alerts */
+    .alert-toast {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        padding: 16px 24px;
+        border-radius: 8px;
+        background: #333;
+        color: white;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transform: translateY(100px);
+        opacity: 0;
+        transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    .alert-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    .alert-toast-success {
+        background: #2e7d32;
+    }
+
+    .alert-toast-error {
+        background: #c62828;
+    }
+
+    .spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid #fff;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+        display: inline-block;
+        margin-right: 8px;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .pulse {
+        animation: pulse-animation 2s infinite;
+    }
+
+    @keyframes pulse-animation {
+        0% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(40, 167, 69, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+        }
+    }
+</style>
+
+<div class="odoo-control-panel">
+    <div class="odoo-breadcrumb">
+        <span>Ventas</span>
+        <span style="color:#aaa">/</span>
+        <span class="active">Chatbot Inteligente 🤖</span>
+    </div>
+</div>
+
+<div class="odoo-sheet">
+    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--carmal-border); padding-bottom: 16px; margin-bottom: 24px;">
+        <div>
+            <h1 style="color: var(--carmal-primary); font-size: 1.8rem; margin: 0; font-weight: 700;">Asistente de WhatsApp Inteligente</h1>
+            <p style="color: var(--carmal-gray); font-size: 0.95rem; margin: 4px 0 0 0;">
+                Configura el chatbot para Inv. Carmal 5537, C.A. que atiende a nuevos clientes, clasifica su zona y los asigna con su asesor correspondiente de forma personalizada.
+            </p>
+        </div>
+        <div class="switch-container">
+            <span style="font-weight: 600; color: #4b5563;">Estado del Chatbot:</span>
+            <label class="switch">
+                <input type="checkbox" id="topActiveToggle" {% if config.is_active %}checked{% endif %} onchange="syncActiveCheckbox(this)">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Web Panel Layout Grid -->
+    <div class="chatbot-container">
+        
+        <!-- Left Side: Config Forms -->
+        <div>
+            <form id="chatbotSettingsForm" action="/ventas/chatbot/save" method="POST">
+                <input type="hidden" name="is_active" id="hiddenIsActive" value="{% if config.is_active %}true{% else %}false{% endif %}">
+                
+                <!-- Card 1: Profit Plus Connection -->
+                <div class="carmal-card">
+                    <div class="carmal-card-header">
+                        <span>🔌 Conexión Profit Plus (SQL Server 192.168.1.48)</span>
+                        <button type="button" class="carmal-btn carmal-btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="testDatabaseConnection()">
+                            <span id="testBtnSpinner" class="spinner" style="display:none; width:12px; height:12px; border-width:2px; margin-right:4px;"></span>
+                            Probar Conexión
+                        </button>
+                    </div>
+                    <div class="carmal-card-body">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="db_host">Host de Servidor SQL Server</label>
+                                <input type="text" class="form-control" id="db_host" name="db_host" value="{{ config.db_host }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="db_name">Nombre Base de Datos</label>
+                                <input type="text" class="form-control" id="db_name" name="db_name" value="{{ config.db_name }}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="db_user">Usuario SQL Server</label>
+                                <input type="text" class="form-control" id="db_user" name="db_user" value="{{ config.db_user }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="db_password">Contraseña</label>
+                                <input type="password" class="form-control" id="db_password" name="db_password" value="{{ config.db_password }}" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 2: AI Orchestrator -->
+                <div class="carmal-card">
+                    <div class="carmal-card-header">
+                        <span>🧠 Cerebro de Inteligencia Artificial (IA)</span>
+                    </div>
+                    <div class="carmal-card-body">
+                        <div class="form-group">
+                            <label for="ai_provider">Proveedor de Inteligencia Artificial</label>
+                            <select class="form-control" id="ai_provider" name="ai_provider" onchange="toggleAiFields(this.value)" required>
+                                <option value="gemini" {% if config.ai_provider == 'gemini' %}selected{% endif %}>Google Gemini API (Generación en la Nube)</option>
+                                <option value="ollama" {% if config.ai_provider == 'ollama' %}selected{% endif %}>Ollama API (Modelo Llama3 Local en 192.168.1.79)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" id="gemini_key_group" style="{% if config.ai_provider != 'gemini' %}display: none;{% endif %}">
+                            <label for="gemini_api_key">Google Gemini API Key</label>
+                            <input type="password" class="form-control" id="gemini_api_key" name="gemini_api_key" value="{{ config.gemini_api_key or '' }}" placeholder="Pega tu clave api de Google AI Studio aquí">
+                        </div>
+
+                        <div class="form-group" id="ollama_url_group" style="{% if config.ai_provider != 'ollama' %}display: none;{% endif %}">
+                            <label for="ollama_api_url">URL del Servidor Local Ollama</label>
+                            <input type="text" class="form-control" id="ollama_api_url" name="ollama_api_url" value="{{ config.ollama_api_url }}" placeholder="http://192.168.1.79:11434">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 3: WhatsApp Gateway Credentials -->
+                <div class="carmal-card">
+                    <div class="carmal-card-header">
+                        <span>📲 Configuración del Integrador de WhatsApp</span>
+                    </div>
+                    <div class="carmal-card-body">
+                        <div class="form-group">
+                            <label for="whatsapp_number">Número Principal Corporativo (WhatsApp de Envío)</label>
+                            <input type="text" class="form-control" id="whatsapp_number" name="whatsapp_number" value="{{ config.whatsapp_number }}" placeholder="+5804241931896" required>
+                            <small style="color: var(--carmal-gray); display:block; margin-top:4px;">Este número debe coincidir exactamente con el escaneado en el Gateway.</small>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="whatsapp_gateway_url">URL del Gateway de WhatsApp (Evolution API)</label>
+                                <input type="text" class="form-control" id="whatsapp_gateway_url" name="whatsapp_gateway_url" value="{{ config.whatsapp_gateway_url }}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="whatsapp_gateway_token">Token de Seguridad de la Instancia</label>
+                                <input type="password" class="form-control" id="whatsapp_gateway_token" name="whatsapp_gateway_token" value="{{ config.whatsapp_gateway_token or '' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; gap: 12px; justify-content: flex-end;">
+                    <button type="submit" class="carmal-btn carmal-btn-primary" style="padding: 12px 28px;">
+                        💾 Guardar Todo y Aplicar
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Right Side: Real-time Live Link/QR panel -->
+        <div>
+            <div class="carmal-card" style="position: sticky; top: 16px;">
+                <div class="carmal-card-header" style="background: white; border-bottom: 1px solid var(--carmal-border);">
+                    <span style="font-weight: 700;">📡 Estado de Vinculación</span>
+                    <button class="carmal-btn carmal-btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;" onclick="checkWhatsappStatus(true)">
+                        🔄 Actualizar
+                    </button>
+                </div>
+                <div class="carmal-card-body" style="text-align: center;">
+                    <div id="whatsappStatusBadge" class="status-badge status-badge-checking">
+                        <span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: currentColor; margin-right: 4px;"></span>
+                        Consultando Estado...
+                    </div>
+
+                    <div id="connectionDetail" style="margin-top: 12px; font-size: 0.9rem; color: var(--carmal-gray);">
+                        Verificando credenciales de pasarela...
+                    </div>
+
+                    <!-- QR code zone -->
+                    <div id="qrCodeContainer" style="display: none; margin-top: 16px;">
+                        <div class="qr-box" id="qrBox">
+                            <span id="qrPlaceholder" style="color: var(--carmal-gray); text-align: center; font-size: 0.85rem; padding: 10px;">
+                                📥 Haz clic en el botón inferior para inicializar la sesión y generar el código QR en tiempo real.
+                            </span>
+                            <img id="qrImage" style="display: none;" src="" alt="WhatsApp QR Code">
+                        </div>
+                        
+                        <button id="btnGenerateQr" class="carmal-btn carmal-btn-primary" style="width: 100%; margin-top: 16px;" onclick="loadQrCode()">
+                            🔗 Generar Código QR de Conexión
+                        </button>
+                        <small style="display:block; margin-top:8px; color: var(--carmal-gray); font-size: 0.75rem; text-align: left; line-height: 1.3;">
+                            ⚠️ Escanea el código QR desde la sección <b>Dispositivos Vinculados</b> dentro de tu celular para enlazar la sesión.
+                        </small>
+                    </div>
+
+                    <!-- Connected State view -->
+                    <div id="connectedStateContainer" style="display: none; margin-top: 24px; padding: 16px; background: rgba(40, 167, 69, 0.05); border: 1px solid rgba(40, 167, 69, 0.2); border-radius: 8px;">
+                        <div style="font-size: 3rem; margin-bottom: 12px;" class="pulse">🟢</div>
+                        <h4 style="margin:0 0 6px 0; color: var(--carmal-success); font-weight: 700;">¡Conectado Exitosamente!</h4>
+                        <p style="margin: 0; font-size: 0.85rem; color: #4b5563; line-height: 1.4;">
+                            El chatbot está enlazado a la línea telefónica y se encuentra procesando de forma automática los mensajes entrantes de clientes nuevos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Custom Toasts -->
+<div id="toastAlert" class="alert-toast">
+    <span id="toastIcon">💡</span>
+    <span id="toastMessage">Mensaje por defecto.</span>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle fields based on selected provider
+    function toggleAiFields(provider) {
+        const geminiGroup = document.getElementById('gemini_key_group');
+        const ollamaGroup = document.getElementById('ollama_url_group');
+        
+        if (provider === 'gemini') {
+            geminiGroup.style.display = 'block';
+            ollamaGroup.style.display = 'none';
+        } else {
+            geminiGroup.style.display = 'none';
+            ollamaGroup.style.display = 'block';
+        }
+    }
+
+    // Sync switch toggle with hidden inputs
+    function syncActiveCheckbox(elem) {
+        document.getElementById('hiddenIsActive').value = elem.checked ? "true" : "false";
+    }
+
+    // Modern custom toast notifications
+    function showToast(message, type = 'success') {
+        const toast = document.getElementById('toastAlert');
+        const msgSpan = document.getElementById('toastMessage');
+        const iconSpan = document.getElementById('toastIcon');
+        
+        toast.className = 'alert-toast'; // Reset
+        
+        if (type === 'success') {
+            toast.classList.add('alert-toast-success');
+            iconSpan.innerHTML = '✅';
+        } else {
+            toast.classList.add('alert-toast-error');
+            iconSpan.innerHTML = '❌';
+        }
+        
+        msgSpan.innerText = message;
+        toast.classList.add('show');
+        
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 4000);
+    }
+
+    // Test Database connection asynchronously
+    async function testDatabaseConnection() {
+        const host = document.getElementById('db_host').value;
+        const name = document.getElementById('db_name').value;
+        const user = document.getElementById('db_user').value;
+        const pass = document.getElementById('db_password').value;
+        const spinner = document.getElementById('testBtnSpinner');
+        
+        spinner.style.display = 'inline-block';
+        
+        const formData = new FormData();
+        formData.append('db_host', host);
+        formData.append('db_name', name);
+        formData.append('db_user', user);
+        formData.append('db_password', pass);
+        
+        try {
+            const response = await fetch('/ventas/chatbot/test-db', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+            
+            spinner.style.display = 'none';
+            
+            if (response.ok && data.status === 'ok') {
+                showToast('Conexión a base de datos Profit Plus exitosa.', 'success');
+            } else {
+                showToast('No se pudo establecer conexión con SQL Server en 192.168.1.48.', 'error');
+            }
+        } catch (e) {
+            spinner.style.display = 'none';
+            showToast('Excepción al conectar a base de datos: ' + e, 'error');
+        }
+    }
+
+    // Verify WhatsApp connection state
+    async function checkWhatsappStatus(manual = false) {
+        const badge = document.getElementById('whatsappStatusBadge');
+        const detail = document.getElementById('connectionDetail');
+        const qrContainer = document.getElementById('qrCodeContainer');
+        const connectedContainer = document.getElementById('connectedStateContainer');
+        
+        badge.className = 'status-badge status-badge-checking';
+        badge.innerHTML = '<span class="spinner" style="width: 10px; height: 10px; border-width: 1.5px; border-top-color: currentColor; margin-right: 4px;"></span>Consultando...';
+        
+        try {
+            const response = await fetch('/ventas/chatbot/status');
+            const data = await response.json();
+            
+            if (data.instance && data.instance.state === 'open') {
+                badge.className = 'status-badge status-badge-connected pulse';
+                badge.innerHTML = '🟢 Conectado - Activo';
+                detail.innerText = 'Instancia enlazada correctamente en el Gateway.';
+                
+                qrContainer.style.display = 'none';
+                connectedContainer.style.display = 'block';
+                if (manual) {
+                    showToast('Instancia conectada y activa.', 'success');
+                }
+            } else {
+                badge.className = 'status-badge status-badge-disconnected';
+                badge.innerHTML = '🔴 Desconectado';
+                detail.innerText = 'La sesión de WhatsApp no está activa.';
+                
+                qrContainer.style.display = 'block';
+                connectedContainer.style.display = 'none';
+                if (manual) {
+                    showToast('Línea desconectada del Gateway.', 'error');
+                }
+            }
+        } catch (e) {
+            badge.className = 'status-badge status-badge-disconnected';
+            badge.innerHTML = '⚠️ Error de Red';
+            detail.innerText = 'No se pudo contactar al servidor de WhatsApp.';
+            qrContainer.style.display = 'block';
+            connectedContainer.style.display = 'none';
+        }
+    }
+
+    // Retrieve and display QR Code
+    async function loadQrCode() {
+        const btn = document.getElementById('btnGenerateQr');
+        const placeholder = document.getElementById('qrPlaceholder');
+        const img = document.getElementById('qrImage');
+        
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Generando QR...';
+        placeholder.innerText = '🔄 Pidiendo código QR al Gateway corporativo...';
+        img.style.display = 'none';
+        
+        try {
+            const response = await fetch('/ventas/chatbot/qr');
+            const data = await response.json();
+            
+            btn.disabled = false;
+            btn.innerHTML = '🔗 Regenerar Código QR';
+            
+            if (data.base64 || (data.qrcode && data.qrcode.base64)) {
+                const base64Str = data.base64 || data.qrcode.base64;
+                img.src = base64Str;
+                img.style.display = 'block';
+                placeholder.style.display = 'none';
+                showToast('QR Code generado. Escanea de inmediato.', 'success');
+                
+                // Polling for connection change
+                startStatusPolling();
+            } else if (data.status === 'SUCCESS' && data.message === 'Instance connected successfully') {
+                showToast('¡Instancia ya enlazada!', 'success');
+                checkWhatsappStatus();
+            } else {
+                placeholder.innerText = '❌ Error al generar QR: ' + (data.message || 'Respuesta inválida');
+                showToast('Error al inicializar sesión en Gateway.', 'error');
+            }
+        } catch (e) {
+            btn.disabled = false;
+            btn.innerHTML = '🔗 Generar Código QR';
+            placeholder.innerText = '❌ Excepción de red al generar QR.';
+            showToast('Fallo de conexión al Gateway.', 'error');
+        }
+    }
+
+    let statusPollInterval = null;
+    function startStatusPolling() {
+        if (statusPollInterval) clearInterval(statusPollInterval);
+        
+        // Poll every 5 seconds up to 2 minutes
+        let count = 0;
+        statusPollInterval = setInterval(async () => {
+            count++;
+            if (count > 24) { // 2 minutes limit
+                clearInterval(statusPollInterval);
+                return;
+            }
+            
+            const response = await fetch('/ventas/chatbot/status');
+            const data = await response.json();
+            if (data.instance && data.instance.state === 'open') {
+                clearInterval(statusPollInterval);
+                checkWhatsappStatus();
+                showToast('¡Dispositivo conectado exitosamente!', 'success');
+            }
+        }, 5000);
+    }
+
+    // Auto load checks on window load
+    window.addEventListener('load', () => {
+        // Dynamic search param messages
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('success')) {
+            showToast('Configuraciones guardadas y aplicadas de forma exitosa.', 'success');
+            // Clean up url
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        
+        // Initial state load
+        checkWhatsappStatus();
+    });
+</script>
+{% endblock %}

@@ -66,9 +66,8 @@ def get_engine():
 def get_data(engine, query, name):
     print(f"Executing {name} Query...")
     try:
-        with engine.connect() as conn:
-            df = pd.read_sql_query(text(query), conn)
-            return df
+        df = pd.read_sql_query(text(query), engine)
+        return df
     except Exception as e:
         print(f"Error in {name}: {e}")
         return pd.DataFrame()
@@ -161,6 +160,7 @@ def check_alerts(audit_df):
     
     if alerts:
         docs_dir = os.path.join(os.path.dirname(__file__), '..', 'docs')
+        os.makedirs(docs_dir, exist_ok=True)
         alert_path = os.path.join(docs_dir, 'ALERTA_AUDITORIA_URGENTE.txt')
         
         content = "⚠️ REVISION URGENTE REQUERIDA (Descuadre > 5%) ⚠️\n\n"

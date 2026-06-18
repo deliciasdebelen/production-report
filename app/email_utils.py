@@ -52,11 +52,16 @@ def send_email(subject, body, recipients, is_html=False):
         msg.attach(MIMEText(body, 'html' if is_html else 'plain'))
 
         # Timeout evita que smtplib cuelgue indefinidamente
-        server = smtplib.SMTP(smtp_server, smtp_port, timeout=SMTP_TIMEOUT)
-        server.ehlo()
-        server.starttls()
-        server.ehlo()
-        server.login(smtp_user, smtp_password)
+        if smtp_port == 465:
+            server = smtplib.SMTP_SSL(smtp_server, smtp_port, timeout=SMTP_TIMEOUT)
+            server.login(smtp_user, smtp_password)
+        else:
+            server = smtplib.SMTP(smtp_server, smtp_port, timeout=SMTP_TIMEOUT)
+            server.ehlo()
+            server.starttls()
+            server.ehlo()
+            server.login(smtp_user, smtp_password)
+
         server.sendmail(smtp_user, recipients, msg.as_string())
         server.quit()
 

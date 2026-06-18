@@ -69,9 +69,9 @@
                     <label style="font-weight: 600; color: #ef4444; display: block; margin-bottom: 0.25rem;">Nro. Guía
                         de
                         Despacho *</label>
-                    <input type="text" name="document_ref" value="{{ next_guide_number }}"
-                        style="width: 100%; background-color: white; border: 1px solid var(--border); padding: 0.5rem; border-radius: var(--radius-sm); color: #6b7280; font-family: monospace; font-weight: 500;"
-                        readonly>
+                    <input type="text" name="document_ref" id="documentRefInput" value="{{ next_guide_number }}"
+                        style="width: 100%; background-color: white; border: 1px solid var(--border); padding: 0.5rem; border-radius: var(--radius-sm); color: #1f2937; font-family: monospace; font-weight: 600;"
+                        placeholder="Ej: GUIA-00000001">
                     <div style="font-size: 0.75rem; color: #94a3b8; margin-top: 0.1rem;">Debe ser única y obligatoria.
                     </div>
 
@@ -1041,9 +1041,12 @@
 
         try {
             const url = new URL('/logistics/api/guides/search', window.location.origin);
-            if (guideRef) url.searchParams.append('q', guideRef);
-            if (dateFrom) url.searchParams.append('date_from', dateFrom);
-            if (dateTo) url.searchParams.append('date_to', dateTo);
+            if (guideRef) {
+                url.searchParams.append('q', guideRef);
+            } else {
+                if (dateFrom) url.searchParams.append('date_from', dateFrom);
+                if (dateTo) url.searchParams.append('date_to', dateTo);
+            }
 
             const res = await fetch(url);
             if (res.ok) {

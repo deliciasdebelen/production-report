@@ -213,3 +213,12 @@ class SupportTicket(SupportTicketBase):
 
     class Config:
         from_attributes = True
+
+class AudiLogOut(BaseModel):
+    id: int
+    report_text: str
+    status: str
+    created_at: datetime
+
+    class Config:
+        orm_mode = True
