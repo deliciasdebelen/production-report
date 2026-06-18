@@ -1,0 +1,157 @@
+# Walkthrough — Correcciones SP `RepEstadoCuentaPrestaciones_Completo`
+**Base de datos:** `PCARMAL_N` (ambiente de pruebas)  
+**Script de despliegue:** `aplicar_sp_corregido.py`  
+**Fecha:** 2026-05-07
+
+---
+
+## Resumen Ejecutivo
+
+Se corrigieron **6 errores sistémicos** en el SP que generaba el Estado de Cuenta de Prestaciones Sociales. Los errores producían campos en blanco, capital negativo, tasa de interés en 0, y cálculos de monto incorrectos para meses con anticipos.
+
+---
+
+## Cambio 1 — Fuente de datos para `acum_prest` y `capital`
+**Problema:** El SP usaba `snhistor.Z900` como base del acumulado de prestaciones. Esta tabla estaba **corrompida** por la capitalización incorrecta de intereses — mostraba valores negativos imposibles (ej. `-12,065` cuando el saldo real era `+4,777`).
+
+**Síntoma visible:** Desde el mes en que se registró un anticipo (Nov-2024), el capital para intereses pasaba a 0 o negativo, y los intereses dejaban de calcularse.
+
+**Corrección (PASO 1 y PASO 2):**  
+Se reemplazó `snhistor.Z900` por un cálculo directo desde `snnomi`:
+
+```sql
+-- acum_prest = abonos trimestrales - anticipos (nunca corrupto)
+SUM(V001_1 abonos hasta fec_emis)
++ Z002_inicial (snem_va)
+- SUM(B020 anticipos hasta fec_emis)
+- Z004_inicial (snem_va)
+
+-- capital = MAX(0, acum_prest)
+CASE WHEN acum_neto < 0 THEN 0.0 ELSE acum_neto END
+```
+
+**Resultado verificado:**
+| Mes | Antes | Ahora |
+|---|---|---|
+| Nov-2024 (anticipo 7,239.09) | Acum=0, Capital=0 | Acum=**2,413.03**, Capital=**2,413.03** ✅ |
+| Dic-2024 | Acum=-12,065, Capital=0 | Acum=**4,777.02**, Capital=**4,777.02** ✅ |
+
+---
+
+## Cambio 2 — Propagación de tasa BCV a meses sin V003_1
+**Problema:** Meses con sólo un anticipo (como Nov-2024) o meses de relleno CTE no tenían el concepto `V003_1` en nómina, por lo que `tasa_interes = 0`. El `ISNULL(0, fallback)` no disparaba el fallback porque `0 ≠ NULL`.
+
+**Corrección:** Se reemplazó `MAX(t.tasa_interes)` por `NULLIF(MAX(t.tasa_interes), 0)` en PASO 2, haciendo que un 0 inválido se trate como ausente y se use la última tasa conocida:
+
+```sql
+ISNULL(ISNULL(
+    NULLIF(MAX(t.tasa_interes), 0),        -- 0 → NULL → usa fallback
+    (SELECT TOP 1 auxi_num FROM snnomi n2  -- última tasa antes del mes
+     WHERE auxi_num > 0 AND fec_emis <= m.mes_ini
+     ORDER BY fec_emis DESC)
+), 0) AS tasa_interes
+```
+
+---
+
+## Cambio 3 — `saldo_total_tipo1` = campo real de tasa en Crystal Reports
+**Problema:** Crystal Reports usa el campo `saldo_total_tipo1` (no `tasa_interes`) para mostrar la columna "Tasa Intereses". Ese campo se quedaba en 0 para meses sin V003_1.
+
+**Corrección:** Se aplicó el mismo fallback de propagación a `saldo_total_tipo1`:
+
+```sql
+ISNULL(ISNULL(
+    NULLIF(MAX(t.saldo_total_tipo1), 0),
+    (SELECT TOP 1 auxi_num FROM snnomi n2
+     WHERE auxi_num > 0 AND fec_emis <= m.mes_ini
+     ORDER BY fec_emis DESC)
+), 0) AS saldo_total_tipo1
+```
+
+**Resultado:** `saldo_total_tipo1` = `tasa_interes` = 47.63 para todos los meses desde Nov-2024.
+
+---
+
+## Cambio 4 — Eliminación de campos en blanco (NULL → 0)
+**Problema:** Crystal Reports mostraba celdas en blanco cuando el SP devolvía `NULL`. Ocurría en los primeros meses del empleado (antes del primer abono) y en meses de relleno.
+
+**Corrección:** Se envolvieron todos los campos calculados con `ISNULL(ISNULL(...), 0)` doble para garantizar que el fallback-del-fallback siempre devuelva `0`:
+
+| Campo | Fix aplicado |
+|---|---|
+| `utilidades` | `ISNULL(ISNULL(MAX, subquery), 0)` |
+| `vacaciones` | `ISNULL(ISNULL(MAX, subquery), 0)` |
+| `sueldo` | `ISNULL(ISNULL(MAX, GetValorCampoNumerico), 0)` |
+| `acum_prest` | `ISNULL(ISNULL(MAX, subquery_snnomi), 0)` |
+| `capital_para_inter` | `ISNULL(CASE ... END, 0)` |
+| `tasa_interes` | `ISNULL(ISNULL(NULLIF,...), 0)` |
+| `monto_interes` | `ISNULL(ROUND(...), 0)` |
+| `inter_sobre_prest` | `ISNULL(ROUND(...), 0)` |
+| `disponible_75` | `ISNULL(CASE ... END, 0)` |
+| `acum_inter` / `acum_inter2` | `ISNULL(ISNULL(MAX, subquery), 0)` |
+
+**Resultado:** 0 columnas con NULL en todos los empleados validados.
+
+---
+
+## Cambio 5 — Lookup de fechas en PASO 1 (exact match → rango de mes)
+**Problema:** El subquery de `snhistor` usaba `fecha = snrecibo.fec_emis` (match exacto). Si el registro de `snhistor` tenía fecha diferente al recibo (ej. recibo el 20, snhistor el 15 o 31), devolvía 0.
+
+**Corrección:** Cambiado a búsqueda por rango dentro del mismo mes:
+
+```sql
+-- ANTES
+WHERE fecha = snrecibo.fec_emis
+
+-- AHORA (irrelevante para acum porque se cambió a snnomi, pero aplicado a Z901/acum_inter)
+WHERE MONTH(fecha) = MONTH(snrecibo.fec_emis)
+  AND YEAR(fecha)  = YEAR(snrecibo.fec_emis)
+  AND fecha <= snrecibo.fec_emis
+ORDER BY fecha DESC
+```
+
+---
+
+## Cambio 6 — Concepto de tasa en PASO 1 (filtro `auxi_num > 0`)
+**Problema:** El subquery de tasa no filtraba `auxi_num > 0`, lo que permitía que recibos con `auxi_num = NULL` o `0` se seleccionaran y devolvieran 0.
+
+**Corrección:**
+```sql
+-- ANTES
+ISNULL((SELECT auxi_num FROM snnomi WHERE ... AND co_conce IN (...)), 0)
+
+-- AHORA
+ISNULL((SELECT TOP 1 auxi_num FROM snnomi
+        WHERE ... AND co_conce IN (...) AND auxi_num > 0), 0)
+```
+
+---
+
+## Validación Final
+
+```
+Columnas con NULL: []  ← cero NULL en toda la salida
+
+Muestra empleado 000002 (42 filas, Ene-2023 a Jun-2026):
+  Nov-2024: Acum=2413.03  Capital=2413.03  Tasa=47.63  Monto=95.78  ✅
+  Dic-2024: Acum=4777.02  Capital=4777.02  Tasa=47.63  Monto=189.61 ✅
+  Oct-2025: Acum=14498.67 Capital=14498.67 Tasa=47.53  Monto=574.27 ✅
+```
+
+---
+
+## Estado
+
+| Ambiente | Estado |
+|---|---|
+| `PCARMAL_N` (pruebas) | ✅ SP actualizado y validado |
+| `CARMAL_N` (producción) | ⏳ Pendiente — ejecutar mismo script apuntando a CARMAL_N |
+
+## Próximo paso — Producción
+
+Cambiar la cadena de conexión en `aplicar_sp_corregido.py`:
+```python
+# Cambiar PCARMAL_N por CARMAL_N
+'DATABASE=CARMAL_N;'
+```
+Y ejecutar nuevamente el script.

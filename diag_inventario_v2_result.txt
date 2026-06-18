@@ -1,0 +1,93 @@
+
+================================================================
+  PASO 1A — Estado de saLoteEntrada para lote IA1M061225
+================================================================
+  ⚠️  Sin resultados — Estado actual del lote en saLoteEntrada
+
+
+================================================================
+  PASO 1B — Salidas registradas en saLoteSalida para lote IA1M061225
+================================================================
+  ⚠️  Sin resultados — Salidas del lote en saLoteSalida
+
+
+================================================================
+  PASO 2 — Stock general del artículo MPO1N000153 en saStockAlmacen
+================================================================
+  ⚠️  Sin resultados — Stock en saStockAlmacen
+
+
+================================================================
+  PASO 2B — Stock del artículo MPO1N000153 en TODOS los almacenes
+================================================================
+  ⚠️  Sin resultados — Stock por almacén
+
+
+================================================================
+  PASO 3 — Triggers modificados desde 2026-03-01
+================================================================
+              trigger_nombre                   tabla   type_desc  fecha_modificacion      fecha_creacion  is_disabled
+  trg_BlockLoteSinExistencia            saLoteSalida SQL_TRIGGER 2026-03-18 12:16:43 2026-03-18 12:16:43        False
+TR_AjustarRengNetoDevolucion saDevolucionClienteReng SQL_TRIGGER 2026-03-06 14:46:33 2026-03-06 12:41:25        False
+         ActualizarFechaLote           saLoteEntrada SQL_TRIGGER 2026-03-06 14:38:32 2023-11-24 10:57:44         True
+     ActualizarFechaLote_OLD           saLoteEntrada SQL_TRIGGER 2026-03-06 14:38:21 2026-03-06 14:38:21        False
+  Trig_OcultarRedondeoCobros        saDocumentoVenta SQL_TRIGGER 2026-03-03 15:38:04 2026-03-03 15:38:04        False
+
+  🚨 CRÍTICO: trigger 'trg_BlockLoteSinExistencia' en tabla 'saLoteSalida' modificado el 2026-03-18 12:16:43
+  🚨 CRÍTICO: trigger 'ActualizarFechaLote' en tabla 'saLoteEntrada' modificado el 2026-03-06 14:38:32
+  🚨 CRÍTICO: trigger 'ActualizarFechaLote_OLD' en tabla 'saLoteEntrada' modificado el 2026-03-06 14:38:21
+
+================================================================
+  PASO 4 — Jobs del SQL Server Agent ejecutados el 03/03/2026
+================================================================
+                     nombre_job              step_name  run_date  run_time  run_duration resultado                                                                                                                                                                                                  mensaje
+Plan de Mantenimiento.Subplan_1              Subplan_1  20260303         0           215    FAILED Executed as user: NT Service\SQLAgent$SQLBELEN. ...8 for 64-bit  Copyright (C) Microsoft Corporation. All rights reserved.    Started:  12:00:00 a.m.  Progress: 2026-03-03 00:00:01.33     Source: {77D
+Plan de Mantenimiento.Subplan_1          (Job outcome)  20260303         0           215    FAILED                                                                   The job failed.  The Job was invoked by Schedule 1011 (Plan de Mantenimiento.Subplan_1).  The last step to run was step 1 (Subplan_1).
+      MaintenancePlan.Subplan_1              Subplan_1  20260303         0           352    FAILED                            Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  12:00:00 a.m.  Finished: 12:03:50 a.m.  Elapsed:  229.875 seconds.  The package execution failed.  The step failed.
+      MaintenancePlan.Subplan_1          (Job outcome)  20260303         0           352    FAILED                                                                                   The job failed.  The Job was invoked by Schedule 1012 (MaintenancePlan).  The last step to run was step 1 (Subplan_1).
+             Generacion_Merkant Exportar Datos Merkant  20260303     80000            10 SUCCEEDED Executed as user: NT SERVICE\SQLAgent$SQLBELEN. ...tacion\Sucursales\1 CAPITAL\Cliente.txt" -o "D:\Integracion Merkant\LogSqlDatos\Cliente_bcp1.log" -c -t\t -S 127.0.0.1 -U profit -P profit [SQLSTATE 
+             Generacion_Merkant          (Job outcome)  20260303     80000            10 SUCCEEDED                                                        The job succeeded.  The Job was invoked by Schedule 2060 (Horario_Generacion_Merkant).  The last step to run was step 1 (Exportar Datos Merkant).
+     BackupSQL.BaseDeDatosBelen       BaseDeDatosBelen  20260303    200000            16 SUCCEEDED                         Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  8:00:00 p.m.  Finished: 8:00:15 p.m.  Elapsed:  14.5 seconds.  The package executed successfully.  The step succeeded.
+     BackupSQL.BaseDeDatosBelen          (Job outcome)  20260303    200000            16 SUCCEEDED                                                                 The job succeeded.  The Job was invoked by Schedule 9 (BackupSQL.BaseDeDatosBelen).  The last step to run was step 1 (BaseDeDatosBelen).
+
+
+  🚨 4 JOB(S) FALLIDO(S) el 03/03:
+                     nombre_job     step_name  run_date  run_time  run_duration resultado                                                                                                                                                                                                  mensaje
+Plan de Mantenimiento.Subplan_1     Subplan_1  20260303         0           215    FAILED Executed as user: NT Service\SQLAgent$SQLBELEN. ...8 for 64-bit  Copyright (C) Microsoft Corporation. All rights reserved.    Started:  12:00:00 a.m.  Progress: 2026-03-03 00:00:01.33     Source: {77D
+Plan de Mantenimiento.Subplan_1 (Job outcome)  20260303         0           215    FAILED                                                                   The job failed.  The Job was invoked by Schedule 1011 (Plan de Mantenimiento.Subplan_1).  The last step to run was step 1 (Subplan_1).
+      MaintenancePlan.Subplan_1     Subplan_1  20260303         0           352    FAILED                            Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  12:00:00 a.m.  Finished: 12:03:50 a.m.  Elapsed:  229.875 seconds.  The package execution failed.  The step failed.
+      MaintenancePlan.Subplan_1 (Job outcome)  20260303         0           352    FAILED                                                                                   The job failed.  The Job was invoked by Schedule 1012 (MaintenancePlan).  The last step to run was step 1 (Subplan_1).
+
+
+================================================================
+  PASO 5 — Instalando trigger de auditoría temporal
+================================================================
+  ✅ Crear tabla _AuditLoteTemp
+  ✅ DROP trigger anterior si existe
+  ✅ CREATE TRIGGER trg_AuditLoteTemp en saLoteSalida
+
+  ℹ️  Trigger de auditoría activo en saLoteSalida.
+  Después de reproducir el problema, consultar:
+  SELECT * FROM dbo._AuditLoteTemp ORDER BY fec_captura DESC;
+
+  Para limpiar:
+  DROP TRIGGER trg_AuditLoteTemp;
+  DROP TABLE dbo._AuditLoteTemp;
+
+================================================================
+  RESUMEN EJECUTIVO
+================================================================
+
+  Servidor      : 192.168.60.15
+  Base de datos : CARMAL_A
+  Artículo      : MPO1N000153 (Azúcar MPO1N000153)
+  Lote          : IA1M061225
+  Almacén       : P1-PS
+  Ejecutado     : 2026-03-19 14:23:37
+
+  PASO 1A — Estado lote saLoteEntrada   : ⚠️ LOTE NO ENCONTRADO
+  PASO 1B — Salidas en saLoteSalida     : Ver datos arriba
+  PASO 2  — Stock saStockAlmacen        : Ver datos arriba
+  PASO 3  — Triggers modificados        : Ver datos arriba
+  PASO 4  — Jobs Agent 03/03            : Ver datos arriba
+  PASO 5  — Trigger auditoría           : INSTALADO (trg_AuditLoteTemp en saLoteSalida) ✅

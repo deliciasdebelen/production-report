@@ -1,0 +1,196 @@
+
+================================================================
+  PASO 1 — Movimientos de MPO1N000153 / Lote IA1M061225 desde 2026-03-03
+================================================================
+  ❌ Error ejecutando query: Execution failed on sql '
+    SELECT
+        aj.tipo_mov,
+        aj.co_tipo_doc,
+        aj.nro_doc,
+        CONVERT(VARCHAR,aj.fec_emis,105) AS fec_emis,
+        aj.co_art,
+        aj.nro_lote,
+        aj.cant_mov,
+        aj.co_alma,
+        aj.co_alma_d,
+        aj.usuario,
+        CONVERT(VARCHAR,aj.fec_reg,120)  AS fec_reg
+    FROM saAjusteReng aj
+    WHERE aj.co_art    = 'MPO1N000153'
+      AND aj.nro_lote  = 'IA1M061225'
+      AND aj.fec_emis >= '2026-03-03'
+    ORDER BY aj.fec_reg DESC
+': (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_lote'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'fec_emis'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'tipo_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'co_tipo_doc'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_doc'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'fec_emis'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_lote'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'cant_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'co_alma_d'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'usuario'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'fec_reg'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'fec_reg'. (207)")
+[SQL: 
+    SELECT
+        aj.tipo_mov,
+        aj.co_tipo_doc,
+        aj.nro_doc,
+        CONVERT(VARCHAR,aj.fec_emis,105) AS fec_emis,
+        aj.co_art,
+        aj.nro_lote,
+        aj.cant_mov,
+        aj.co_alma,
+        aj.co_alma_d,
+        aj.usuario,
+        CONVERT(VARCHAR,aj.fec_reg,120)  AS fec_reg
+    FROM saAjusteReng aj
+    WHERE aj.co_art    = 'MPO1N000153'
+      AND aj.nro_lote  = 'IA1M061225'
+      AND aj.fec_emis >= '2026-03-03'
+    ORDER BY aj.fec_reg DESC
+]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+  ⚠️  Sin resultados — Movimientos del artículo/lote
+
+
+================================================================
+  PASO 2A — Stock reportado en saStockAlmacen (P1-PS)
+================================================================
+  ❌ Error ejecutando query: Execution failed on sql '
+    SELECT
+        co_art,
+        co_alma,
+        nro_lote,
+        stock_act,
+        stock_com,
+        CONVERT(VARCHAR,fec_ult_mov,120) AS fec_ult_mov
+    FROM saStockAlmacen
+    WHERE co_art  = 'MPO1N000153'
+      AND co_alma = 'P1-PS'
+': (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_lote'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'stock_act'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'stock_com'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'fec_ult_mov'. (207)")
+[SQL: 
+    SELECT
+        co_art,
+        co_alma,
+        nro_lote,
+        stock_act,
+        stock_com,
+        CONVERT(VARCHAR,fec_ult_mov,120) AS fec_ult_mov
+    FROM saStockAlmacen
+    WHERE co_art  = 'MPO1N000153'
+      AND co_alma = 'P1-PS'
+]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+  ⚠️  Sin resultados — Stock en saStockAlmacen
+
+
+================================================================
+  PASO 2B — Stock calculado desde movimientos vs. tabla
+================================================================
+  ❌ Error ejecutando query: Execution failed on sql '
+    SELECT
+        co_art,
+        co_alma,
+        nro_lote,
+        SUM(CASE
+                WHEN tipo_mov = 'E' THEN  cant_mov
+                WHEN tipo_mov = 'S' THEN -cant_mov
+                ELSE cant_mov
+            END)    AS stock_calculado,
+        COUNT(*)    AS total_movimientos
+    FROM saAjusteReng
+    WHERE co_art  = 'MPO1N000153'
+      AND co_alma = 'P1-PS'
+    GROUP BY co_art, co_alma, nro_lote
+': (pyodbc.ProgrammingError) ('42S22', "[42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_lote'. (207) (SQLExecDirectW); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'nro_lote'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'tipo_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'tipo_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'cant_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'cant_mov'. (207); [42S22] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Invalid column name 'cant_mov'. (207)")
+[SQL: 
+    SELECT
+        co_art,
+        co_alma,
+        nro_lote,
+        SUM(CASE
+                WHEN tipo_mov = 'E' THEN  cant_mov
+                WHEN tipo_mov = 'S' THEN -cant_mov
+                ELSE cant_mov
+            END)    AS stock_calculado,
+        COUNT(*)    AS total_movimientos
+    FROM saAjusteReng
+    WHERE co_art  = 'MPO1N000153'
+      AND co_alma = 'P1-PS'
+    GROUP BY co_art, co_alma, nro_lote
+]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+  ⚠️  Sin resultados — Stock calculado desde saAjusteReng
+
+
+================================================================
+  PASO 3 — Triggers modificados desde 2026-03-01
+================================================================
+              trigger_nombre   type_desc  fecha_modificacion      fecha_creacion  is_disabled
+  trg_BlockLoteSinExistencia SQL_TRIGGER 2026-03-18 12:16:43 2026-03-18 12:16:43        False
+TR_AjustarRengNetoDevolucion SQL_TRIGGER 2026-03-06 14:46:33 2026-03-06 12:41:25        False
+         ActualizarFechaLote SQL_TRIGGER 2026-03-06 14:38:32 2023-11-24 10:57:44         True
+     ActualizarFechaLote_OLD SQL_TRIGGER 2026-03-06 14:38:21 2026-03-06 14:38:21        False
+  Trig_OcultarRedondeoCobros SQL_TRIGGER 2026-03-03 15:38:04 2026-03-03 15:38:04        False
+
+  🚨 TRIGGERS CRÍTICOS modificados: ['trg_BlockLoteSinExistencia', 'ActualizarFechaLote', 'ActualizarFechaLote_OLD']
+
+================================================================
+  PASO 4 — Jobs de SQL Server Agent ejecutados el 03/03/2026
+================================================================
+                     nombre_job              step_name  run_date  run_time  run_duration resultado                                                                                                                                                                                                  mensaje
+Plan de Mantenimiento.Subplan_1              Subplan_1  20260303         0           215    FAILED Executed as user: NT Service\SQLAgent$SQLBELEN. ...8 for 64-bit  Copyright (C) Microsoft Corporation. All rights reserved.    Started:  12:00:00 a.m.  Progress: 2026-03-03 00:00:01.33     Source: {77D
+Plan de Mantenimiento.Subplan_1          (Job outcome)  20260303         0           215    FAILED                                                                   The job failed.  The Job was invoked by Schedule 1011 (Plan de Mantenimiento.Subplan_1).  The last step to run was step 1 (Subplan_1).
+      MaintenancePlan.Subplan_1              Subplan_1  20260303         0           352    FAILED                            Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  12:00:00 a.m.  Finished: 12:03:50 a.m.  Elapsed:  229.875 seconds.  The package execution failed.  The step failed.
+      MaintenancePlan.Subplan_1          (Job outcome)  20260303         0           352    FAILED                                                                                   The job failed.  The Job was invoked by Schedule 1012 (MaintenancePlan).  The last step to run was step 1 (Subplan_1).
+             Generacion_Merkant Exportar Datos Merkant  20260303     80000            10 SUCCEEDED Executed as user: NT SERVICE\SQLAgent$SQLBELEN. ...tacion\Sucursales\1 CAPITAL\Cliente.txt" -o "D:\Integracion Merkant\LogSqlDatos\Cliente_bcp1.log" -c -t\t -S 127.0.0.1 -U profit -P profit [SQLSTATE 
+             Generacion_Merkant          (Job outcome)  20260303     80000            10 SUCCEEDED                                                        The job succeeded.  The Job was invoked by Schedule 2060 (Horario_Generacion_Merkant).  The last step to run was step 1 (Exportar Datos Merkant).
+     BackupSQL.BaseDeDatosBelen       BaseDeDatosBelen  20260303    200000            16 SUCCEEDED                         Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  8:00:00 p.m.  Finished: 8:00:15 p.m.  Elapsed:  14.5 seconds.  The package executed successfully.  The step succeeded.
+     BackupSQL.BaseDeDatosBelen          (Job outcome)  20260303    200000            16 SUCCEEDED                                                                 The job succeeded.  The Job was invoked by Schedule 9 (BackupSQL.BaseDeDatosBelen).  The last step to run was step 1 (BaseDeDatosBelen).
+
+  🚨 4 JOB(S) FALLIDO(S) el 03/03:
+                     nombre_job     step_name  run_date  run_time  run_duration resultado                                                                                                                                                                                                  mensaje
+Plan de Mantenimiento.Subplan_1     Subplan_1  20260303         0           215    FAILED Executed as user: NT Service\SQLAgent$SQLBELEN. ...8 for 64-bit  Copyright (C) Microsoft Corporation. All rights reserved.    Started:  12:00:00 a.m.  Progress: 2026-03-03 00:00:01.33     Source: {77D
+Plan de Mantenimiento.Subplan_1 (Job outcome)  20260303         0           215    FAILED                                                                   The job failed.  The Job was invoked by Schedule 1011 (Plan de Mantenimiento.Subplan_1).  The last step to run was step 1 (Subplan_1).
+      MaintenancePlan.Subplan_1     Subplan_1  20260303         0           352    FAILED                            Executed as user: NT Service\SQLAgent$SQLBELEN. Started:  12:00:00 a.m.  Finished: 12:03:50 a.m.  Elapsed:  229.875 seconds.  The package execution failed.  The step failed.
+      MaintenancePlan.Subplan_1 (Job outcome)  20260303         0           352    FAILED                                                                                   The job failed.  The Job was invoked by Schedule 1012 (MaintenancePlan).  The last step to run was step 1 (Subplan_1).
+
+
+================================================================
+  PASO 5 — Instalando trigger de auditoría temporal (_AuditInventarioTemp)
+================================================================
+  ✅ Crear tabla _AuditInventarioTemp (si no existe)
+  ❌ CREATE OR ALTER TRIGGER trg_AuditAzucar_Temp: (pyodbc.ProgrammingError) ('42000', "[42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]Incorrect syntax near the keyword 'OR'. (156) (SQLExecDirectW); [42000] [Microsoft][ODBC Driver 17 for SQL Server][SQL Server]'ALTER TRIGGER' must be the first statement in a query batch. (111)")
+[SQL: 
+        CREATE OR ALTER TRIGGER trg_AuditAzucar_Temp
+        ON dbo.saAjusteReng
+        AFTER INSERT, UPDATE
+        AS
+        BEGIN
+            SET NOCOUNT ON;
+            INSERT INTO dbo._AuditInventarioTemp
+                (tipo_mov, co_tipo_doc, nro_doc, fec_emis,
+                 co_art, nro_lote, cant_mov, co_alma, usuario)
+            SELECT
+                tipo_mov, co_tipo_doc, nro_doc, fec_emis,
+                co_art, nro_lote, cant_mov, co_alma, usuario
+            FROM inserted
+            WHERE co_art = 'MPO1N000153';
+        END
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+  ℹ️  Trigger de auditoría activo. Para leer capturas después de reproducir el problema:
+     SELECT * FROM dbo._AuditInventarioTemp ORDER BY fec_captura DESC;
+
+  ℹ️  Para limpiar cuando termines:
+     DROP TRIGGER trg_AuditAzucar_Temp;
+     DROP TABLE dbo._AuditInventarioTemp;
+
+================================================================
+  RESUMEN EJECUTIVO
+================================================================
+
+  Servidor  : 192.168.60.15
+  Base de datos: CARMAL_A
+  Artículo  : MPO1N000153 (Azúcar)
+  Lote      : IA1M061225
+  Almacén   : P1-PS
+  Ejecutado : 2026-03-19 14:21:46
+
+  PASO 1 — Movimientos post 03/03 : ERROR
+  PASO 2 — Comparación de stock   : ERROR
+  PASO 3 — Triggers modificados   : Ver tabla arriba
+  PASO 4 — Jobs del Agent 03/03   : Ver tabla arriba
+  PASO 5 — Trigger auditoría      : INSTALADO ✅

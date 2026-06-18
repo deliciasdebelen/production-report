@@ -1,0 +1,80 @@
+================================================================================
+COMMAND: ls -la /home/administrador/apps
+================================================================================
+total 52
+drwxrwxr-x  3 administrador administrador  4096 feb 24 04:44 .
+drwxr-x---  9 administrador administrador  4096 may 15 13:56 ..
+drwxrwxr-x 19 administrador administrador 20480 may 28 20:35 production-report
+-rw-r--r--  1 administrador administrador 21049 feb 24 04:43 workflows.json
+
+================================================================================
+COMMAND: cd /home/administrador/apps/production-report && git stash list || true
+================================================================================
+stash@{0}: WIP on production: 07f4bd5 Merge branch 'main' into production
+stash@{1}: WIP on production: 1830d8f Merge branch 'main' into production
+stash@{2}: WIP on production: 6b65713 Configure deployment script for production branch
+stash@{3}: WIP on main: 5945745 Update GitHub authentication documentation
+
+================================================================================
+COMMAND: cd /home/administrador/apps/production-report && git branch -a || true
+================================================================================
+  main
+* production
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/feature/odoo-ui
+  remotes/origin/main
+  remotes/origin/production
+  remotes/origin/release/2026-01-22
+  remotes/origin/srv-desarrollo
+
+================================================================================
+COMMAND: cd /home/administrador/apps/production-report && git reflog -n 20 || true
+================================================================================
+27effad HEAD@{0}: reset: moving to origin/main
+07f4bd5 HEAD@{1}: reset: moving to HEAD
+07f4bd5 HEAD@{2}: pull: Fast-forward
+1830d8f HEAD@{3}: reset: moving to HEAD
+1830d8f HEAD@{4}: pull: Fast-forward
+6b65713 HEAD@{5}: reset: moving to HEAD
+6b65713 HEAD@{6}: checkout: moving from main to production
+5945745 HEAD@{7}: reset: moving to HEAD
+5945745 HEAD@{8}: clone: from https://github.com/deliciasdebelen/production-report.git
+
+================================================================================
+COMMAND: docker volume inspect production-report_pgdata || true
+================================================================================
+[
+    {
+        "CreatedAt": "2026-03-16T23:02:58Z",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.project": "production-report",
+            "com.docker.compose.version": "2.24.0",
+            "com.docker.compose.volume": "pgdata"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/production-report_pgdata/_data",
+        "Name": "production-report_pgdata",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+
+================================================================================
+COMMAND: docker volume inspect production-report_postgres_data || true
+================================================================================
+[
+    {
+        "CreatedAt": "2026-02-19T20:32:06Z",
+        "Driver": "local",
+        "Labels": {
+            "com.docker.compose.project": "production-report",
+            "com.docker.compose.version": "2.24.0",
+            "com.docker.compose.volume": "postgres_data"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/production-report_postgres_data/_data",
+        "Name": "production-report_postgres_data",
+        "Options": null,
+        "Scope": "local"
+    }
+]
+

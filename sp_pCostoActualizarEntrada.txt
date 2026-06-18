@@ -1,0 +1,240 @@
+CREATE PROCEDURE [dbo].[pCostoActualizarEntrada]
+    @RowGuid_Doc_Orig UNIQUEIDENTIFIER ,
+    @strTipo_doc CHAR(4)
+AS 
+    BEGIN
+        SET NOCOUNT ON ;
+        DECLARE @tablaGenerica TABLE
+            (
+              RowGuid_Art UNIQUEIDENTIFIER ,
+              Cod_Almacen CHAR(6) ,
+              Fecha_Doc DATETIME ,
+              Fecha_Us_In DATETIME ,
+              Total_Art DECIMAL(18, 5) ,
+              Costo_Reng DECIMAL(18, 5) ,
+              Pk_Co_Art CHAR(30) ,
+              Co_Uni CHAR(6) ,
+              iRengNumActual INT ,
+              Tipo_Doc CHAR(4)
+            )
+		
+        DECLARE @RowGuid_Art UNIQUEIDENTIFIER
+        DECLARE @Cod_Almacen CHAR(6)
+        DECLARE @Fecha_Doc DATETIME
+        DECLARE @Fecha_Us_In DATETIME
+        DECLARE @Total_Art DECIMAL(18, 5)
+        DECLARE @Total_ArtUniPrim DECIMAL(18, 5)
+        DECLARE @Costo_Reng DECIMAL(18, 5)
+        DECLARE @Pk_Co_Art CHAR(30)
+        DECLARE @Co_Uni CHAR(6)
+        DECLARE @iRengNumActual INT
+	
+        IF ( @strTipo_doc = 'AJUS' ) --AJUSTES DE ENTRADA
+            BEGIN
+                INSERT  INTO @tablaGenerica
+                        ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng, iRengNumActual,
+                          Pk_Co_Art, Co_Uni, Tipo_Doc )
+                        SELECT
+                            saArticulo.rowguid, saAjusteReng.co_alma, saAjusteReng.total_art, saAjuste.fecha,
+                            saAjuste.fe_us_in,
+                            saAjusteReng.cost_unit + saAjusteReng.costo_adi1 + saAjusteReng.costo_adi2
+                            + saAjusteReng.costo_adi3 AS cos_unit, saAjusteReng.reng_num, saAjusteReng.co_art,
+                            saAjusteReng.co_uni, 'AJUS'
+                        FROM
+                            saAjusteReng
+                            INNER JOIN saArticulo ON saArticulo.co_Art = saAjusteReng.co_art
+                            INNER JOIN saAjuste ON saAjuste.ajue_num = saAjusteReng.ajue_num
+                                                   AND saAjuste.anulado = 0
+                            INNER JOIN saTipoAjuste ON saTipoAjuste.tipo_trans = '0'
+                                                       AND saTipoAjuste.co_tipo = saAjusteReng.co_tipo
+                        WHERE
+                            saAjusteReng.rowguid = @RowGuid_Doc_Orig
+            END
+        ELSE 
+            IF ( @strTipo_doc = 'TRAS' ) --TRASLADO ENTRE ALMACENES
+                BEGIN
+                    INSERT  INTO @tablaGenerica
+                            ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng, iRengNumActual,
+                              Pk_Co_Art, Co_Uni, Tipo_Doc )
+		-- Ingreso en Almacen Temporal
+                            SELECT
+                                saArticulo.rowguid, saTraslado.alm_tmp, saTrasladoReng.total_art, saTraslado.fec_sal,
+                                saTraslado.fe_us_in, saTrasladoReng.cost_unit AS cost_unit, saTrasladoReng.reng_num,
+                                saTrasladoReng.co_art, saTrasladoReng.co_uni, 'TRAT'
+                            FROM
+                                saTrasladoReng
+                                INNER JOIN saArticulo ON saArticulo.co_Art = saTrasladoReng.co_art
+                                INNER JOIN saTraslado ON saTraslado.tras_num = saTrasladoReng.tras_num
+                                                         AND saTraslado.anulado = 0
+                            WHERE
+                                saTrasladoReng.rowguid = @RowGuid_Doc_Orig
+		-- Ingreso en Almacen Destino
+                            UNION
+                            SELECT
+                                saArticulo.rowguid, saTraslado.alm_dest, saTrasladoReng.total_art, saTraslado.fec_conf,
+                                saTraslado.fe_us_in,
+                                saTrasladoReng.cost_unit + saTrasladoReng.costo_adi1 + saTrasladoReng.costo_adi2
+                                + saTrasladoReng.costo_adi3 AS cost_unit, saTrasladoReng.reng_num, saTrasladoReng.co_art,
+                                saTrasladoReng.co_uni, 'TRAS'
+                            FROM
+                                saTrasladoReng
+                                INNER JOIN saArticulo ON saArticulo.co_Art = saTrasladoReng.co_art
+                                INNER JOIN saTraslado ON saTraslado.tras_num = saTrasladoReng.tras_num
+                                                         AND saTraslado.anulado = 0
+                            WHERE
+                                saTrasladoReng.rowguid = @RowGuid_Doc_Orig
+                                AND saTraslado.confirma = 1
+                END
+            ELSE 
+                IF ( @strTipo_doc = 'GCOM' ) --Compuesto Generado (Entrada de articulo en encabezado)
+                    BEGIN
+                        INSERT  INTO @tablaGenerica
+                                ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng,
+                                  iRengNumActual, Pk_Co_Art, Co_Uni, Tipo_Doc )
+                                SELECT
+                                    saArticulo.rowguid, saArtCompuestoGen.co_alma, saArtCompuestoGen.total_art,
+                                    saArtCompuestoGen.fecha, saArtCompuestoGen.fe_us_in, 
+				-- Se asume que los costos de los renglones del compuesto estan actualizados
+                                    ROUND(( SELECT
+                                                ISNULL(SUM(ROUND(ACGR.total_art * ( ACGR.cost_unit + ACGR.costo_adi1
+                                                                                    + ACGR.costo_adi2 + ACGR.costo_adi3 ),
+                                                                 2)), 0)
+                                            FROM
+                                                saArtCompuestoGenReng AS ACGR
+                                            WHERE
+                                                ACGR.gene_num = saArtCompuestoGen.gene_num
+                                          ) / saArtCompuestoGen.total_art, 5) AS cost_uni, 0, saArtCompuestoGen.co_art,
+                                    saArtCompuesto.co_uni, 'GCOM'
+                                FROM
+                                    saArtCompuestoGen
+                                    INNER JOIN saArtCompuesto ON saArtCompuesto.co_Art = saArtCompuestoGen.co_art
+                                    INNER JOIN saArticulo ON saArtCompuestoGen.co_art = saArticulo.co_art
+                                WHERE
+                                    saArtCompuestoGen.rowguid = @RowGuid_Doc_Orig
+                                    AND saArtCompuestoGen.gene_art = 1
+                    END
+                ELSE 
+                    IF ( @strTipo_doc = 'COMP' ) 
+                        BEGIN
+                            INSERT  INTO @tablaGenerica
+                                    ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng,
+                                      iRengNumActual, Pk_Co_Art, Co_Uni, Tipo_Doc )
+                                    SELECT
+                                        A.rowguid, R.co_alma, R.total_art, E.fec_emis, E.fe_us_in,
+                                        ROUND(( R.reng_neto + R.costo_adi1 + R.costo_adi2 + R.costo_adi3
+                                                - R.monto_desc_glob + R.monto_reca_glob + R.otros1_glob + +R.otros2_glob
+                                                + +R.otros3_glob ) / R.total_art, 5) AS cost_unit, R.reng_num, R.co_art,
+                                        R.co_uni, 'COMP'
+                                    FROM
+                                        saFacturaCompraReng R
+                                        INNER JOIN saArticulo A ON A.co_Art = R.co_art
+                                        INNER JOIN saFacturaCompra E ON E.doc_num = R.doc_num
+                                                                        AND E.anulado = 0
+                                    WHERE
+                                        R.rowguid = @RowGuid_Doc_Orig
+                        END
+                    ELSE 
+                        IF ( @strTipo_doc = 'NREC' ) 
+                            BEGIN
+                                INSERT  INTO @tablaGenerica
+                                        ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng,
+                                          iRengNumActual, Pk_Co_Art, Co_Uni, Tipo_Doc )
+                                        SELECT
+                                            A.rowguid, R.co_alma, R.pendiente + R.total_dev, E.fec_emis, E.fe_us_in,
+                                            ROUND(( R.reng_neto + R.costo_adi1 + R.costo_adi2 + R.costo_adi3
+                                                    - R.monto_desc_glob + R.monto_reca_glob + R.otros1_glob
+                                                    + +R.otros2_glob + +R.otros3_glob ) / R.total_art, 5) AS cost_unit,
+                                            R.reng_num, R.co_art, R.co_uni, 'NREC'
+                                        FROM
+                                            saNotaRecepcionCompraReng R
+                                            INNER JOIN saArticulo A ON A.co_Art = R.co_art
+                                            INNER JOIN saNotaRecepcionCompra E ON E.doc_num = R.doc_num
+                                                                                  AND E.anulado = 0
+                                        WHERE
+                                            R.rowguid = @RowGuid_Doc_Orig
+                                            AND R.pendiente + R.total_dev > 0 
+                            END
+                        ELSE 
+                            IF ( @strTipo_doc = 'DCLI' ) 
+                                BEGIN
+                                    INSERT  INTO @tablaGenerica
+                                            ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng,
+                                              iRengNumActual, Pk_Co_Art, Co_Uni, Tipo_Doc )
+                                            SELECT
+                                                A.rowguid, R.co_alma, R.total_art, E.fec_emis, E.fe_us_in,
+                                                ROUND(R.reng_neto / R.total_art, 5) AS cost_unit, R.reng_num, R.co_art,
+                                                R.co_uni, 'DCLI'
+                                            FROM
+                                                saDevolucionClienteReng R
+                                                INNER JOIN saArticulo A ON A.co_Art = R.co_art
+                                                INNER JOIN saDevolucionCliente E ON E.doc_num = R.doc_num
+                                                                                    AND E.anulado = 0
+                                            WHERE
+                                                R.rowguid = @RowGuid_Doc_Orig
+                                END	
+        IF ( EXISTS ( SELECT
+                        *
+                      FROM
+                        @tablaGenerica ) ) 
+            BEGIN
+	
+                DECLARE Cursor_Todos CURSOR FAST_FORWARD
+                FOR
+                    SELECT
+                        RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Fecha_Us_In, Costo_Reng, iRengNumActual,
+                        Pk_Co_Art, Co_Uni, Tipo_Doc
+                    FROM
+                        @tablaGenerica
+                DECLARE @RowGuidAct UNIQUEIDENTIFIER
+                DECLARE @Tipo_Doc CHAR(4)
+
+                OPEN Cursor_Todos
+                FETCH NEXT FROM Cursor_Todos INTO @RowGuid_Art, @Cod_Almacen, @Total_Art, @Fecha_Doc, @Fecha_Us_In,
+                    @Costo_Reng, @iRengNumActual, @Pk_Co_Art, @Co_Uni, @Tipo_Doc
+
+		
+                WHILE @@FETCH_STATUS = 0 
+                    BEGIN
+
+			-- Llevar Cantidad y Costo a Unidad Base
+                        SET @Total_ArtUniPrim = dbo.ArtUnidadBase(@Pk_Co_Art, @Co_Uni, 1)
+                        IF ( @Total_ArtUniPrim <> 1 ) 
+                            SET @Costo_Reng = ROUND(@Costo_Reng / @Total_ArtUniPrim, 5)
+
+						SET @RowGuidAct = NULL  -- Agregado por Carlos STella para que funcione correctamente
+
+                        SET @Total_ArtUniPrim = @Total_ArtUniPrim * @Total_Art
+
+                        SELECT
+                            @RowGuidAct = CE.cod_costo_historico_entrada
+                        FROM
+                            saCostoHistoricoEntrada CE
+                        WHERE
+                            CE.tipo_doc = @Tipo_Doc
+                            AND CE.doc_orig = @RowGuid_Doc_Orig 
+
+                        IF ( @RowGuidAct IS NOT NULL ) 
+                            BEGIN
+                                EXEC [dbo].[pActualizarCostoHistoricoEntrada] @gCod_Articulo_Rowguid = @RowGuid_Art,
+                                    @sCod_Almacen = @Cod_Almacen, @sTipo_Doc = @Tipo_Doc, @gDoc_Orig = @RowGuid_Doc_Orig,
+                                    @deCantidad = @Total_ArtUniPrim, @deCosto = @Costo_Reng,
+                                    @sdFecha_Registro = @Fecha_Us_In, @sdFecha_Emision = @Fecha_Doc,
+                                    @sdFecha_Recepcion = NULL, @gRowguid = @RowGuidAct, @iValRengNum = @iRengNumActual
+                            END
+                        ELSE 
+                            BEGIN
+                                EXEC [dbo].[pInsertarCostoHistoricoEntrada] @gCod_Articulo_Rowguid = @RowGuid_Art,
+                                    @sCod_Almacen = @Cod_Almacen, @sTipo_Doc = @Tipo_Doc, @gDoc_Orig = @RowGuid_Doc_Orig,
+                                    @deCantidad = @Total_ArtUniPrim, @deCantidad_Usada = 0, @deCosto = @Costo_Reng,
+                                    @sdFecha_Registro = @Fecha_Us_In, @sdFecha_Emision = @Fecha_Doc,
+                                    @sdFecha_Recepcion = NULL, @iValRengNum = @iRengNumActual
+                            END
+			
+                        FETCH NEXT FROM Cursor_Todos INTO @RowGuid_Art, @Cod_Almacen, @Total_Art, @Fecha_Doc,
+                            @Fecha_Us_In, @Costo_Reng, @iRengNumActual, @Pk_Co_Art, @Co_Uni, @Tipo_Doc
+                    END
+		
+                CLOSE Cursor_Todos
+                DEALLOCATE Cursor_Todos
+            END
+    END

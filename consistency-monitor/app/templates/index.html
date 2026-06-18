@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validación de Consistencias - Profit Plus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-main: #f8fafc;
+            --bg-card: #ffffff;
+            --border-color: #e2e8f0;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            
+            /* Odoo Brand Colors */
+            --odoo-purple: #714B67;
+            --odoo-teal: #00A09D;
+            --odoo-light-purple: #f3eef2;
+            
+            --accent-success: #166534;
+            --accent-success-bg: #dcfce7;
+            --accent-failed: #991b1b;
+            --accent-failed-bg: #fee2e2;
+            --accent-running: #075985;
+            --accent-running-bg: #e0f2fe;
+            
+            --radius-sm: 4px;
+            --radius-md: 8px;
+            --radius-lg: 12px;
+            
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        /* Odoo Top Bar */
+        .top-bar {
+            background-color: var(--odoo-purple);
+            color: white;
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .top-bar-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .top-bar-title span {
+            font-size: 1.35rem;
+        }
+
+        .top-bar-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.15);
+            padding: 0.35rem 0.85rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #22c55e;
+            box-shadow: 0 0 8px #22c55e;
+        }
+
+        /* Container & Layout */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Page Header */
+        header {
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1.25rem;
+        }
+
+        .header-title h2 {
+            font-size: 1.75rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .header-title p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+
+        /* Grid Summary Cards */
+        .grid-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            box-shadow: var(--shadow-sm);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--odoo-teal);
+        }
+
+        .card.card-success::before {
+            background: #22c55e;
+        }
+
+        .card.card-next::before {
+            background: var(--odoo-purple);
+        }
+
+        .card h3 {
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .card .value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card .subtext {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        /* Action Buttons Panel */
+        .actions-panel {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1.25rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1.5rem;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .btn-audit {
+            background-color: white;
+            border-color: #cbd5e1;
+            color: #334155;
+        }
+
+        .btn-audit:hover:not(:disabled) {
+            background-color: #f8fafc;
+            border-color: #94a3b8;
+        }
+
+        .btn-correct {
+            background-color: var(--odoo-purple);
+            color: white;
+        }
+
+        .btn-correct:hover:not(:disabled) {
+            background-color: #5c3c54;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Logs Section */
+        .logs-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .logs-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: #f8fafc;
+        }
+
+        .logs-header h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 0.85rem 1.5rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: #f8fafc;
+        }
+
+        td {
+            padding: 0.95rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+            color: #334155;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr {
+            transition: background-color 0.1s ease;
+        }
+
+        tbody tr:hover {
+            background-color: #f8fafc;
+            cursor: pointer;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            padding: 0.2rem 0.6rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .status-pill.success {
+            background-color: var(--accent-success-bg);
+            color: var(--accent-success);
+        }
+
+        .status-pill.failed {
+            background-color: var(--accent-failed-bg);
+            color: var(--accent-failed);
+        }
+
+        /* Modal Details */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            width: 90%;
+            max-width: 850px;
+            max-height: 85vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-lg);
+            transform: scale(0.97);
+            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f8fafc;
+        }
+
+        .modal-header h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex: 1;
+            background-color: #f8fafc;
+        }
+
+        .detail-row {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .detail-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        .detail-row-name {
+            color: var(--odoo-purple);
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .detail-motivos {
+            color: #475569;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            background: #f1f5f9;
+            padding: 0.75rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid #e2e8f0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Odoo Style Top Bar -->
+    <div class="top-bar">
+        <div class="top-bar-title">
+            <span>⚙️</span>
+            Profit Plus Admin Portal
+        </div>
+        <div class="top-bar-status">
+            <div class="status-indicator" id="scheduler-indicator"></div>
+            <span id="scheduler-text">Scheduler Activo</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="header-title">
+                <h2>Validación de Consistencias</h2>
+                <p>Auditoría y corrección automatizada de discrepancias en inventarios y stock de lotes</p>
+            </div>
+        </header>
+
+        <!-- Summary Grid -->
+        <div class="grid-summary">
+            <div class="card card-next" id="card-next-run">
+                <h3>Siguiente Ejecución Automática</h3>
+                <div class="value" id="next-run-val">-</div>
+                <div class="subtext">Cron: Cada 30 min (7 AM - 6 PM, Lun-Vie)</div>
+            </div>
+            <div class="card card-success" id="card-last-ok">
+                <h3>Última Corrida Completa</h3>
+                <div class="value" id="last-ok-val">-</div>
+                <div class="subtext" id="last-ok-duration">Duración: -</div>
+            </div>
+            <div class="card" id="card-total-runs">
+                <h3>Total Registros</h3>
+                <div class="value" id="total-runs-val">0</div>
+                <div class="subtext">Historial de auditorías en Postgres</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="actions-panel">
+            <button class="btn btn-audit" id="btn-audit" onclick="triggerRun(0)">
+                🔍 Correr Auditoría (Modo Simulación)
+            </button>
+            <button class="btn btn-correct" id="btn-correct" onclick="triggerRun(1)">
+                🛠️ Ejecutar Corrección Automática
+            </button>
+        </div>
+
+        <!-- Logs Section -->
+        <div class="logs-section">
+            <div class="logs-header">
+                <h2>Historial de Ejecuciones</h2>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">ID</th>
+                            <th>Fecha de Ejecución</th>
+                            <th>Iniciado por</th>
+                            <th>Estado General</th>
+                            <th style="width: 120px;">Duración</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logs-tbody">
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">Cargando registros...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Details -->
+    <div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h3 id="modal-title">Detalles de Ejecución</h3>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-body">
+                <!-- Dynamic Content -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isRunning = false;
+        let logsData = [];
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/scheduler/status');
+                const data = await res.json();
+                
+                const indicator = document.getElementById('scheduler-indicator');
+                const text = document.getElementById('scheduler-text');
+                const nextRun = document.getElementById('next-run-val');
+                
+                if (data.active) {
+                    indicator.style.backgroundColor = '#22c55e';
+                    indicator.style.boxShadow = '0 0 8px #22c55e';
+                    text.innerText = 'Scheduler Activo';
+                } else {
+                    indicator.style.backgroundColor = '#ef4444';
+                    indicator.style.boxShadow = '0 0 8px #ef4444';
+                    text.innerText = 'Scheduler Inactivo';
+                }
+                
+                nextRun.innerText = data.next_run ? data.next_run : 'No programada';
+            } catch (e) {
+                console.error("Error fetching scheduler status:", e);
+            }
+        }
+
+        async function fetchLogs() {
+            try {
+                const res = await fetch('/logs');
+                const data = await res.json();
+                logsData = data;
+                
+                const tbody = document.getElementById('logs-tbody');
+                const totalRuns = document.getElementById('total-runs-val');
+                const lastOk = document.getElementById('last-ok-val');
+                const lastOkDuration = document.getElementById('last-ok-duration');
+                
+                totalRuns.innerText = data.length;
+                
+                const lastSuccess = data.find(l => l.status === 'SUCCESS');
+                if (lastSuccess) {
+                    lastOk.innerText = lastSuccess.execution_date;
+                    lastOkDuration.innerText = `Duración: ${lastSuccess.duration_seconds}s`;
+                } else {
+                    lastOk.innerText = 'Sin registros';
+                    lastOkDuration.innerText = 'Duración: -';
+                }
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay registros disponibles.</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.map(log => `
+                    <tr onclick="showDetails(${log.id})">
+                        <td style="font-weight: 600; color: var(--odoo-purple);">#${log.id}</td>
+                        <td>${log.execution_date}</td>
+                        <td>${log.initiated_by}</td>
+                        <td>
+                            <span class="status-pill ${log.status === 'SUCCESS' ? 'success' : 'failed'}">
+                                ${log.status === 'SUCCESS' ? 'EXITOSO' : 'CON FALLAS'}
+                            </span>
+                        </td>
+                        <td>${log.duration_seconds}s</td>
+                    </tr>
+                `).join('');
+                
+            } catch (e) {
+                console.error("Error fetching logs:", e);
+            }
+        }
+
+        async function triggerRun(bCorregir) {
+            if (isRunning) return;
+            
+            const btnAudit = document.getElementById('btn-audit');
+            const btnCorrect = document.getElementById('btn-correct');
+            
+            isRunning = true;
+            btnAudit.disabled = true;
+            btnCorrect.disabled = true;
+            
+            try {
+                const res = await fetch('/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ b_corregir: bCorregir, username: 'Administrador' })
+                });
+                
+                const data = await res.json();
+                if (res.ok) {
+                    alert("✓ " + data.message);
+                } else {
+                    alert("❌ Error: " + data.error);
+                }
+            } catch (e) {
+                alert("❌ Error al conectar con el servidor.");
+            } finally {
+                setTimeout(() => {
+                    isRunning = false;
+                    btnAudit.disabled = false;
+                    btnCorrect.disabled = false;
+                }, 1000);
+            }
+        }
+
+        function showDetails(logId) {
+            const log = logsData.find(l => l.id === logId);
+            if (!log) return;
+            
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const overlay = document.getElementById('modal-overlay');
+            
+            modalTitle.innerText = `Detalles de Ejecución #${log.id} (${log.execution_date})`;
+            
+            if (log.details.length === 0) {
+                modalBody.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay detalles registrados para esta corrida.</div>`;
+            } else {
+                modalBody.innerHTML = log.details.map(d => {
+                    if (d.error) {
+                        return `<div class="detail-row" style="border-left: 4px solid var(--accent-failed);">
+                            <div class="detail-row-header">
+                                <span class="detail-row-name" style="color: var(--accent-failed);">ERROR GENERAL DE CONEXIÓN</span>
+                            </div>
+                            <div class="detail-motivos">${d.error}</div>
+                        </div>`;
+                    }
+                    
+                    const motives = d.motivos || [];
+                    const hasIssues = motives.length > 0 && motives[0] !== "Sin novedades";
+                    return `
+                        <div class="detail-row" style="border-left: 4px solid ${hasIssues ? '#f59e0b' : '#10b981'};">
+                            <div class="detail-row-header">
+                                <span class="detail-row-name">${d.proc_name}</span>
+                                <span>Paso: ${d.pass_number} | <span class="status-pill ${d.status === 'SUCCESS' ? 'success' : 'failed'}">${d.status}</span> | ${d.duration_seconds.toFixed(2)}s</span>
+                            </div>
+                            <div class="detail-motivos">${motives.join('\n')}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            overlay.classList.add('active');
+        }
+
+        function closeModal(event) {
+            document.getElementById('modal-overlay').classList.remove('active');
+        }
+
+        // Auto-refresh data every 10 seconds
+        setInterval(() => {
+            fetchStatus();
+            fetchLogs();
+        }, 10000);
+
+        // Initial fetch
+        fetchStatus();
+        fetchLogs();
+    </script>
+</body>
+</html>

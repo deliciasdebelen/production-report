@@ -1,0 +1,77 @@
+
+/**************************************************************************************************************
+NOMBRE: pInsertarRenglonesAjuste
+DESCRIPCION: 
+CREADO POR: SOFTECH SISTEMAS
+***************************************************************************************************************/
+CREATE PROCEDURE [pInsertarRenglonesAjusteEntradaSalida]
+    (
+      @sAjue_Num CHAR(20) ,
+      @iReng_Num INT ,
+      @sCo_Tipo CHAR(6) ,
+      @sCo_Art CHAR(30) ,
+      @sCo_Alma CHAR(6) ,
+      @sCo_Uni CHAR(6) ,
+      @sSco_Uni CHAR(6) ,
+      @sDis_cen VARCHAR(MAX) = NULL ,
+      @deTotal_Art DECIMAL(18, 5) ,
+      @deStotal_Art DECIMAL(18, 5) ,
+      @deCost_Unit DECIMAL(18, 5) ,
+      @deCosto_Adi1 DECIMAL(18, 5) ,
+      @deCosto_Adi2 DECIMAL(18, 5) ,
+      @deCosto_Adi3 DECIMAL(18, 5) ,
+      @sCo_Us_In CHAR(6) ,
+      @sMaquina VARCHAR(60) = NULL ,
+      @sCo_Sucu_In CHAR(6) = NULL ,
+      @sRevisado CHAR(1) = NULL ,
+      @sTrasnfe CHAR(1) = NULL
+    )
+AS 
+    BEGIN
+        DECLARE @TableTimestamp TABLE
+            (
+              fe_us_in DATETIME ,
+              fe_us_mo DATETIME ,
+              rowguid UNIQUEIDENTIFIER
+            )
+	
+        INSERT  INTO saAjusteReng
+                ( ajue_num, reng_num, co_tipo, co_art, co_alma, dis_cen, total_art, stotal_art, cost_unit, co_uni,
+                  sco_uni, costo_adi1, costo_adi2, costo_adi3, lote_asignado, co_us_in, co_sucu_in, fe_us_in, co_us_mo,
+                  co_sucu_mo, fe_us_mo, trasnfe, revisado )
+        OUTPUT  inserted.fe_us_in, inserted.fe_us_mo, Inserted.rowguid
+                INTO @TableTimestamp
+        VALUES
+                ( @sAjue_Num, @iReng_Num, @sCo_Tipo, @sCo_Art, @sCo_Alma, @sDis_cen, @deTotal_Art, @deStotal_Art,
+                  @deCost_Unit, @sCo_Uni, @sSco_Uni, @deCosto_Adi1, @deCosto_Adi2, @deCosto_Adi3, '0', @sCo_Us_In,
+                  @sCo_Sucu_In, GETDATE(), @sCo_Us_In, @sCo_Sucu_In, GETDATE(), @sTrasnfe, @sRevisado )	
+
+        DECLARE @dtFe_In DATETIME
+        DECLARE @rowGuidOri UNIQUEIDENTIFIER
+
+        SELECT
+            @dtFe_In = fe_us_in, @rowGuidOri = rowguid
+        FROM
+            @TableTimestamp
+	
+        IF ( EXISTS ( SELECT
+                        co_tipo
+                      FROM
+                        saTipoAjuste
+                      WHERE
+                        co_tipo = @sCo_Tipo
+                        AND tipo_trans = 0 ) ) 
+            EXEC [pCostoActualizarEntrada] @RowGuid_Doc_Orig = @rowGuidOri, @strTipo_doc = 'AJUS'
+        ELSE 
+            EXEC [pCostoActualizarSalida] @RowGuid_Doc_Orig = @rowGuidOri, @strTipo_doc = 'AJUS'
+
+	-- Insertar Pista
+        EXEC [pInsertarPista] @sUsuario_Id = @sCo_Us_In, @dtFecha = @dtFe_In, @sCo_Sucu = @sCo_Sucu_in,
+            @sTablaOri = 'saAjusteReng', @rowguidOri = @rowGuidOri, @sTipo_Op = 'I', @sMaquina = @sMaquina,
+            @sCampos = @sCo_Alma
+	
+        SELECT
+            *
+        FROM
+            @TableTimestamp
+    END

@@ -1,0 +1,518 @@
+
+
+ CREATE PROCEDURE [dbo].[pCostoActualizarSalida] 
+ 
+ @RowGuid_Doc_Orig UNIQUEIDENTIFIER , 
+ 
+ @strTipo_doc CHAR(4) , 
+ 
+ @TipoCosto CHAR(1) = NULL -- UEPS 
+ 
+ AS 
+ 
+ BEGIN 
+ 
+ SET NOCOUNT ON 
+ 
+ 
+ 
+ -- Almacena los articulos a los que hay que asignarle costos 
+ 
+ DECLARE @tablaGenerica TABLE 
+ 
+ ( 
+ 
+ RowGuid_Art UNIQUEIDENTIFIER , 
+ 
+ Cod_Almacen CHAR(6) , 
+ 
+ Fecha_Doc DATETIME , 
+ 
+ Total_Art DECIMAL(18, 5) , 
+ 
+ Pk_Co_Art CHAR(30) , 
+ 
+ Co_Uni CHAR(6) , 
+ 
+ Tipo_Doc CHAR(4) 
+ 
+ ) 
+ 
+ DECLARE @RowGuid_Art UNIQUEIDENTIFIER 
+ 
+ DECLARE @Cod_Almacen CHAR(6) 
+ 
+ DECLARE @Fecha_Doc DATETIME 
+ 
+ DECLARE @Total_Art DECIMAL(18, 5) 
+ 
+ DECLARE @Pk_Co_Art CHAR(30) 
+ 
+ DECLARE @Co_Uni CHAR(6) 
+ 
+ DECLARE @Tipo_Doc CHAR(4) 
+ 
+ 
+ 
+ IF ( @TipoCosto IS NULL ) 
+ 
+ SELECT 
+ 
+ @TipoCosto = i_costo_inventario 
+ 
+ FROM 
+ 
+ par_emp 
+ 
+ 
+ 
+ IF ( @strTipo_doc = 'AJUS' ) --AJUSTES SALIDA 
+ 
+ BEGIN 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ saArticulo.rowguid, saAjusteReng.co_alma, saAjusteReng.total_art, saAjuste.fecha, 
+ 
+ saAjusteReng.co_art, saAjusteReng.co_uni, 'AJUS' 
+ 
+ FROM 
+ 
+ saAjusteReng 
+ 
+ INNER JOIN saArticulo ON saArticulo.co_Art = saAjusteReng.co_art 
+ 
+ INNER JOIN saAjuste ON saAjuste.ajue_num = saAjusteReng.ajue_num 
+ 
+ AND saAjuste.anulado = 0 
+ 
+ INNER JOIN saTipoAjuste ON saTipoAjuste.tipo_trans = '1' 
+ 
+ AND saTipoAjuste.co_tipo = saAjusteReng.co_tipo 
+ 
+ WHERE 
+ 
+ saAjusteReng.rowguid = @RowGuid_Doc_Orig 
+ 
+ END 
+ 
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'TRAS' ) --TRASLADO ENTRE ALMACENES 
+ 
+ BEGIN 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_doc ) 
+ 
+ -- Salida Almacen Origen 
+ 
+ SELECT 
+ 
+ saArticulo.rowguid, saTraslado.alm_orig, saTrasladoReng.total_art, saTraslado.fec_sal, 
+ 
+ saTrasladoReng.co_art, saTrasladoReng.co_uni, 'TRAS' 
+ 
+ FROM 
+ 
+ saTrasladoReng 
+ 
+ INNER JOIN saArticulo ON saArticulo.co_Art = saTrasladoReng.co_art 
+ 
+ INNER JOIN saTraslado ON saTraslado.tras_num = saTrasladoReng.tras_num 
+ 
+ AND saTraslado.anulado = 0 
+ 
+ WHERE 
+ 
+ saTrasladoReng.rowguid = @RowGuid_Doc_Orig 
+ 
+ UNION 
+ 
+ -- Salida Almacen Temporal 
+ 
+ SELECT 
+ 
+ saArticulo.rowguid, saTraslado.alm_tmp, saTrasladoReng.total_art, saTraslado.fec_conf, 
+ 
+ saTrasladoReng.co_art, saTrasladoReng.co_uni, 'TRAT' 
+ 
+ FROM 
+ 
+ saTrasladoReng 
+ 
+ INNER JOIN saArticulo ON saArticulo.co_Art = saTrasladoReng.co_art 
+ 
+ INNER JOIN saTraslado ON saTraslado.tras_num = saTrasladoReng.tras_num 
+ 
+ AND saTraslado.anulado = 0 
+ 
+ WHERE 
+ 
+ saTrasladoReng.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND saTraslado.confirma = 1 
+ 
+ END 
+ 
+ --ELSE If (@strTipo_doc = 'RGEN') --Compuesto Generado 
+ 
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'GCOM' ) --Compuesto Generado 
+ 
+ BEGIN 
+ 
+ --INSERT @tablaGenerica (RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc) 
+ 
+ -- Select saArticulo.rowguid, saArtCompuestoGenReng.co_alma, saArtCompuestoGenReng.total_art, 
+ 
+ -- saArtCompuestoGen.fecha, saArtCompuestoGenReng.co_art, saArtCompuestoGenReng.co_uni, 'RGEN' 
+ 
+ -- From saArtCompuestoGenReng 
+ 
+ -- inner join saArticulo On saArticulo.co_Art = saArtCompuestoGenReng.co_art 
+ 
+ -- inner join saArtCompuestoGen On saArtCompuestoGen.gene_num = saArtCompuestoGenReng.gene_num 
+ 
+ -- Where saArtCompuestoGenReng.rowguid = @RowGuid_Doc_Orig AND saArtCompuestoGen.gene_art = 1 
+ 
+ 
+ 
+ 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ saArticulo.rowguid, saArtCompuestoGenReng.co_alma, saArtCompuestoGenReng.total_art, 
+ 
+ saArtCompuestoGen.fecha, saArtCompuestoGenReng.co_art, saArtCompuestoGenReng.co_uni, 
+ 
+ 'GCOM' 
+ 
+ FROM 
+ 
+ saArtCompuestoGenReng 
+ 
+ INNER JOIN saArticulo ON saArticulo.co_Art = saArtCompuestoGenReng.co_art 
+ 
+ INNER JOIN saArtCompuestoGen ON saArtCompuestoGen.gene_num = saArtCompuestoGenReng.gene_num 
+ 
+ WHERE 
+ 
+ saArtCompuestoGenReng.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND saArtCompuestoGen.gene_art = 1 
+ 
+ 
+ 
+ END 
+ 
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'NENT' ) --Nota de entrega 
+ 
+ BEGIN 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ A.rowguid, R.co_alma, R.pendiente + R.total_dev, E.fec_emis, R.co_art, R.co_uni, 
+ 
+ 'NENT' 
+ 
+ FROM 
+ 
+ saNotaEntregaVentaReng R 
+ 
+ INNER JOIN saArticulo A ON A.co_Art = R.co_art 
+ 
+ INNER JOIN saNotaEntregaVenta E ON E.doc_num = R.doc_num 
+ 
+ WHERE 
+ 
+ R.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND E.anulado = 0 
+ 
+ AND R.pendiente + R.total_dev > 0 
+ 
+ END 
+ 
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'FACT' ) --Factura de Venta 
+ 
+ BEGIN 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ A.rowguid, R.co_alma, R.total_art, E.fec_emis, R.co_art, R.co_uni, 'FACT' 
+ 
+ FROM 
+ 
+ saFacturaVentaReng R 
+ 
+ INNER JOIN saArticulo A ON A.co_Art = R.co_art 
+ 
+ INNER JOIN saFacturaVenta E ON E.doc_num = R.doc_num 
+ 
+ WHERE 
+ 
+ R.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND E.anulado = 0 
+ 
+ END 
+ 
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'DPRO' ) -- Devolucion a Proveedor 
+ 
+ BEGIN 
+ 
+ INSERT INTO @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, 
+ 
+ Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ A.rowguid, R.co_alma, R.total_art, E.fec_emis, R.co_art, R.co_uni, 
+ 
+ 'DPRO' 
+ 
+ FROM 
+ 
+ saDevolucionProveedorReng R 
+ 
+ INNER JOIN saArticulo A ON A.co_Art = R.co_art 
+ 
+ INNER JOIN saDevolucionProveedor E ON E.doc_num = R.doc_num 
+ 
+ WHERE 
+ 
+ R.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND E.anulado = 0 
+ 
+ END 
+ 
+ ----NOTA DE DESPACHO SIT-706614
+ ELSE 
+ 
+ IF ( @strTipo_doc = 'NDES' ) --Nota de Despacho 
+ 
+ BEGIN 
+ 
+ INSERT @tablaGenerica 
+ 
+ ( RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_Doc ) 
+ 
+ SELECT 
+ 
+ A.rowguid, R.co_alma, R.total_art, E.fec_emis, R.co_art, R.co_uni, 'NDES' 
+ 
+ FROM 
+ 
+ saNotaDespachoVentaReng R 
+ 
+ INNER JOIN saArticulo A ON A.co_Art = R.co_art 
+ 
+ INNER JOIN saNotaDespachoVenta E ON E.doc_num = R.doc_num 
+ 
+ WHERE 
+ 
+ R.rowguid = @RowGuid_Doc_Orig 
+ 
+ AND E.anulado = 0 
+ 
+ END 
+ 
+ 
+ -- Borra las salidas actuales y retorna el valor pendiente a la entrada 
+ 
+ EXEC [dbo].[pCostoEliminarSalida] @RowGuid_Doc_Orig = @RowGuid_Doc_Orig, @strTipo_doc = @strTipo_doc 
+ 
+ 
+ 
+ IF ( EXISTS ( SELECT 
+ 
+ * 
+ 
+ FROM 
+ 
+ @tablaGenerica ) ) 
+ 
+ BEGIN 
+ 
+ DECLARE Cursor_Todos CURSOR LOCAL FAST_FORWARD 
+ 
+ FOR 
+ 
+ SELECT 
+ 
+ RowGuid_Art, Cod_Almacen, Total_Art, Fecha_Doc, Pk_Co_Art, Co_Uni, Tipo_doc 
+ 
+ FROM 
+ 
+ @tablaGenerica 
+ 
+ 
+ 
+ OPEN Cursor_Todos 
+ 
+ FETCH NEXT FROM Cursor_Todos INTO @RowGuid_Art, @Cod_Almacen, @Total_Art, @Fecha_Doc, @Pk_Co_Art, 
+ 
+ @Co_Uni, @Tipo_Doc 
+ 
+ 
+ 
+ WHILE @@FETCH_STATUS = 0 
+ 
+ BEGIN 
+ 
+ DECLARE @Id UNIQUEIDENTIFIER 
+ 
+ DECLARE @Id2 UNIQUEIDENTIFIER 
+ 
+ DECLARE @Cantidad DECIMAL(18, 5) 
+ 
+ 
+  -- Llevar Cantidad a Unidad Base 
+ 
+ SET @Total_Art = dbo.ArtUnidadBase(@Pk_Co_Art, @Co_Uni, @Total_Art) 
+ 
+ -- FIN Llevar Cantidad a Unidad Base 
+ 
+ IF ( @strTipo_doc <> 'DPRO' ) -- Devolucion a Proveedor 
+ begin
+ 
+ DECLARE Entradas_Cursor CURSOR LOCAL FORWARD_ONLY 
+ 
+ FOR 
+ 
+ SELECT 
+ 
+ * 
+ 
+ FROM 
+ 
+ dbo.tfCostoObtenerEntradas(@RowGuid_Art, @Cod_Almacen, @Total_Art, @TipoCosto, 
+ 
+ @Fecha_Doc, @RowGuid_Doc_Orig, @Tipo_Doc) 
+ 
+ end
+ 
+ else begin
+ 
+ 
+  DECLARE Entradas_Cursor CURSOR LOCAL FORWARD_ONLY 
+ 
+ FOR 
+ 
+ SELECT 
+ 
+  CHE.cod_costo_historico_entrada as Id, @Total_Art as Cantidad
+
+ from saDevolucionProveedorReng DPR JOIN saCostoHistoricoEntrada CHE
+
+ ON DPR.rowguid_doc = CHE.doc_orig WHERE DPR.rowguid = @RowGuid_Doc_Orig
+
+ 
+ end
+
+ OPEN Entradas_Cursor 
+ 
+ FETCH NEXT FROM Entradas_Cursor INTO @Id, @Cantidad 
+
+ 
+ WHILE @@FETCH_STATUS = 0 
+ 
+ BEGIN 
+ 
+ 
+ 
+ EXEC [dbo].[pInsertarCostoHistoricoSalida] @gCod_Costo_Historico_Entrada = @Id, 
+ 
+ @deCantidad = @Cantidad, @gDoc_Orig = @RowGuid_Doc_Orig, @sTipo_Doc = @Tipo_Doc, 
+ 
+ @dtValFecha = @Fecha_Doc, @gValCo_Art = @RowGuid_Art, 
+ 
+ @sValCod_Almacen = @Cod_Almacen 
+ 
+ 
+ IF ( @strTipo_doc ='NDES')
+ BEGIN
+	 UPDATE 
+	 
+	 saCostoHistoricoEntrada 
+	 
+	 SET cantidad_usada = CHE.cantidad_usada 
+	 FROM saCostoHistoricoEntrada CHE
+	 
+	 WHERE 
+	 
+	 cod_costo_historico_entrada = @Id 
+ END
+ ELSE 
+ BEGIN
+ -- Actualiza la cantidad usada en los costos de entrada 
+ 
+	 UPDATE 
+	 
+	 saCostoHistoricoEntrada 
+	 
+	 SET cantidad_usada = cantidad_usada + @Cantidad 
+	 
+	 WHERE 
+	 
+	 cod_costo_historico_entrada = @Id 
+ END
+ 
+ 
+ FETCH NEXT FROM Entradas_Cursor INTO @Id, @Cantidad 
+ 
+ END 
+ 
+ 
+ 
+ CLOSE Entradas_Cursor 
+ 
+ DEALLOCATE Entradas_Cursor 
+ 
+ 
+ 
+ FETCH NEXT FROM Cursor_Todos INTO @RowGuid_Art, @Cod_Almacen, @Total_Art, @Fecha_Doc, @Pk_Co_Art, 
+ 
+ @Co_Uni, @Tipo_Doc 
+ 
+ END 
+ 
+ 
+ 
+ CLOSE Cursor_Todos 
+ 
+ DEALLOCATE Cursor_Todos 
+ 
+ END 
+ 
+ END 
+ 
+

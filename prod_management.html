@@ -1,0 +1,462 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<style>
+    /* Specific overrides for this view if needed, though Odoo classes from layout.html cover most */
+    .odoo-search-view {
+        background: #fff;
+        border-bottom: 1px solid #e5e7eb;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .odoo-search-input {
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 13px;
+        min-width: 250px;
+        color: #111827;
+    }
+
+    .odoo-search-input:focus {
+        outline: none;
+        border-color: var(--odoo-primary);
+        box-shadow: 0 0 0 1px var(--odoo-primary);
+    }
+
+    .odoo-filter-select {
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        padding: 6px 30px 6px 10px;
+        font-size: 13px;
+        color: #374151;
+        background-color: #fff;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        background-size: 14px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="odoo-control-panel flex items-center justify-between" style="border-bottom: none;">
+    <div class="odoo-breadcrumb">
+        <a href="/support" style="text-decoration: none; color: inherit;">Soporte</a>
+        <span style="color:#aaa; margin: 0 8px;">/</span>
+        <span class="active" style="color: #111827; font-weight: 500;">Tickets Generados</span>
+    </div>
+    <div class="odoo-actions">
+        <a href="/support/create" class="btn-odoo-primary" style="text-decoration: none;">Crear Ticket</a>
+    </div>
+</div>
+
+<!-- Success Banner (shown when redirected after ticket creation) -->
+<div id="successBanner" style="display:none; background:#ecfdf5; border-left:4px solid #10b981; padding:12px 20px; margin:0; display:flex; align-items:center; gap:12px; font-size:13px; color:#065f46;">
+    <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+    <span id="successBannerText">Ticket creado con éxito.</span>
+    <button onclick="document.getElementById('successBanner').style.display='none'" style="margin-left:auto; background:none; border:none; cursor:pointer; color:#6b7280; font-size:18px; line-height:1;">&times;</button>
+</div>
+
+<div class="odoo-search-view">
+    <div style="position: relative;">
+        <svg style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #9ca3af;"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+        <input type="text" id="searchInput" class="odoo-search-input"
+            placeholder="Buscar por código, asunto o usuario..." style="padding-left: 28px;">
+    </div>
+
+    <div style="display: flex; gap: 8px; align-items: center; border-left: 1px solid #e5e7eb; padding-left: 12px;">
+        <span style="font-size: 13px; color: #6b7280; font-weight: 500;">Filtros:</span>
+        <input type="date" id="dateFrom" title="Desde" class="odoo-filter-select">
+        <span style="color: #9ca3af;">-</span>
+        <input type="date" id="dateTo" title="Hasta" class="odoo-filter-select">
+
+        <select id="statusFilter" class="odoo-filter-select">
+            <option value="all">Estado: Todos</option>
+            <!-- Loaded via JS -->
+        </select>
+
+        <select id="techFilter" class="odoo-filter-select">
+            <option value="all">Técnico: Todos</option>
+            <!-- Loaded via JS -->
+        </select>
+    </div>
+</div>
+
+<div class="odoo-sheet"
+    style="padding: 0; margin-top: 0; border-top: none; border-radius: 0 0 4px 4px; box-shadow: none;">
+    <div class="table-responsive-wrapper">
+        <table class="odoo-list-view" style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb; text-align: left;">
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Código</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Fecha</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Asunto</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Depto / Tipo</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Usuario</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Prioridad</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Asignado a</th>
+                    <th style="padding: 12px 16px; font-weight: 600; color: #4b5563; font-size: 13px;">Estado</th>
+                </tr>
+            </thead>
+            <tbody id="ticketsTableBody" style="font-size: 13px; color: #111827;">
+                <!-- JS Populated -->
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 20px; color: #6b7280;">Cargando tickets...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; align-items:center; justify-content:center;">
+    <div
+        style="background:white; padding:10px; border-radius:4px; position:relative; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+        <span onclick="closeModal()"
+            style="position:absolute; top:-15px; right:-15px; background: white; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor:pointer; font-weight:bold; font-size:1.2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">&times;</span>
+        <img id="modalImage" src="" style="max-height:80vh; max-width:90vw; display:block; border-radius: 4px;">
+    </div>
+</div>
+
+<!-- Close Comment Modal -->
+<div id="closeCommentModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; align-items:center; justify-content:center;">
+    <div style="background:white; padding:28px; border-radius:8px; width:480px; max-width:90vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4);">
+        <h3 style="margin:0 0 8px 0; font-size:16px; color:#111827; font-weight:600;">
+            📋 Comentario de Cierre
+        </h3>
+        <p style="margin:0 0 16px 0; font-size:13px; color:#6b7280;">Ingresa el comentario o resolución para el cierre de este ticket.</p>
+        <textarea id="closeCommentText"
+            placeholder="Describe cómo se resolvió el problema..."
+            style="width:100%; height:100px; padding:10px; border:1px solid #d1d5db; border-radius:6px; font-size:13px; font-family:inherit; resize:vertical; box-sizing:border-box;"></textarea>
+        <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+            <button onclick="cancelCloseModal()"
+                style="padding:8px 16px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:13px; cursor:pointer; color:#6b7280;">Cancelar</button>
+            <button onclick="confirmCloseTicket()"
+                style="padding:8px 16px; border:none; border-radius:6px; background:#ef4444; color:white; font-size:13px; font-weight:600; cursor:pointer;">Cerrar Ticket</button>
+        </div>
+    </div>
+</div>
+
+<!-- Ticket Preview Modal -->
+<div id="ticketPreviewModal"
+    style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; align-items:center; justify-content:center;">
+    <div style="background:white; padding:28px; border-radius:8px; width:600px; max-width:90vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.4); max-height: 90vh; overflow-y: auto; position: relative;">
+        <span onclick="closePreviewModal()"
+            style="position:absolute; top:15px; right:20px; cursor:pointer; font-weight:bold; font-size:1.5rem; color:#6b7280;">&times;</span>
+        <h3 id="previewModalTitle" style="margin:0 0 16px 0; font-size:18px; color:#111827; font-weight:600; padding-bottom: 12px; border-bottom: 1px solid #e5e7eb;">
+            Vista Previa del Ticket
+        </h3>
+        
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; font-size: 13px;">
+            <div><strong style="color:#6b7280;">Código:</strong> <span id="previewModalCode" style="color:#111827; font-weight:500;"></span></div>
+            <div><strong style="color:#6b7280;">Fecha:</strong> <span id="previewModalDate" style="color:#111827;"></span></div>
+            <div><strong style="color:#6b7280;">Departamento:</strong> <span id="previewModalDept" style="color:#111827;"></span></div>
+            <div><strong style="color:#6b7280;">Tipo:</strong> <span id="previewModalType" style="color:#111827;"></span></div>
+            <div><strong style="color:#6b7280;">Usuario:</strong> <span id="previewModalUser" style="color:#111827;"></span></div>
+            <div><strong style="color:#6b7280;">Prioridad:</strong> <span id="previewModalPriority" style="color:#111827;"></span></div>
+            <div><strong style="color:#6b7280;">Contacto:</strong> <span id="previewModalContact" style="color:#111827;"></span></div>
+        </div>
+
+        <h4 style="margin:0 0 8px 0; font-size:14px; color:#4b5563; font-weight:600;">Descripción:</h4>
+        <div id="previewModalDesc" style="background:#f9fafb; padding:16px; border-radius:6px; font-size:13px; color:#111827; white-space:pre-wrap; line-height:1.5; margin-bottom: 20px; border: 1px solid #e5e7eb;"></div>
+
+        <div id="previewModalCloseCommentContainer" style="display:none; margin-bottom: 20px;">
+            <h4 style="margin:0 0 8px 0; font-size:14px; color:#4b5563; font-weight:600;">Comentario de Cierre:</h4>
+            <div id="previewModalCloseComment" style="background:#ecfdf5; padding:16px; border-radius:6px; font-size:13px; color:#065f46; white-space:pre-wrap; line-height:1.5; border: 1px solid #a7f3d0;"></div>
+        </div>
+        
+        <div style="display:flex; justify-content:flex-end;">
+            <button onclick="closePreviewModal()"
+                style="padding:8px 16px; border:1px solid #d1d5db; border-radius:6px; background:white; font-size:13px; cursor:pointer; color:#6b7280;">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let allStatus = [];
+    let allTechs = [];
+    let currentTickets = [];
+    let currentUserRole = {{ current_user.role }}; // 4=Admin
+
+    async function loadConfig() {
+        const res = await fetch('/api/support/config');
+        const data = await res.json();
+        allStatus = data.status;
+        allTechs = data.technicians;
+
+        // Populate Filters
+        const statusSel = document.getElementById('statusFilter');
+        allStatus.forEach(s => {
+            statusSel.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+        });
+
+        const techSel = document.getElementById('techFilter');
+        techSel.innerHTML += `<option value="unassigned">Sin Asignar</option>`;
+        allTechs.forEach(t => {
+            techSel.innerHTML += `<option value="${t.id}">${t.username}</option>`;
+        });
+    }
+
+    async function loadTickets() {
+        const q = document.getElementById('searchInput').value;
+        const status = document.getElementById('statusFilter').value;
+        const tech = document.getElementById('techFilter').value;
+        const dateFrom = document.getElementById('dateFrom').value;
+        const dateTo = document.getElementById('dateTo').value;
+
+        // Note: Filter logic for dates/techs needs backend support or client-side filtering. 
+        // Providing basics for now.
+        let url = `/api/support/tickets?q=${q}&status=${status}`;
+        if (tech !== 'all') url += `&tech_id=${tech}`;
+
+        const res = await fetch(url);
+        let tickets = await res.json();
+
+        if (dateFrom) {
+            tickets = tickets.filter(t => t.created_at.split('T')[0] >= dateFrom);
+        }
+        if (dateTo) {
+            tickets = tickets.filter(t => t.created_at.split('T')[0] <= dateTo);
+        }
+
+        currentTickets = tickets;
+        
+        const tbody = document.getElementById('ticketsTableBody');
+        tbody.innerHTML = '';
+
+        if (tickets.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #6b7280; font-size: 14px;">No se encontraron tickets con los filtros aplicados.</td></tr>`;
+            return;
+        }
+
+        tickets.forEach(t => {
+            // Build Status Select (Inline Edit)
+            let statusDisplay = '';
+            let statusColor = '#e5e7eb';
+
+            const currS = allStatus.find(s => s.id === t.status_id);
+            if (currS) statusColor = currS.color_hex;
+
+            if (currentUserRole === 4) {
+                // Admin: Editable
+                let options = '';
+                allStatus.forEach(s => {
+                    const sel = (t.status_id === s.id) ? 'selected' : '';
+                    options += `<option value="${s.id}" ${sel}>${s.name}</option>`;
+                });
+                statusDisplay = `
+                    <select onchange="updateTicket(${t.id}, 'status_id', this.value, this)" data-prev="${t.status_id}"
+                        style="font-size: 12px; padding: 4px 8px; border: 1px solid ${statusColor}; border-radius: 12px; background-color: ${statusColor}15; color: #111827; font-weight:600; outline:none; cursor:pointer;">
+                        ${options}
+                    </select>`;
+            } else {
+                // User: Read-only badge
+                statusDisplay = `
+                    <span style="font-size: 12px; padding: 4px 10px; border-radius: 12px; background-color: ${statusColor}20; border: 1px solid ${statusColor}; font-weight: 600; color: #111827; display:inline-block;">
+                        ${currS ? currS.name : 'Desc'}
+                    </span>`;
+            }
+
+            // Tech Select
+            let techDisplay = t.assigned_to_id ? 'Asignado' : 'Sin Asignar';
+            const techObj = allTechs.find(u => u.id === t.assigned_to_id);
+            const techName = techObj ? techObj.username : '-';
+
+            if (currentUserRole === 4) {
+                let options = '<option value="">Sin Asignar</option>';
+                allTechs.forEach(u => {
+                    const sel = (t.assigned_to_id === u.id) ? 'selected' : '';
+                    options += `<option value="${u.id}" ${sel}>${u.username}</option>`;
+                });
+                techDisplay = `
+                    <select onchange="updateTicket(${t.id}, 'assigned_to_id', this.value)" 
+                        style="font-size: 13px; padding: 4px; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #111827; cursor:pointer;"
+                        onmouseover="this.style.border='1px solid #d1d5db'" onmouseout="this.style.border='1px solid transparent'">
+                        ${options}
+                    </select>`;
+            } else {
+                techDisplay = `<span style="color: #4b5563;">${techName}</span>`;
+            }
+
+            const subject = t.description.split('\n')[0].substring(0, 50);
+
+            const row = `
+            <tr style="border-bottom: 1px solid #f3f4f6; background: white; transition: background-color 0.15s;" onmouseover="this.style.backgroundColor='#f9fafb'" onmouseout="this.style.backgroundColor='white'">
+                <td style="padding: 14px 16px; font-weight: 600; color: var(--odoo-primary);">
+                    ${t.code}
+                    ${t.attachment_url ? `
+                        <button onclick="viewImage('${t.attachment_url}')" title="Ver Adjunto" 
+                            style="margin-left:6px; background:none; border:none; color:#6b7280; cursor:pointer; padding:2px; vertical-align:middle;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                        </button>
+                    ` : ''}
+                    <button onclick='showTicketPreview(${t.id})' title="Vista Previa" 
+                        style="margin-left:6px; background:none; border:none; color:var(--odoo-primary); cursor:pointer; padding:2px; vertical-align:middle;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                </td>
+                <td style="padding: 14px 16px; color: #6b7280;">${new Date(t.created_at).toLocaleDateString()}</td>
+                <td style="padding: 14px 16px; color: #111827; font-weight: 500;">${subject}</td>
+                <td style="padding: 14px 16px; font-size: 12px; color: #4b5563; line-height: 1.4;">
+                    <div style="font-weight: 500;">${t.department ? t.department.name : '-'}</div>
+                    <div style="color:#9ca3af;">${t.support_type ? t.support_type.name : '-'}</div>
+                </td>
+                <td style="padding: 14px 16px; color: #4b5563;">${t.created_by_username || 'N/A'}</td>
+                <td style="padding: 14px 16px;">
+                    <span style="font-size: 12px; padding: 2px 8px; background: #f3f4f6; color: #4b5563; border-radius: 12px; font-weight: 500;">
+                        ${t.priority ? t.priority.name : '-'}
+                    </span>
+                </td>
+                <td style="padding: 14px 16px;">${techDisplay}</td>
+                <td style="padding: 14px 16px;">${statusDisplay}</td>
+            </tr>
+            `;
+            tbody.innerHTML += row;
+        });
+    }
+
+    // --- Close Comment Modal Logic ---
+    let _pendingCloseTicketId = null;
+    let _pendingCloseSelectEl = null;
+    let _pendingPreviousStatusId = null;
+
+    function showCloseModal(ticketId, selectEl, previousStatusId) {
+        _pendingCloseTicketId = ticketId;
+        _pendingCloseSelectEl = selectEl;
+        _pendingPreviousStatusId = previousStatusId;
+        document.getElementById('closeCommentText').value = '';
+        document.getElementById('closeCommentModal').style.display = 'flex';
+    }
+
+    function cancelCloseModal() {
+        // Revert select to previous value
+        if (_pendingCloseSelectEl && _pendingPreviousStatusId !== null) {
+            _pendingCloseSelectEl.value = _pendingPreviousStatusId;
+        }
+        document.getElementById('closeCommentModal').style.display = 'none';
+        _pendingCloseTicketId = null;
+        _pendingCloseSelectEl = null;
+        _pendingPreviousStatusId = null;
+    }
+
+    async function confirmCloseTicket() {
+        const comment = document.getElementById('closeCommentText').value.trim();
+        document.getElementById('closeCommentModal').style.display = 'none';
+        await doUpdateTicket(_pendingCloseTicketId, 'status_id', _pendingCloseSelectEl.value, comment);
+        _pendingCloseTicketId = null;
+        _pendingCloseSelectEl = null;
+        _pendingPreviousStatusId = null;
+    }
+
+    async function updateTicket(id, field, value, selectEl) {
+        if (!value && field === 'status_id') return;
+
+        // Check if we need to show close modal
+        if (field === 'status_id') {
+            const statusObj = allStatus.find(s => s.id === parseInt(value));
+            if (statusObj && statusObj.name === 'Cerrado') {
+                // Find previous value from allStatus
+                const prevVal = _pendingPreviousStatusId;
+                showCloseModal(id, selectEl, selectEl.dataset.prev || null);
+                selectEl.dataset.prev = value; // store for next time
+                return;
+            }
+        }
+
+        await doUpdateTicket(id, field, value);
+    }
+
+    async function doUpdateTicket(id, field, value, closeComment) {
+        let val = value === "" ? null : parseInt(value);
+        const body = {};
+        body[field] = val;
+        if (closeComment) body['close_comment'] = closeComment;
+
+        try {
+            const res = await fetch(`/api/support/ticket/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+
+            if (!res.ok) alert('Error actualizando ticket');
+            loadTickets();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function viewImage(url) {
+        document.querySelector('#modalImage').src = url;
+        document.querySelector('#imageModal').style.display = 'flex';
+    }
+    function closeModal() {
+        document.querySelector('#imageModal').style.display = 'none';
+    }
+
+    function showTicketPreview(id) {
+        const ticket = currentTickets.find(x => x.id === id);
+        if (!ticket) return;
+        
+        document.getElementById('previewModalCode').innerText = ticket.code || '-';
+        document.getElementById('previewModalDate').innerText = ticket.created_at ? new Date(ticket.created_at).toLocaleString() : '-';
+        document.getElementById('previewModalDept').innerText = ticket.department ? ticket.department.name : '-';
+        document.getElementById('previewModalType').innerText = ticket.support_type ? ticket.support_type.name : '-';
+        document.getElementById('previewModalUser').innerText = ticket.created_by_username || '-';
+        document.getElementById('previewModalPriority').innerText = ticket.priority ? ticket.priority.name : '-';
+        document.getElementById('previewModalContact').innerText = ticket.contact_email || '-';
+        
+        document.getElementById('previewModalDesc').innerText = ticket.description || 'Sin descripción';
+        
+        if (ticket.close_comment) {
+            document.getElementById('previewModalCloseComment').innerText = ticket.close_comment;
+            document.getElementById('previewModalCloseCommentContainer').style.display = 'block';
+        } else {
+            document.getElementById('previewModalCloseCommentContainer').style.display = 'none';
+        }
+        
+        document.getElementById('ticketPreviewModal').style.display = 'flex';
+    }
+
+    function closePreviewModal() {
+        document.getElementById('ticketPreviewModal').style.display = 'none';
+    }
+
+    // Event Listeners
+    let timeout = null;
+    document.getElementById('searchInput').addEventListener('input', (e) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => loadTickets(), 300);
+    });
+
+    ['statusFilter', 'techFilter', 'dateFrom', 'dateTo'].forEach(id => {
+        document.getElementById(id).addEventListener('change', loadTickets);
+    });
+
+    // Show success banner if redirected after ticket creation
+    const urlParams = new URLSearchParams(window.location.search);
+    const createdCode = urlParams.get('created');
+    if (createdCode) {
+        const banner = document.getElementById('successBanner');
+        document.getElementById('successBannerText').textContent = `Ticket ${createdCode} creado con éxito.`;
+        banner.style.display = 'flex';
+        setTimeout(() => { banner.style.display = 'none'; }, 5000);
+        // Clean URL without reload
+        history.replaceState({}, '', '/support/tickets');
+    }
+
+    // Init
+    loadConfig().then(() => loadTickets());
+</script>
+{% endblock %}

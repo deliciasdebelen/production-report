@@ -1,0 +1,6059 @@
+﻿Total SPs/Functions that reference saLoteEntrada + stock_actual/numero_lote: 37
+
+======================================================================
+SP: ConsultarStockActualxAlmacenxFechaxLote (FUNCTION)
+======================================================================
+
+
+-- =============================================
+
+-- Author:		
+
+-- Create date: 
+
+-- Modify date: <21/03/2019>
+
+-- Description:	ver [ConsultarStockActualFecha]
+
+-- =============================================
+
+CREATE FUNCTION [dbo].[ConsultarStockActualxAlmacenxFechaxLote]
+
+    (
+
+      @sCo_Art CHAR(30) ,
+
+      @sCo_Alma CHAR(6) = NULL ,
+
+      @sdFecha DATETIME = NULL ,
+
+      @sdFechaDesde DATETIME = NULL ,
+
+      @sTipo_Doc CHAR(4) = NULL ,
+
+      @sNumero_Lote CHAR(20) = NULL
+
+    )
+
+RETURNS DECIMAL(18, 5)
+
+AS 
+
+    BEGIN
+
+
+
+        DECLARE @deCantidadResult DECIMAL(18, 5)
+
+
+
+        IF @sdFecha IS NULL 
+
+            RETURN 0.00000
+
+	IF @sNumero_Lote <> 'Por Asignar'
+
+	 BEGIN
+
+        SELECT
+
+            @deCantidadResult = ISNULL(SUM(cantidad), 0)
+
+        FROM
+
+            (
+
+	--AJUSTES	
+
+              SELECT
+
+                cantidad, 'AJUS' AS tipo, numero_lote, rowguid, co_alma
+
+              FROM
+
+                ( SELECT
+
+                    SL.cantidad * (-1) AS cantidad, AJS.co_art, AJS.fecha, AJS.co_alma, SL.numero_lote AS numero_lote, AJS.rowguid
+
+                  FROM
+
+                    [StockActAjusteLote] AS AJS
+
+                    RIGHT JOIN 
+
+						saLoteSalida AS SL ON AJS.rowguid = SL.rowguid_reng
+
+                                                     AND AJS.co_art = SL.co_art
+
+                                                     AND SL.tipo_doc = 'AJUS'				  
+
+                  UNION ALL
+
+                  SELECT
+
+                     SL.cantidad, AJS.co_art, AJS.fecha, AJS.co_alma, SL.numero_lote AS numero_lote, AJS.rowguid
+
+                  FROM
+
+                    [StockActAjusteLote] AS AJS
+
+					RIGHT JOIN
+
+        			saLoteEntrada AS SL ON AJS.rowguid = SL.rowguid_reng
+
+                                                      AND AJS.co_art = SL.co_art
+
+                                                      AND SL.tipo_doc = 'AJUS'				  
+
+                ) AS A
+
+              WHERE
+
+				A.co_art = @sCo_Art
+
+                AND ( @sCo_Alma IS NULL
+
+                      OR A.co_alma = @sCo_Alma
+
+                    )
+
+                AND ( @sdFecha IS NULL
+
+                      OR dbo.fechasimple(A.fecha) <= @sdFecha
+
+                    )
+
+                AND ( @sdFechaDesde IS NULL
+
+                      OR dbo.fechasimple(A.fecha) >= @sdFechaDesde
+
+                    )
+
+                AND ( @sNumero_Lote IS NULL
+
+                      OR A.numero_lote = @sNumero_Lote
+
+                    )
+
+              UNION ALL
+
+	--TRASLADO ORIGEN
+
+              SELECT
+
+                cantidad, 'TRAS' AS tipo, numero_lote, rowguid, co_alma
+
+				FROM
+
+				(
+
+				  SELECT					
+
+					SL.cantidad * (-1) as cantidad, TOS.co_art, TOS.co_alma, TOS.fecha, 'TRAS' AS tipo, SL.numero_lote AS numero_lote, TOS.rowguid as rowguid
+
+				  FROM
+
+                [StockActTrasladoOriLote] AS TOS
+
+                RIGHT JOIN 
+
+	    			saLoteSalida AS SL ON TOS.rowguid = SL.rowguid_reng
+
+                                                 AND TOS.co_art = SL.co_art
+
+                                                 AND SL.tipo_doc = 'TRAS'  				  
+
+					) A
+
+              WHERE
+
+                A.co_art = @sCo_Art
+
+                AND ( @sCo_Alma IS NULL
+
+                      OR A.co_alma = @sCo_Alma
+
+                    )
+
+                AND ( @sdFecha IS NULL
+
+                      OR dbo.fechasimple(A.fecha) <= @sdFecha
+
+                    )
+
+                AND ( @sdFechaDesde IS NULL
+
+                      OR dbo.fechasimple(A.fecha) >= @sdFechaDesde
+
+                    )
+
+                AND ( @sNumero_Lote IS NULL
+
+                      OR A.numero_lote = @sNumero_Lote
+
+                    )
+
+              UNION ALL
+
+	--TRASLADO TEMPORAL
+
+              SELECT
+
+                cantidad, 'TRAE' AS tipo, numero_lote, rowguid, co_alma
+
+				FROM
+
+				(
+
+				  SELECT					
+
+					SL.cantidad as cantidad, TDT.co_art, TDT.co_alma, TDT.fecha, 'TRAE' AS tipo, SL.numero_lote AS numero_lote, TDT.rowguid as rowguid
+
+				  FROM
+
+
+
+
+======================================================================
+SP: nsa_ASIGNACIONDELOTES_Sal (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [dbo].[nsa_ASIGNACIONDELOTES_Sal] @doc_num CHAR(20)
+
+as
+
+	DECLARE @Err_no VARCHAR(9)
+
+	DECLARE @modulo VARCHAR(32) = object_name(@@PROCID) 
+
+	DECLARE @Resultado VARCHAR(MAX)
+
+	DECLARE @sqltext VARCHAR(MAX)
+
+
+
+	DECLARE @RowGuid_Reng VARCHAR(256) 
+
+	DECLARE @co_art CHAR(30)
+
+	DECLARE @co_uni CHAR(6)
+
+	DECLARE @co_alma CHAR(6) 
+
+	DECLARE @total_art_Reng DECIMAL(18,5) 
+
+	DECLARE @co_us_in CHAR(6) 
+
+	DECLARE @co_sucu_in CHAR(6) = null
+
+
+
+	DECLARE @lote CHAR(20)
+
+	DECLARE @num_reg INT
+
+	DECLARE @total_art DECIMAL(18,5)
+
+	DECLARE @cost_uni DECIMAL(18,5)
+
+	DECLARE @Rowguid VARCHAR(128)
+
+	DECLARE @fechaDT DATETIME = GETDATE()
+
+	DECLARE @lote_Asignado INT = 0
+
+	DECLARE @num_lote Varchar(20)
+
+	DECLARE @stock_actual DECIMAL(18,5)
+
+	DECLARE @fecha_expiracion DATETIME
+
+	declare @stocknegativo BIT = 0
+
+	DECLARE @cant_solicitadanew DECIMAL(18,5) = 1 
+
+BEGIN
+
+	begin tran
+
+	begin try 
+
+
+
+		declare @tableRowR table                    
+
+		( 
+
+		num_reg INT,                   
+
+		Rowguid varchar(128),
+
+		co_art CHAR(30),
+
+		co_alma CHAR(6),
+
+		fechaDT DATETIME,
+
+		total_art DECIMAL(18,5),
+
+		cost_uni DECIMAL(18,5),
+
+		co_sucu_in CHAR(6),
+
+		co_us_in CHAR(6),
+
+		lote_Asignado INT        
+
+		)   
+
+  
+
+		--RENGLONES DE LA FACTURA       
+
+		SET @sqltext = ''      
+
+		SET @sqltext = 'select r.reng_num,r.Rowguid,r.co_art,r.co_alma,r.fe_us_in,u.equivalencia * r.total_art as total_art,r.prec_vta,r.co_sucu_in,r.co_us_in,r.lote_Asignado 
+
+						from saFacturaVentaReng r 
+
+						inner join saArtUnidad u on u.co_art=r.co_art and u.co_uni=r.co_uni 
+
+						where doc_num = '''+ @doc_num +''''      
+
+
+
+		insert into @tableRowR      
+
+		exec (@sqltext) 
+
+       
+
+		DECLARE MYCURSOR CURSOR FOR
+
+			select num_reg,Rowguid,co_art,co_alma,fechaDT,total_art,cost_uni,co_sucu_in,co_us_in,lote_Asignado from @tableRowR
+
+		OPEN MYCURSOR    
+
+    
+
+		FETCH NEXT FROM MYCURSOR     
+
+		INTO @num_reg,@RowGuid_Reng,@co_art,@co_alma,@fechaDT,@total_art_Reng,@cost_uni,@co_sucu_in,@co_us_in,@lote_Asignado
+
+
+
+		WHILE @@FETCH_STATUS = 0    
+
+		BEGIN
+
+			SET @lote_Asignado = 0		
+
+			If @lote_Asignado = 0
+
+			BEGIN
+
+			DECLARE @Tablelotes table (
+
+				num_lote Varchar(20),
+
+				stock_actual DECIMAL(18,5),
+
+				cantidad DECIMAL(18,5),
+
+				fecha_expiracion DATETIME,
+
+				rowguid VARCHAR(256)
+
+			)
+
+			--LOTES DE ENTRADA
+
+			SET @sqltext = 'SELECT Lote, stock_actual, Cantidad, fecha_expiracion, rowguid
+
+							FROM (
+
+								select numero_lote as Lote, SUM(convert(decimal(18,5),cantidad)) as stock_actual, 0.00 as Cantidad, fecha_expiracion, MAX(rowguid) rowguid, sum(stock_actual) stock
+
+								from saLoteEntrada 
+
+								where co_art = '''+@co_art+''' 
+
+								and co_alma = '''+@co_alma+''' 
+
+								group by numero_lote,fecha_expiracion
+
+								) A
+
+							where stock > 0 
+
+							order by fecha_expiracion ASC, Lote ASC'
+
+
+
+			delete @Tablelotes
+
+			insert into @Tablelotes	
+
+			exec (@sqltext)
+
+
+
+			DECLARE LotesCursor CURSOR FOR    
+
+    
+
+				select num_lote, isnull(stock_actual,0),cantidad from @Tablelotes 
+
+    
+
+			OPEN LotesCursor      
+
+      
+
+			FETCH NEXT FROM LotesCursor       
+
+			INTO @num_lote,@stock_actual,@total_art   
+
+      
+
+			WHILE @@FETCH_STATUS = 0      
+
+			BEGIN
+
+
+
+			DECLARE @CantidadTable table(
+
+				numero_lote Varchar(20),
+
+				Cantidad DECIMAL(18,5)
+
+			)
+
+			--TABLA LOTES DE SALIDA
+
+			SET @sqltext = ''
+
+			SET @sqltext = 'select numero_lote, SUM(convert(decimal(18,5),cantidad)) as Cantidad 
+
+							from saLoteSalida 
+
+							where co_art = '''+@co_art+''' 
+
+							and co_alma = '''+@co_alma+''' 
+
+							and numero_lote = '''+@num_lote+''' 
+
+							group by numero_lote '
+
+			delete @CantidadTable
+
+
+
+			insert into @CantidadTable	
+
+			exec (@sqltext)
+
+
+
+			DECLARE @cantidadCoubnt INT = (select count(Cantidad) from @CantidadTable)
+
+			/*
+
+			IF (@cantidadCoubnt = 0)
+
+			BEGIN
+
+				SET @total_art = 0
+
+				SET @total_art = @stock_actual - @total_art
+
+			END
+
+			ELSE
+
+			BEGIN 
+
+				SET @total_art = @stock_actual - (select isnull(Cantidad,
+
+
+======================================================================
+SP: nsa_ASIGNACIONDELOTES_Sal_PRUEBAS (PROCEDURE)
+======================================================================
+create PROCEDURE [dbo].[nsa_ASIGNACIONDELOTES_Sal] @doc_num CHAR(20)
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+    SET XACT_ABORT ON; -- Rollback automßtico en error
+
+    
+
+    DECLARE @Resultado VARCHAR(MAX)
+
+    DECLARE @stocknegativo BIT
+
+    DECLARE @lote_num INT = 0
+
+    
+
+    BEGIN TRY 
+
+        BEGIN TRANSACTION
+
+        
+
+        -- 1. Obtener configuraci¾n de stock negativo
+
+        SELECT @stocknegativo = ISNULL(i_stock_negativo, 0) 
+
+        FROM par_emp
+
+        
+
+        -- 2. Crear tabla para renglones de la factura
+
+        CREATE TABLE #RenglonesFactura (
+
+            reng_num INT PRIMARY KEY,
+
+            Rowguid VARCHAR(128) UNIQUE,
+
+            co_art CHAR(30),
+
+            co_alma CHAR(6),
+
+            total_art DECIMAL(18,5),
+
+            co_sucu_in CHAR(6),
+
+            co_us_in CHAR(6),
+
+            total_pendiente DECIMAL(18,5),
+
+            INDEX idx_art_alma (co_art, co_alma)
+
+        )
+
+        
+
+        -- 3. Crear tabla para asignaci¾n de lotes
+
+        CREATE TABLE #AsignacionLotes (
+
+            RowguidReng VARCHAR(128),
+
+            co_art CHAR(30),
+
+            co_alma CHAR(6),
+
+            numero_lote VARCHAR(20),
+
+            rowguid_lote VARCHAR(256),
+
+            fecha_expiracion DATETIME,
+
+            cantidad_asignar DECIMAL(18,5),
+
+            reng_num INT,
+
+            asignacion_num INT IDENTITY(1,1) PRIMARY KEY,
+
+            INDEX idx_renglote (RowguidReng, numero_lote)
+
+        )
+
+        
+
+        -- 4. Insertar renglones con conversi¾n de unidad
+
+        INSERT INTO #RenglonesFactura 
+
+            (reng_num, Rowguid, co_art, co_alma, total_art, 
+
+             co_sucu_in, co_us_in, total_pendiente)
+
+        SELECT 
+
+            r.reng_num,
+
+            r.Rowguid,
+
+            r.co_art,
+
+            r.co_alma,
+
+            CONVERT(DECIMAL(18,5), u.equivalencia * r.total_art),
+
+            r.co_sucu_in,
+
+            r.co_us_in,
+
+            CONVERT(DECIMAL(18,5), u.equivalencia * r.total_art)
+
+        FROM saFacturaVentaReng r 
+
+        INNER JOIN saArtUnidad u ON u.co_art = r.co_art 
+
+            AND u.co_uni = r.co_uni 
+
+        WHERE r.doc_num = @doc_num
+
+            AND ISNULL(r.lote_Asignado, 0) = 0
+
+        
+
+        -- 5. Validar que haya renglones por procesar
+
+        IF NOT EXISTS (SELECT 1 FROM #RenglonesFactura)
+
+        BEGIN
+
+            SELECT 'No hay renglones pendientes de asignaci¾n' as Resultado
+
+            RETURN 0
+
+        END
+
+        
+
+        -- 6. Calcular disponibilidad por lote usando CTE recursiva
+
+        ;WITH DisponibilidadLotes AS (
+
+            -- Stock de entrada por lote
+
+            SELECT 
+
+                sle.co_art,
+
+                sle.co_alma,
+
+                sle.numero_lote,
+
+                sle.fecha_expiracion,
+
+                MIN(sle.rowguid) as rowguid_entrada,
+
+                SUM(CONVERT(DECIMAL(18,5), sle.cantidad)) as stock_entrada,
+
+                ROW_NUMBER() OVER (
+
+                    PARTITION BY sle.co_art, sle.co_alma 
+
+                    ORDER BY sle.fecha_expiracion ASC, sle.numero_lote ASC
+
+                ) as orden
+
+            FROM saLoteEntrada sle
+
+            WHERE EXISTS (
+
+                SELECT 1 FROM #RenglonesFactura rf
+
+                WHERE rf.co_art = sle.co_art 
+
+                    AND rf.co_alma = sle.co_alma
+
+            )
+
+            GROUP BY sle.co_art, sle.co_alma, sle.numero_lote, sle.fecha_expiracion
+
+        ),
+
+        SalidasLotes AS (
+
+            -- Stock ya asignado por lote
+
+            SELECT 
+
+                sls.co_art,
+
+                sls.co_alma,
+
+                sls.numero_lote,
+
+                SUM(CONVERT(DECIMAL(18,5), sls.cantidad)) as stock_salida
+
+            FROM saLoteSalida sls
+
+            WHERE EXISTS (
+
+                SELECT 1 FROM #RenglonesFactura rf
+
+                WHERE rf.co_art = sls.co_art 
+
+                    AND rf.co_alma = sls.co_alma
+
+            )
+
+            GROUP BY sls.co_art, sls.co_alma, sls.numero_lote
+
+        ),
+
+        LotesDisponibles AS (
+
+            
+
+
+======================================================================
+SP: pActualizarLote (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************
+
+*NOMBRE			: [pLoteActualizar]
+
+*DESCRIPCIËN	: Sumar o Resta lote en la tabla saLoteEntrada
+
+*AUTOR			: Softech Sistemas
+
+*FECHA			: 2009-10-05
+
+**************************************************************************/
+
+
+
+CREATE PROCEDURE [pActualizarLote]
+
+    (
+
+      @gRowguid UNIQUEIDENTIFIER ,
+
+      @sNumero_Lote CHAR(20) ,
+
+      @deCantidad DECIMAL(18, 5) ,
+
+      @bPermiteStockNegativo BIT ,
+
+      @bSumarStock BIT
+
+    )
+
+AS 
+
+    BEGIN	
+
+
+
+        DECLARE @intResultado INTEGER
+
+        DECLARE @deStockFinal DECIMAL(18, 5)
+
+        DECLARE @TableResultLote TABLE ( loteFinal DECIMAL(18, 5) )
+
+        DECLARE @MensajeError VARCHAR(256)
+
+	
+
+        IF ( @bSumarStock = 0 ) 
+
+            SET @deCantidad = @deCantidad * -1.00000
+
+
+
+        BEGIN TRANSACTION
+
+        UPDATE
+
+            saLoteEntrada
+
+        SET saLoteEntrada.stock_actual = saLoteEntrada.stock_actual + @deCantidad
+
+        OUTPUT
+
+            inserted.stock_actual
+
+            INTO @TableResultLote
+
+        WHERE
+
+            saLoteEntrada.rowguid = @gRowguid
+
+	
+
+        SELECT TOP 1
+
+            @deStockFinal = loteFinal
+
+        FROM
+
+            @TableResultLote
+
+
+
+        IF ( @bSumarStock = 0
+
+             AND @bPermiteStockNegativo = 0
+
+             AND @deStockFinal < 0
+
+           ) 
+
+            BEGIN
+
+                ROLLBACK
+
+		
+
+                SET @MensajeError = 'No existe stock para el lote "' + RTRIM(@sNumero_Lote) + '"'
+
+                RAISERROR(@MensajeError,16,1)
+
+                RETURN ;
+
+            END
+
+        COMMIT
+
+        SELECT
+
+            loteFinal
+
+        FROM
+
+            @TableResultLote
+
+    END
+
+
+
+
+======================================================================
+SP: pActualizarLoteAnula (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************
+
+*NOMBRE			: [pActualizarLoteAnula]
+
+*DESCRIPCIËN	: Validar existencia del lote en saLote
+
+*AUTOR			: Softech Sistemas
+
+*FECHA			: 2009-10-08
+
+**************************************************************************/
+
+
+
+CREATE PROCEDURE [pActualizarLoteAnula]
+
+    (
+
+      @sNumero_Lote CHAR(20) ,
+
+      @gRowguid UNIQUEIDENTIFIER
+
+    )
+
+AS 
+
+    BEGIN	
+
+
+
+        SELECT TOP ( 1 )
+
+            numero_lote
+
+        FROM
+
+            saLoteEntrada
+
+        WHERE
+
+            numero_lote = @sNumero_Lote
+
+            AND rowguid <> @gRowguid
+
+
+
+    END
+
+
+
+
+======================================================================
+SP: pActualizarRenglonesLote (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************************************************
+
+NOMBRE: [pActualizarRenglonesLote]
+
+DESCRIPCION: 
+
+CREADO POR: SOFTECH SISTEMAS
+
+***************************************************************************************************************/
+
+CREATE PROCEDURE [pActualizarRenglonesLote]
+
+    (
+
+      @gRowguid_Reng UNIQUEIDENTIFIER ,
+
+      @gRowguid_RengOri UNIQUEIDENTIFIER ,
+
+      @iReng_Num INT ,
+
+      @iReng_NumOri INT ,
+
+      @sTipo_Doc CHAR(4) ,
+
+      @sCo_Art CHAR(30) = NULL ,
+
+      @sCo_Alma CHAR(6) = NULL ,
+
+      @sNumero_Lote CHAR(20) = NULL ,
+
+      @sdFecha_Inicio SMALLDATETIME = NULL ,
+
+      @sdFecha_Expiracion SMALLDATETIME = NULL ,
+
+      @deCantidad DECIMAL(18, 5) ,
+
+      @dePrecio DECIMAL(18, 5) ,
+
+      @sCo_Us_Mo CHAR(6) ,
+
+      @sCo_Sucu_Mo CHAR(6) ,
+
+      @sMaquina VARCHAR(60) = NULL ,
+
+      @sCampos VARCHAR(MAX) = NULL ,
+
+      @sRevisado CHAR(1) = NULL ,
+
+      @sTrasnfe CHAR(1) = NULL ,
+
+      @gRowguid UNIQUEIDENTIFIER = NULL 
+
+    )
+
+AS 
+
+    BEGIN  
+
+        DECLARE @TableTimestamp TABLE
+
+            (
+
+              fe_us_in DATETIME ,
+
+              fe_us_mo DATETIME ,
+
+              rowguid UNIQUEIDENTIFIER
+
+            )
+
+    
+
+        UPDATE
+
+            saLoteEntrada
+
+        SET rowguid_reng = @gRowguid_Reng, reng_num = @iReng_Num, tipo_doc = @sTipo_Doc, co_art = @sCo_Art,
+
+            co_alma = @sCo_Alma, numero_lote = @sNumero_Lote, fecha_inicio = @sdFecha_Inicio,
+
+            fecha_expiracion = @sdFecha_Expiracion, cantidad = @deCantidad, precio = @dePrecio,
+
+            stock_actual = @deCantidad, co_us_mo = @sCo_Us_Mo, co_sucu_mo = @sCo_Sucu_Mo, fe_us_mo = GETDATE(),
+
+            trasnfe = @sTrasnfe, revisado = @sRevisado
+
+        OUTPUT
+
+            inserted.fe_us_in, inserted.fe_us_mo, Inserted.rowguid
+
+            INTO @TableTimestamp
+
+        WHERE
+
+            rowguid_reng = @gRowguid_RengOri
+
+            AND reng_num = @iReng_NumOri
+
+	
+
+        DECLARE @dtFe_In DATETIME
+
+        DECLARE @rowGuidOri UNIQUEIDENTIFIER
+
+
+
+        SELECT
+
+            @dtFe_In = fe_us_mo, @rowGuidOri = rowguid
+
+        FROM
+
+            @TableTimestamp
+
+
+
+	-- Insertar Pista
+
+        EXEC [pInsertarPista] @sUsuario_Id = @sCo_Us_Mo, @dtFecha = @dtFe_In, @sCo_Sucu = @sCo_Sucu_Mo,
+
+            @sTablaOri = 'saLoteEntrada', @rowguidOri = @rowGuidOri, @sTipo_Op = 'M', @sMaquina = @sMaquina,
+
+            @sCampos = @sCampos
+
+
+
+        SELECT
+
+            *
+
+        FROM
+
+            @TableTimestamp
+
+
+
+    END
+
+
+
+
+======================================================================
+SP: pEliminarRenglonLoteEntrada (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************************************************
+
+NOMBRE: [pEliminarRenglonesLoteSalida]
+
+DESCRIPCION: Elimina la informaci¾n del lote dado su rowguid de origen
+
+	empleado en Store Procedure de eliminar renglones
+
+CREADO POR: SOFTECH SISTEMAS 
+
+***************************************************************************************************************/
+
+CREATE PROCEDURE [pEliminarRenglonLoteEntrada]
+
+    (
+
+      @gRowguid_Reng UNIQUEIDENTIFIER ,
+
+      @sTipo_doc CHAR(4) ,
+
+      @sTablaOri CHAR(32) ,
+
+      @sCo_Us_Mo CHAR(6) ,
+
+      @sMaquina VARCHAR(60) ,
+
+      @sCo_Sucu_Mo CHAR(6)
+
+    )
+
+AS 
+
+    BEGIN
+
+        DECLARE @TableTimestamp TABLE
+
+            (
+
+              cantidad DECIMAL(18, 5) ,
+
+              numero_lote CHAR(20) ,
+
+              rowguid UNIQUEIDENTIFIER
+
+            )
+
+
+
+        DELETE  FROM dbo.saLoteEntrada
+
+        OUTPUT  DELETED.cantidad ,
+
+                DELETED.numero_lote ,
+
+                DELETED.rowguid
+
+                INTO @TableTimestamp
+
+        WHERE   saLoteEntrada.rowguid_reng = @gRowguid_Reng
+
+                AND saLoteEntrada.tipo_doc = @sTipo_doc
+
+
+
+
+
+        DECLARE @dtFe_De DATETIME
+
+        SET @dtFe_De = GETDATE()
+
+		
+
+        DECLARE CURSOR_PROCESAR CURSOR LOCAL FAST_FORWARD
+
+        FOR
+
+            SELECT  cantidad ,
+
+                    numero_lote ,
+
+                    rowguid
+
+            FROM    @TableTimestamp
+
+		
+
+        OPEN CURSOR_PROCESAR
+
+
+
+        DECLARE @pCantidad DECIMAL(18, 5)
+
+        DECLARE @pNumeroLote CHAR(20)
+
+        DECLARE @pRowguidLote UNIQUEIDENTIFIER
+
+        DECLARE @pRowguid UNIQUEIDENTIFIER
+
+        
+
+        FETCH NEXT FROM CURSOR_PROCESAR INTO @pCantidad, @pNumeroLote
+
+            , @pRowguid
+
+
+
+        WHILE @@FETCH_STATUS = 0 
+
+            BEGIN
+
+            
+
+            
+
+                DECLARE @strCampos VARCHAR(128)
+
+				
+
+                --EXEC [dbo].[pActualizarLote] @gRowguid = @pRowguidLote,
+
+                --    @sNumero_Lote = @pNumeroLote, @deCantidad = @pCantidad,
+
+                --    @bPermiteStockNegativo = 1, @bSumarStock = 1
+
+		
+
+                SET @strCampos = 'Eliminacion de Lote '
+
+                    + RTRIM(LTRIM(@pNumeroLote)) + ', Cantidad: '
+
+                    + RTRIM(LTRIM(STR(@pCantidad)))
+
+				
+
+                EXEC [pInsertarPista] @sUsuario_Id = @sCo_Us_Mo,
+
+                    @dtFecha = @dtFe_De, @sCo_Sucu = @sCo_Sucu_Mo,
+
+                    @sTablaOri = @sTablaOri, @rowguidOri = @gRowguid_Reng,
+
+                    @sTipo_Op = 'E', @sMaquina = @sMaquina,
+
+                    @sCampos = @strCampos
+
+              
+
+                FETCH NEXT FROM CURSOR_PROCESAR INTO @pCantidad, @pNumeroLote,
+
+                    @pRowguid
+
+            END 
+
+
+
+        CLOSE CURSOR_PROCESAR
+
+        DEALLOCATE CURSOR_PROCESAR
+
+  
+
+    END
+
+
+
+
+======================================================================
+SP: pInsertarRenglonesLote (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************************************************
+
+NOMBRE: pInsertarRenglonesLote
+
+DESCRIPCION: 
+
+CREADO POR: SOFTECH SISTEMAS
+
+***************************************************************************************************************/
+
+CREATE PROCEDURE [pInsertarRenglonesLote]
+
+    (
+
+      @gRowguid_Reng UNIQUEIDENTIFIER ,
+
+      @iReng_Num INT ,
+
+      @sTipo_Doc CHAR(4) ,
+
+      @sCo_Art CHAR(30) = NULL ,
+
+      @sCo_Alma CHAR(6) = NULL ,
+
+      @sNumero_Lote CHAR(20) = NULL ,
+
+      @sdFecha_Inicio SMALLDATETIME = NULL ,
+
+      @sdFecha_Expiracion SMALLDATETIME = NULL ,
+
+      @deCantidad DECIMAL(18, 5) ,
+
+      @dePrecio DECIMAL(18, 5) ,
+
+      @sCo_Us_In CHAR(6) ,
+
+      @sMaquina VARCHAR(60) = NULL ,
+
+      @sCo_Sucu_In CHAR(6) = NULL ,
+
+      @sRevisado CHAR(1) = NULL ,
+
+      @sTrasnfe CHAR(1) = NULL
+
+    )
+
+AS 
+
+    BEGIN
+
+        DECLARE @TableTimestamp TABLE
+
+            (
+
+              fe_us_in DATETIME ,
+
+              fe_us_mo DATETIME ,
+
+              rowguid UNIQUEIDENTIFIER
+
+            )
+
+
+
+        INSERT  INTO saLoteEntrada
+
+                ( rowguid_reng, reng_num, tipo_doc, co_art, co_alma, numero_lote, fecha_inicio, fecha_expiracion,
+
+                  cantidad, stock_actual, precio, co_us_in, co_sucu_in, fe_us_in, co_us_mo, co_sucu_mo, fe_us_mo,
+
+                  trasnfe, revisado )
+
+        OUTPUT  inserted.fe_us_in, inserted.fe_us_mo, Inserted.rowguid
+
+                INTO @TableTimestamp
+
+        VALUES
+
+                ( @gRowguid_Reng, @iReng_Num, @sTipo_Doc, @sCo_Art, @sCo_Alma, @sNumero_Lote, @sdFecha_Inicio,
+
+                  @sdFecha_Expiracion, @deCantidad, @deCantidad, @dePrecio, @sCo_Us_In, @sCo_Sucu_In, GETDATE(),
+
+                  @sCo_Us_In, @sCo_Sucu_In, GETDATE(), @sTrasnfe, @sRevisado )	
+
+
+
+        DECLARE @dtFe_In DATETIME
+
+        DECLARE @rowGuidOri UNIQUEIDENTIFIER
+
+
+
+        SELECT
+
+            @dtFe_In = fe_us_in, @rowGuidOri = rowguid
+
+        FROM
+
+            @TableTimestamp
+
+
+
+	-- Insertar Pista
+
+        EXEC [pInsertarPista] @sUsuario_Id = @sCo_Us_In, @dtFecha = @dtFe_In, @sCo_Sucu = @sCo_Sucu_in,
+
+            @sTablaOri = 'saLoteEntrada', @rowguidOri = @rowGuidOri, @sTipo_Op = 'I', @sMaquina = @sMaquina,
+
+            @sCampos = @sTipo_Doc
+
+	
+
+        SELECT
+
+            *
+
+        FROM
+
+            @TableTimestamp
+
+    END
+
+
+
+
+======================================================================
+SP: pSeleccionarLotesBusqueda (PROCEDURE)
+======================================================================
+
+
+/***********************************************************************
+
+*NOMBRE			: pSeleccionarLotesBusquedaPorPrecio
+
+*DESCRIPCIËN	: Selecciona los lotes de entrada asociados a un rengl¾n de proceso de venta (de acuerdo a su precio) 
+
+				  y devuelve duplas conformadas por la clave del lote y la cantidad que debe ser tomada del mismo.
+
+*AUTOR			: Softech Sistemas
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[pSeleccionarLotesBusqueda]
+
+	(
+
+		@sCo_Alma CHAR(6) ,
+
+		@sCo_Art CHAR(30) ,
+
+		@dTotal_Art DECIMAL(18, 5) ,
+
+		@sCo_Uni CHAR(6) ,
+
+		@dPrecio DECIMAL(18, 5) ,
+
+		@dPorcentaje_Maximo_Ganancia DECIMAL(18, 5) ,
+
+		@bMargen_Ganancia_Costo_A_Precio CHAR(1) ,
+
+		@bPermitir_Lotes_Vencidos CHAR(1) ,
+
+		@sdFec_Emis_Doc_Salida SMALLDATETIME
+
+    )
+
+AS
+
+	BEGIN
+
+		SET NOCOUNT ON;
+
+
+
+		DECLARE @TipoCosto CHAR(1)
+
+ 
+
+		SELECT 
+
+			@TipoCosto = i_costo_inventario 
+
+		FROM 
+
+			par_emp
+
+
+
+		-- COSTO PROMEDIO CALCULA PEPS (TIPO COSTO '2')
+
+		IF @TipoCosto <> '2' AND @TipoCosto <> '3'
+
+			SET @TipoCosto = '2'
+
+
+
+		SET @dTotal_Art = dbo.ArtUnidadBase(@sCo_Art, @sCo_Uni, @dTotal_Art)
+
+
+
+        DECLARE @t TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Rowguid_Reng_Doc_Entrada UNIQUEIDENTIFIER ,
+
+				Stock_Actual DECIMAL(18, 5) , 
+
+				Cantidad_A_Tomar DECIMAL(18, 5)
+
+			)
+
+		
+
+		DECLARE @LotesEntrada TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Rowguid_Reng_Doc_Entrada UNIQUEIDENTIFIER ,
+
+				Stock_Actual DECIMAL(18, 5) ,
+
+				Fecha SMALLDATETIME ,
+
+				Nro_Reng INT ,
+
+				Nro_Lote INT
+
+			)
+
+
+
+		INSERT INTO @LotesEntrada
+
+				( Id,  Nombre_Lote, Rowguid_Reng_Doc_Entrada, Stock_Actual, Fecha, Nro_Reng, Nro_Lote )
+
+            SELECT
+
+                LE.rowguid AS Id, LE.numero_lote AS Nombre_Lote, rowguid_reng AS Rowguid_Reng_Doc_Entrada, LE.stock_actual AS Stock_Actual, FC.fec_emis AS Fecha, FCR.reng_num AS Nro_Reng,
+
+				LE.reng_num AS Nro_lote
+
+            FROM
+
+                saLoteEntrada AS LE
+
+				INNER JOIN saArticulo AS A ON A.co_art = LE.co_art
+
+				INNER JOIN saFacturaCompraReng AS FCR ON FCR.rowguid = LE.rowguid_reng
+
+				INNER JOIN saFacturaCompra AS FC ON FC.doc_num = FCR.doc_num AND FC.anulado = 0
+
+				INNER JOIN saCostoHistoricoEntrada AS CHE ON CHE.tipo_doc = 'COMP' AND CHE.doc_orig = FCR.rowguid
+
+            WHERE
+
+				LE.tipo_doc = 'COMP'
+
+                AND LE.co_art = @sCo_Art
+
+                AND LE.co_alma = @sCo_Alma
+
+                -- AND LE.precio = @dPrecio
+
+				AND LE.stock_actual > 0
+
+				AND (@dPorcentaje_Maximo_Ganancia = 0
+
+				OR (@dPorcentaje_Maximo_Ganancia != 0 
+
+				AND dbo.CalcularPorcentajeGanancia(@dPrecio, CHE.costo, @bMargen_Ganancia_Costo_A_Precio)
+
+				<= @dPorcentaje_Maximo_Ganancia))
+
+				AND (A.maneja_lote_venc = 0 OR (@bPermitir_Lotes_Vencidos = 1 OR @sdFec_Emis_Doc_Salida < LE.fecha_expiracion))
+
+
+
+			UNION
+
+
+
+			SELECT
+
+                LE.rowguid AS Id, LE.numero_lote AS Nombre_Lote, rowguid_reng AS Rowguid_Reng_Doc_Entrada, LE.stock_actual AS Stock_Actual, AJ.fecha AS Fecha, AJR.reng_num AS Nro_Reng,
+
+				LE.reng_num AS Nro_Lote
+
+            FROM
+
+                saLoteEntrada AS LE
+
+				INNER JOIN saArticulo AS A ON A.co_art = LE.co_art
+
+				INNER JOIN saAjusteReng AS AJR ON AJR.rowguid = LE.rowguid_reng
+
+				INNER JOIN saAjuste AS AJ ON AJ.ajue_num = AJR.ajue_num AND AJ.anulado = 0
+
+				INNER JOIN saCostoHistoricoEntrada AS CHE ON CHE.tipo_doc = 'AJUS' AND CHE.doc_orig = AJR.rowguid
+
+            WHERE
+
+				LE.tipo_doc = 'AJUS'
+
+                AND LE.co_art = @sCo_Art
+
+                AND LE.co_alma = @sCo_Alma
+
+                AND LE.precio = @dPrecio
+
+				AND LE.stock_actual > 0
+
+				AND (@dPorcentaje_Maximo_Ganancia = 0
+
+				OR (@dPorcentaje_Maximo_Ganancia != 0 
+
+				AND dbo.CalcularPorcentajeGanancia(@dPrecio, CHE.costo, @bMargen_Ganancia_Costo_A_Precio)
+
+				<= @dPorcentaje_Maximo_Ganancia))
+
+				AND (A.maneja_lote_venc = 0 OR (@bPermitir_Lotes_Vencidos = 1 OR @sdFec_Em
+
+
+======================================================================
+SP: pSeleccionarLotesBusquedaPorPrecio (PROCEDURE)
+======================================================================
+
+
+/***********************************************************************
+
+*NOMBRE			: pSeleccionarLotesBusquedaPorPrecio
+
+*DESCRIPCIËN	: Selecciona los lotes de entrada asociados a un rengl¾n de proceso de venta (de acuerdo a su precio) 
+
+				  y devuelve duplas conformadas por la clave del lote y la cantidad que debe ser tomada del mismo.
+
+*AUTOR			: Softech Sistemas
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[pSeleccionarLotesBusquedaPorPrecio]
+
+	(
+
+		@sCo_Alma CHAR(6) ,
+
+		@sCo_Art CHAR(30) ,
+
+		@dTotal_Art DECIMAL(18, 5) ,
+
+		@sCo_Uni CHAR(6) ,
+
+		@dPrecio DECIMAL(18, 5) ,
+
+		@dPorcentaje_Maximo_Ganancia DECIMAL(18, 5) ,
+
+		@bMargen_Ganancia_Costo_A_Precio CHAR(1) ,
+
+		@bPermitir_Lotes_Vencidos CHAR(1) ,
+
+		@sdFec_Emis_Doc_Salida SMALLDATETIME
+
+    )
+
+AS
+
+	BEGIN
+
+		SET NOCOUNT ON;
+
+
+
+		DECLARE @TipoCosto CHAR(1)
+
+ 
+
+		SELECT 
+
+			@TipoCosto = i_costo_inventario 
+
+		FROM 
+
+			par_emp
+
+
+
+		-- COSTO PROMEDIO CALCULA PEPS (TIPO COSTO '2')
+
+		IF @TipoCosto <> '2' AND @TipoCosto <> '3'
+
+			SET @TipoCosto = '2'
+
+
+
+		SET @dTotal_Art = dbo.ArtUnidadBase(@sCo_Art, @sCo_Uni, @dTotal_Art)
+
+
+
+        DECLARE @t TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Rowguid_Reng_Doc_Entrada UNIQUEIDENTIFIER ,
+
+				Stock_Actual DECIMAL(18, 5) , 
+
+				Cantidad_A_Tomar DECIMAL(18, 5)
+
+			)
+
+		
+
+		DECLARE @LotesEntrada TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Rowguid_Reng_Doc_Entrada UNIQUEIDENTIFIER ,
+
+				Stock_Actual DECIMAL(18, 5) ,
+
+				Fecha SMALLDATETIME ,
+
+				Nro_Reng INT ,
+
+				Nro_Lote INT
+
+			)
+
+
+
+		INSERT INTO @LotesEntrada
+
+				( Id,  Nombre_Lote, Rowguid_Reng_Doc_Entrada, Stock_Actual, Fecha, Nro_Reng, Nro_Lote )
+
+            SELECT
+
+                LE.rowguid AS Id, LE.numero_lote AS Nombre_Lote, rowguid_reng AS Rowguid_Reng_Doc_Entrada, LE.stock_actual AS Stock_Actual, FC.fec_emis AS Fecha, FCR.reng_num AS Nro_Reng,
+
+				LE.reng_num AS Nro_lote
+
+            FROM
+
+                saLoteEntrada AS LE
+
+				INNER JOIN saArticulo AS A ON A.co_art = LE.co_art
+
+				INNER JOIN saFacturaCompraReng AS FCR ON FCR.rowguid = LE.rowguid_reng
+
+				INNER JOIN saFacturaCompra AS FC ON FC.doc_num = FCR.doc_num AND FC.anulado = 0
+
+				INNER JOIN saCostoHistoricoEntrada AS CHE ON CHE.tipo_doc = 'COMP' AND CHE.doc_orig = FCR.rowguid
+
+            WHERE
+
+				LE.tipo_doc = 'COMP'
+
+                AND LE.co_art = @sCo_Art
+
+                AND LE.co_alma = @sCo_Alma
+
+                AND LE.precio = @dPrecio
+
+				AND LE.stock_actual > 0
+
+				AND (@dPorcentaje_Maximo_Ganancia = 0
+
+				OR (@dPorcentaje_Maximo_Ganancia != 0 
+
+				AND dbo.CalcularPorcentajeGanancia(@dPrecio, CHE.costo, @bMargen_Ganancia_Costo_A_Precio)
+
+				<= @dPorcentaje_Maximo_Ganancia))
+
+				AND (A.maneja_lote_venc = 0 OR (@bPermitir_Lotes_Vencidos = 1 OR @sdFec_Emis_Doc_Salida < LE.fecha_expiracion))
+
+
+
+			UNION
+
+
+
+			SELECT
+
+                LE.rowguid AS Id, LE.numero_lote AS Nombre_Lote, rowguid_reng AS Rowguid_Reng_Doc_Entrada, LE.stock_actual AS Stock_Actual, AJ.fecha AS Fecha, AJR.reng_num AS Nro_Reng,
+
+				LE.reng_num AS Nro_Lote
+
+            FROM
+
+                saLoteEntrada AS LE
+
+				INNER JOIN saArticulo AS A ON A.co_art = LE.co_art
+
+				INNER JOIN saAjusteReng AS AJR ON AJR.rowguid = LE.rowguid_reng
+
+				INNER JOIN saAjuste AS AJ ON AJ.ajue_num = AJR.ajue_num AND AJ.anulado = 0
+
+				INNER JOIN saCostoHistoricoEntrada AS CHE ON CHE.tipo_doc = 'AJUS' AND CHE.doc_orig = AJR.rowguid
+
+            WHERE
+
+				LE.tipo_doc = 'AJUS'
+
+                AND LE.co_art = @sCo_Art
+
+                AND LE.co_alma = @sCo_Alma
+
+                AND LE.precio = @dPrecio
+
+				AND LE.stock_actual > 0
+
+				AND (@dPorcentaje_Maximo_Ganancia = 0
+
+				OR (@dPorcentaje_Maximo_Ganancia != 0 
+
+				AND dbo.CalcularPorcentajeGanancia(@dPrecio, CHE.costo, @bMargen_Ganancia_Costo_A_Precio)
+
+				<= @dPorcentaje_Maximo_Ganancia))
+
+				AND (A.maneja_lote_venc = 0 OR (@bPermitir_Lotes_Vencidos = 1 OR @sd
+
+
+======================================================================
+SP: pSeleccionarLotesEntradaBusquedaPorRengImpDef (PROCEDURE)
+======================================================================
+
+
+/***********************************************************************
+
+*NOMBRE			: pSeleccionarLotesEntradaBusquedaPorRengImpDef
+
+*DESCRIPCIËN	: Selecciona los lotes de entrada asociados a un rengl¾n importado de un proceso de compra
+
+				  y devuelve tuplas conformadas por el nro de lote del lote de entrada, las fechas de inicio
+
+				  y vencimiento del lote de entrada, y la cantidad que debe ser tomada del mismo.
+
+*AUTOR			: Softech Sistemas
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[pSeleccionarLotesEntradaBusquedaPorRengImpDef]
+
+	(
+
+		@gRowguid_Reng_Imp UNIQUEIDENTIFIER ,
+
+		@sCo_Art CHAR(30) ,
+
+		@dTotal_Art DECIMAL(18, 5) ,
+
+		@sCo_Uni CHAR(6)
+
+    )
+
+AS
+
+	BEGIN
+
+		SET NOCOUNT ON;
+
+
+
+		DECLARE @TipoCosto CHAR(1)
+
+ 
+
+		SELECT 
+
+			@TipoCosto = i_costo_inventario 
+
+		FROM 
+
+			par_emp
+
+
+
+		-- COSTO PROMEDIO CALCULA PEPS (TIPO COSTO '2')
+
+		IF @TipoCosto <> '2' AND @TipoCosto <> '3'
+
+			SET @TipoCosto = '2'
+
+
+
+		SET @dTotal_Art = dbo.ArtUnidadBase(@sCo_Art, @sCo_Uni, @dTotal_Art)
+
+
+
+        DECLARE @t TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Stock_Actual DECIMAL(18, 5) , 
+
+				Cantidad_A_Tomar DECIMAL(18, 5)
+
+			)
+
+		
+
+		DECLARE @LotesEntrada TABLE
+
+			(
+
+				Id UNIQUEIDENTIFIER ,
+
+				Nombre_Lote CHAR(20) ,
+
+				Stock_Actual DECIMAL(18, 5) ,
+
+				Nro_Lote INT
+
+			)
+
+
+
+		INSERT INTO @LotesEntrada
+
+				( Id,  Nombre_Lote, Stock_Actual, Nro_Lote )
+
+            SELECT
+
+                LE.rowguid AS Id, LE.numero_lote AS Nombre_Lote, LE.stock_actual AS Stock_Actual, LE.reng_num AS Nro_lote
+
+            FROM
+
+                saLoteEntrada AS LE
+
+            WHERE
+
+				LE.rowguid_reng = @gRowguid_Reng_Imp
+
+				AND LE.stock_actual > 0
+
+
+
+		DECLARE Lotes_Cursor CURSOR FORWARD_ONLY FOR
+
+            SELECT
+
+                Id,
+
+				Nombre_Lote,
+
+                Stock_Actual
+
+            FROM
+
+                @LotesEntrada
+
+            ORDER BY --UEPS
+
+				CASE @TipoCosto
+
+					WHEN 3 THEN Nro_Lote
+
+                END DESC,
+
+				CASE @TipoCosto  --PEPS
+
+					WHEN 2 THEN Nro_Lote 
+
+                END ASC
+
+
+
+
+
+		DECLARE @Calculado							DECIMAL(18, 5)	
+
+        DECLARE @RowGuid_Actual						UNIQUEIDENTIFIER
+
+        DECLARE @Total_Art_Actual					DECIMAL(18, 5)
+
+		DECLARE @Nombre_Lote_Actual					CHAR(20)
+
+        DECLARE @Total_Art_PorAsignar				DECIMAL(18, 5)
+
+
+
+        SET @Total_Art_PorAsignar = @dTotal_Art
+
+
+
+        OPEN Lotes_Cursor
+
+        FETCH NEXT FROM Lotes_Cursor INTO @RowGuid_Actual, @Nombre_Lote_Actual, @Total_Art_Actual
+
+
+
+        WHILE @@FETCH_STATUS = 0
+
+            AND @Total_Art_PorAsignar > 0 
+
+            BEGIN
+
+                IF ( @Total_Art_Actual >= @Total_Art_PorAsignar ) 
+
+                    BEGIN
+
+                        SET @Calculado = @Total_Art_PorAsignar
+
+                        SET @Total_Art_PorAsignar = 0
+
+                    END
+
+                ELSE 
+
+                    BEGIN
+
+                        SET @Total_Art_PorAsignar = @Total_Art_PorAsignar
+
+                            - @Total_Art_Actual
+
+                        SET @Calculado = @Total_Art_Actual
+
+                    END
+
+				
+
+                INSERT INTO @t
+
+                        ( Id, Nombre_Lote, Stock_Actual, Cantidad_A_Tomar )
+
+                VALUES
+
+                        ( @RowGuid_Actual, @Nombre_Lote_Actual, @Total_Art_Actual, @Calculado )
+
+                FETCH NEXT FROM Lotes_Cursor INTO @RowGuid_Actual, @Nombre_Lote_Actual, @Total_Art_Actual
+
+			END
+
+        CLOSE Lotes_Cursor
+
+        DEALLOCATE Lotes_Cursor
+
+
+
+		SELECT * FROM @t
+
+				
+
+	END
+
+
+
+
+======================================================================
+SP: pSeleccionarLotesSalidaBusqueda (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************************************************
+
+NOMBRE:			[pSeleccionarLotesSalidaBusqueda]
+
+DESCRIPCION:	Seleccionar Seriales de entrada
+
+CREADO POR:		SOFTECH SISTEMAS
+
+***************************************************************************************************************/
+
+CREATE PROCEDURE [pSeleccionarLotesSalidaBusqueda]
+
+    (
+
+      @sCo_Art CHAR(30) = NULL,
+
+      @sCo_Alma CHAR(6) = NULL 
+
+    )
+
+AS 
+
+    BEGIN
+
+        SELECT
+
+            *
+
+        FROM
+
+            saLoteEntrada
+
+        WHERE
+
+            co_art = @sCo_Art
+
+            AND ( co_alma = @sCo_Alma
+
+                  OR @sCo_Alma IS NULL
+
+                )
+
+            AND ( stock_actual > 0)
+
+        ORDER BY
+
+            numero_lote
+
+    END
+
+
+
+
+======================================================================
+SP: pSeleccionarLotesSalidaBusquedaPorRengImpDef (PROCEDURE)
+======================================================================
+
+
+/***********************************************************************
+
+*NOMBRE			: pSeleccionarLotesSalidaBusquedaPorRengImpDef
+
+*DESCRIPCIËN	: Selecciona los lotes de salida asociados a un rengl¾n importado de un proceso de venta
+
+				  y devuelve tuplas conformadas por el nro de lote del lote de salida, las fechas de inicio
+
+				  y vencimiento del lote de entrada asociado, el precio del lote de salida y la cantidad 
+
+				  que debe ser tomada del mismo.
+
+*AUTOR			: Softech Sistemas
+
+************************************************************************/
+
+CREATE PROCEDURE [dbo].[pSeleccionarLotesSalidaBusquedaPorRengImpDef]
+
+	(
+
+		@gRowguid_Reng_Imp UNIQUEIDENTIFIER ,
+
+		@sCo_Art CHAR(30) ,
+
+		@dTotal_Art DECIMAL(18, 5) ,
+
+		@sCo_Uni CHAR(6)
+
+    )
+
+AS
+
+	BEGIN
+
+		SET NOCOUNT ON;
+
+
+
+		DECLARE @TipoCosto CHAR(1)
+
+ 
+
+		SELECT 
+
+			@TipoCosto = i_costo_inventario 
+
+		FROM 
+
+			par_emp
+
+
+
+		-- COSTO PROMEDIO CALCULA PEPS (TIPO COSTO '2')
+
+		IF @TipoCosto <> '2' AND @TipoCosto <> '3'
+
+			SET @TipoCosto = '2'
+
+
+
+		SET @dTotal_Art = dbo.ArtUnidadBase(@sCo_Art, @sCo_Uni, @dTotal_Art)
+
+
+
+		DECLARE @NuevoLotesSalidaSinFechaInicio TABLE
+
+			(
+
+				Nombre_Lote CHAR(20) ,
+
+				Nro_Lote INT ,
+
+				Fecha_Expiracion SMALLDATETIME ,
+
+				Cantidad DECIMAL(18, 5)
+
+			)
+
+
+
+		DECLARE @NuevoLotesSalida TABLE
+
+		(
+
+			Nombre_Lote CHAR(20) ,
+
+			Nro_Lote INT ,
+
+			Fecha_Inicio SMALLDATETIME ,
+
+			Fecha_Expiracion SMALLDATETIME ,
+
+			Cantidad DECIMAL(18, 5)
+
+		)
+
+
+
+		INSERT INTO @NuevoLotesSalidaSinFechaInicio
+
+			( Nombre_Lote, Nro_Lote, Fecha_Expiracion, Cantidad )
+
+		SELECT
+
+			LS.numero_lote AS Nombre_Lote, MIN(LS.reng_num) AS Nro_lote,
+
+			MIN(LE.fecha_expiracion) AS Fecha_Expiracion, SUM(LS.cantidad) AS Cantidad
+
+		FROM
+
+			saLoteSalida AS LS
+
+			INNER JOIN saLoteEntrada AS LE on LE.rowguid = LS.Rowguid_Lote
+
+		WHERE
+
+			LS.rowguid_reng = @gRowguid_Reng_Imp
+
+		GROUP BY LS.numero_lote
+
+
+
+		INSERT INTO @NuevoLotesSalida
+
+			( Nombre_Lote, Nro_Lote, Fecha_Inicio, Fecha_Expiracion, Cantidad )
+
+		SELECT
+
+			LSSF.Nombre_Lote AS Nombre_Lote, LSSF.Nro_Lote AS Nro_lote, MIN(LE.fecha_inicio) AS Fecha_Inicio,
+
+			LSSF.Fecha_Expiracion AS Fecha_Expiracion, LSSF.Cantidad AS Cantidad
+
+		FROM
+
+			saLoteSalida AS LS
+
+			INNER JOIN saLoteEntrada AS LE on LE.rowguid = LS.Rowguid_Lote
+
+			INNER JOIN @NuevoLotesSalidaSinFechaInicio AS LSSF ON LSSF.Nombre_Lote = LS.numero_lote
+
+			AND LSSF.Fecha_Expiracion = LE.fecha_expiracion
+
+		WHERE
+
+			LS.rowguid_reng = @gRowguid_Reng_Imp
+
+		GROUP BY LSSF.Nombre_Lote, LSSF.Nro_Lote, LSSF.Fecha_Expiracion, LSSF.Cantidad
+
+
+
+		DECLARE @LotesEntradaYaExistentes TABLE
+
+			(
+
+				Nombre_Lote CHAR(20) ,
+
+				Cantidad DECIMAL(18, 5)
+
+			)
+
+
+
+		DECLARE @Nombre_Lote CHAR(20)
+
+		DECLARE @Cantidad DECIMAL(18, 5)
+
+
+
+		INSERT INTO @LotesEntradaYaExistentes
+
+			( Nombre_Lote, Cantidad )
+
+		SELECT
+
+			LE.numero_lote AS Nombre_Lote, SUM(LE.cantidad) AS Cantidad
+
+		FROM
+
+			saDevolucionClienteReng AS DCR
+
+			INNER JOIN saLoteEntrada AS LE ON LE.rowguid_reng = DCR.rowguid AND LE.tipo_doc = 'DCLI'
+
+		WHERE
+
+			DCR.rowguid_doc = @gRowguid_Reng_Imp
+
+		GROUP BY LE.numero_lote
+
+
+
+		DECLARE @LotesSalidaDispConCantDisp TABLE
+
+			(
+
+				Nombre_Lote CHAR(20) ,
+
+				Nro_Lote INT ,
+
+				Fecha_Inicio SMALLDATETIME ,
+
+				Fecha_Expiracion SMALLDATETIME ,
+
+				Cantidad DECIMAL(18, 5)
+
+			)
+
+
+
+		DECLARE @Nombre_Actual						CHAR(20)
+
+		DECLARE @Nro_Actual							INT
+
+		DECLARE @Fecha_Inicio_Actual				SMALLDATETIME
+
+		DECLARE @Fecha_Expiracion_Actual			SMALLDATETIME
+
+		DECLARE @Total_Art_Actual					DECIMAL(18, 5)
+
+		
+
+		INSERT INTO @LotesSalidaDispConCantDisp
+
+			( Nombre_Lote, Nro_Lote, Fecha_Inicio, Fecha_Expiracion, Cantidad )
+
+		SELECT
+
+			NLS.Nombre_Lote AS Nombre_Lote, NLS.Nro_Lote AS Nro_lote, NLS.Fecha_Inicio AS Fecha_Inicio,
+
+			NLS.Fecha_Expiracion AS Fecha_Expiracion, NLS.Cantidad - ISNULL(LEYE.Cantidad, 0) AS Cantidad
+
+		FROM
+
+			@NuevoLotesSalida AS NLS
+
+			LEFT JOIN @LotesEntradaYaExistentes AS LEYE ON LEYE.Nombre_Lote = NLS.Nombre_Lote
+
+		WH
+
+
+======================================================================
+SP: pSeleccionarRenglonesLoteSalida (PROCEDURE)
+======================================================================
+
+
+/**************************************************************************************************************
+
+NOMBRE		:	[pSeleccionarRenglonesLoteSalida]
+
+DESCRIPCION	:	Procedimiento para seleccionar todos los lotes asociados a un documento
+
+CREADO POR	:	SOFTECH SISTEMAS
+
+***************************************************************************************************************/
+
+CREATE PROCEDURE [pSeleccionarRenglonesLoteSalida]
+
+    (
+
+      @gRowguid_Reng UNIQUEIDENTIFIER
+
+	
+
+    )
+
+AS 
+
+    BEGIN
+
+
+
+        SELECT
+
+            s.*, e.Fecha_Expiracion, e.Stock_actual
+
+	--s.*,
+
+	-- l.rowguid as Rowguid_Lote
+
+        FROM
+
+            saLoteSalida s join saLoteEntrada e on s.Rowguid_Lote = e.rowguid 
+
+	--INNER JOIN   saLoteEntrada l ON (l.co_art = s.co_art and l.co_alma = s.co_alma 
+
+	--						and l.numero_lote = s.numero_lote)
+
+        WHERE
+
+            s.rowguid_reng = @gRowguid_Reng
+
+	
+
+    END
+
+
+
+
+======================================================================
+SP: pValidarExistenciaLote (PROCEDURE)
+======================================================================
+
+
+/***************************************************************************************
+
+*NOMBRE: [pValidarExistenciaLote]
+
+*DESCRIPCIËN : valida si existe un lote asociado al documento
+
+*AUTOR: SOFTECH SISTEMAS
+
+****************************************************************************************/
+
+
+
+CREATE PROCEDURE [pValidarExistenciaLote]
+
+    (
+
+      @sNumero_Lote CHAR(20) ,
+
+      @sCo_Art CHAR(30),
+
+      @gRowguid UNIQUEIDENTIFIER
+
+    )
+
+AS 
+
+    BEGIN	
+
+
+
+        SELECT TOP ( 1 )
+
+            numero_lote
+
+        FROM
+
+            saLoteEntrada
+
+        WHERE
+
+            numero_lote = @sNumero_Lote
+
+            AND co_art = @sCo_Art
+
+            --AND rowguid <> @gRowguid
+
+
+
+    END
+
+
+
+
+======================================================================
+SP: pValidarLoteEntradaNoOrigen (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [pValidarLoteEntradaNoOrigen]
+
+    (
+
+      @bCorregir BIT = 0 , -- INDICA SI SE CORREGIRAN LAS INCONSISTENCIAS
+
+      @IdProcess UNIQUEIDENTIFIER
+
+    )
+
+AS 
+
+    BEGIN	
+
+	
+
+        DECLARE @ValStatusResult TABLE ( Motivo VARCHAR(512) )
+
+
+
+        DECLARE CURSOR_VALIDAR CURSOR LOCAL FAST_FORWARD
+
+        FOR
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc IN ( 'AJUE', 'AJUS' )
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                 FROM
+
+                                    saAjusteReng R
+
+                                    INNER JOIN saAjuste E ON E.ajue_num = R.ajue_num
+
+                                 WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND e.anulado = 0 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc IN ( 'TRAE', 'TRAS' )
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                 FROM
+
+                                    saTrasladoReng R
+
+                                    INNER JOIN saTraslado E ON E.tras_num = R.tras_num
+
+                                 WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND E.anulado = 0 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc = 'GCOM'
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                 FROM
+
+                                    saArtCompuestoGen R
+
+                                 WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND R.gene_art = 1 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc = 'RGEN'
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                 FROM
+
+                                    saArtCompuestoGenReng R
+
+                                    INNER JOIN saArtCompuestoGen E ON E.gene_num = R.gene_num
+
+                                 WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND E.gene_art = 1 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_d
+
+
+======================================================================
+SP: pValidarLoteEntradaNoOrigen1 (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [dbo].[pValidarLoteEntradaNoOrigen1]
+
+    (
+
+      @bCorregir BIT = 0 , -- INDICA SI SE CORREGIRAN LAS INCONSISTENCIAS
+
+      @IdProcess UNIQUEIDENTIFIER
+
+    )
+
+AS
+
+    BEGIN
+
+
+
+        DECLARE @ValStatusResult TABLE ( Motivo VARCHAR(512) )
+
+
+
+        DECLARE CURSOR_VALIDAR CURSOR LOCAL FAST_FORWARD
+
+        FOR
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc IN ( 'AJUE', 'AJUS' )
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                   FROM
+
+                                    saAjusteReng R
+
+                                    INNER JOIN saAjuste E ON E.ajue_num = R.ajue_num
+
+                                   WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND e.anulado = 0 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc IN ( 'TRAE', 'TRAS' )
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                   FROM
+
+                                    saTrasladoReng R
+
+                                    INNER JOIN saTraslado E ON E.tras_num = R.tras_num
+
+                                   WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND E.anulado = 0 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc = 'GCOM'
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                   FROM
+
+                                    saArtCompuestoGen R
+
+                                   WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND R.gene_art = 1 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo "' + RTRIM(l.tipo_doc) + '" asociado ('
+
+                + RTRIM(CONVERT(VARCHAR(64), L.rowguid_reng)) + ')' AS motivo
+
+            FROM
+
+                saLoteEntrada L
+
+            WHERE
+
+                L.tipo_doc = 'RGEN'
+
+                AND NOT EXISTS ( SELECT
+
+                                    *
+
+                                   FROM
+
+                                    saArtCompuestoGenReng R
+
+                                    INNER JOIN saArtCompuestoGen E ON E.gene_num = R.gene_num
+
+                                   WHERE
+
+                                    R.rowguid = L.rowguid_reng
+
+                                    AND E.gene_art = 1 )
+
+            UNION
+
+            SELECT
+
+                L.rowguid,
+
+                'El lote de entrada "' + RTRIM(L.numero_lote) + '" renglon "' + LTRIM(RTRIM(STR(reng_num)))
+
+                + '" no posee el documento tipo
+
+
+======================================================================
+SP: pValidarLoteEntradaSalidaDatos (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [pValidarLoteEntradaSalidaDatos]
+
+    (
+
+      @bCorregir BIT = 0 , -- INDICA SI SE CORREGIRAN LAS INCONSISTENCIAS
+
+      @IdProcess UNIQUEIDENTIFIER
+
+    )
+
+AS 
+
+    BEGIN	
+
+	
+
+        DECLARE @ValStatusResult TABLE ( Motivo VARCHAR(512) )
+
+        DECLARE @CoArtL CHAR(30)
+
+        DECLARE @CoArtR CHAR(30)
+
+        DECLARE @CoAlmaL CHAR(6)
+
+        DECLARE @CoAlmaR CHAR(6)
+
+        DECLARE @NumeroLoteL CHAR(20)
+
+        DECLARE @NumeroLoteR CHAR(20)
+
+
+
+
+
+        DECLARE CURSOR_VALIDAR CURSOR LOCAL FAST_FORWARD
+
+        FOR
+
+            SELECT
+
+                LS.rowguid, LS.co_art, ISNULL(LE.co_art, '') AS co_artE, LS.co_alma, ISNULL(LE.co_alma, '') AS co_almaE,
+
+                LS.numero_lote, ISNULL(LE.numero_lote, '') AS numero_loteE
+
+            FROM
+
+                saLoteSalida LS
+
+                LEFT JOIN saLoteEntrada LE ON LS.Rowguid_lote = LE.rowguid
+
+            WHERE
+
+                LS.co_art <> ISNULL(LE.co_art, '')
+
+                OR LS.co_alma <> ISNULL(LE.co_alma, '')
+
+                OR LS.numero_lote <> ISNULL(LE.numero_lote, '')
+
+                OR LE.co_art IS NULL
+
+            ORDER BY
+
+                LS.numero_lote
+
+
+
+        OPEN CURSOR_VALIDAR
+
+
+
+        DECLARE @pMotivo VARCHAR(512)
+
+        DECLARE @PistaMensaje AS VARCHAR(MAX)
+
+        DECLARE @HoraCorrida DATETIME
+
+        DECLARE @Id UNIQUEIDENTIFIER
+
+
+
+        FETCH NEXT FROM CURSOR_VALIDAR INTO @Id, @CoArtL, @CoArtR, @CoAlmaL, @CoAlmaR, @NumeroLoteL, @NumeroLoteR
+
+
+
+        WHILE @@FETCH_STATUS = 0 
+
+            BEGIN
+
+                IF @CoArtR = '' 
+
+                    SET @PistaMensaje = 'El lote de salida ' + RTRIM(CONVERT(VARCHAR(64), @Id))
+
+                        + ' no tiene lote se entrada *NC.' 
+
+                ELSE 
+
+                    BEGIN
+
+                        SET @PistaMensaje = 'El lote de salida ' + RTRIM(CONVERT(VARCHAR(64), @Id))
+
+                            + ' tiene valores distintos al lote de entrada *NC.' 
+
+                        IF @CoArtL <> @CoArtR 
+
+                            SET @PistaMensaje = @PistaMensaje + 'Co_Art: ' + RTRIM(@CoArtL) + '<>' + RTRIM(@CoArtR)
+
+
+
+                        IF @CoAlmaL <> @CoAlmaR 
+
+                            SET @PistaMensaje = @PistaMensaje + 'Co_Alma: ' + RTRIM(@CoAlmaL) + '<>' + RTRIM(@CoAlmaR)
+
+
+
+                        IF @NumeroLoteL <> @NumeroLoteR 
+
+                            SET @PistaMensaje = @PistaMensaje + 'Numero_Lote: ' + RTRIM(@NumeroLoteL) + '<>'
+
+                                + RTRIM(@NumeroLoteR)
+
+                    END
+
+
+
+                SET @HoraCorrida = GETDATE()
+
+                EXEC [pInsertarPista] @sUsuario_Id = 'VALCON', @dtFecha = @HoraCorrida, @sCo_Sucu = NULL,
+
+                    @sTablaOri = 'saLoteEntrada', @rowguidOri = @IdProcess, @sTipo_Op = N'E', @sMaquina = NULL,
+
+                    @sCampos = @PistaMensaje
+
+
+
+                INSERT  INTO @ValStatusResult
+
+                        ( Motivo )
+
+                VALUES
+
+                        ( @PistaMensaje )
+
+
+
+                FETCH NEXT FROM CURSOR_VALIDAR INTO @Id, @CoArtL, @CoArtR, @CoAlmaL, @CoAlmaR, @NumeroLoteL,
+
+                    @NumeroLoteR
+
+            END 
+
+
+
+        CLOSE CURSOR_VALIDAR
+
+
+
+        DEALLOCATE CURSOR_VALIDAR
+
+
+
+        SELECT
+
+            *
+
+        FROM
+
+            @ValStatusResult
+
+
+
+    END
+
+
+
+
+======================================================================
+SP: pValidarLoteStock (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [dbo].[pValidarLoteStock]
+
+    (
+
+      @bCorregir BIT = 0 , -- INDICA SI SE CORREGIRAN LAS INCONSISTENCIAS
+
+      @IdProcess UNIQUEIDENTIFIER
+
+    )
+
+AS 
+
+    BEGIN	
+
+	
+
+        DECLARE @ValStatusResult TABLE ( Motivo VARCHAR(512) )
+
+
+
+        DECLARE CURSOR_VALIDAR CURSOR LOCAL FAST_FORWARD
+
+        FOR
+
+            SELECT
+
+                LE.rowguid, LE.tipo_doc, LE.numero_lote, LE.co_Art, LE.co_alma, LE.cantidad, LE.stock_actual,
+
+                ISNULL(SUM(ls.cantidad), 0) AS usado, LE.numero_lote
+
+            FROM
+
+                saLoteEntrada LE
+
+                LEFT JOIN saLoteSalida LS ON LE.rowguid = LS.rowguid_lote
+
+            GROUP BY
+
+                LE.rowguid, LE.tipo_doc, LE.numero_lote, LE.co_Art, LE.co_alma, LE.cantidad, LE.stock_actual
+
+            HAVING
+
+                LE.cantidad - LE.stock_actual <> ISNULL(SUM(ls.cantidad), 0)
+
+
+
+
+
+        OPEN CURSOR_VALIDAR
+
+
+
+        DECLARE @pMotivo VARCHAR(512)
+
+        DECLARE @PistaMensaje AS VARCHAR(MAX)
+
+        DECLARE @HoraCorrida DATETIME
+
+	
+
+        DECLARE @Id UNIQUEIDENTIFIER
+
+        DECLARE @pTipo_Doc CHAR(4)
+
+        DECLARE @pNumeroLote CHAR(20)
+
+        DECLARE @CoArt AS CHAR(30)
+
+        DECLARE @CoAlma AS CHAR(6)
+
+        DECLARE @Cantidad DECIMAL(18, 5)
+
+        DECLARE @StockActual DECIMAL(18, 5)
+
+        DECLARE @CantidadUsada DECIMAL(18, 5)
+
+        DECLARE @NuevoStock DECIMAL(18, 5)
+
+        DECLARE @NumLote CHAR(20)
+
+	
+
+        FETCH NEXT FROM CURSOR_VALIDAR INTO @Id, @pTipo_Doc, @pNumeroLote, @CoArt, @CoAlma, @Cantidad, @StockActual,
+
+            @CantidadUsada, @NumLote
+
+
+
+        WHILE @@FETCH_STATUS = 0 
+
+            BEGIN
+
+		--Set @PistaMensaje = 'El stock del lote de entrada "' + rtrim(@NumLote) + '" correspondiente al tipo de documento "' + @pTipo_Doc + '", articulo "' + rtrim(@CoArt) + '", almacen "' + rtrim(@CoAlma) + '" tiene como stock actual "' + ltrim(rtrim(CONVERT(varchar,@StockActual))) + '" y el correcto es "' + ltrim(rtrim(CONVERT(varchar,@Cantidad - @CantidadUsada))) + '"' 
+
+                SET @PistaMensaje = 'El stock del lote de entrada "' + RTRIM(@NumLote)
+
+                    + '" correspondiente al tipo de documento "' + @pTipo_Doc + '", articulo "' + RTRIM(@CoArt)
+
+                    + '", tiene como stock actual "' + LTRIM(RTRIM(CONVERT(VARCHAR, @StockActual)))
+
+                    + '" y el correcto es "' + LTRIM(RTRIM(CONVERT(VARCHAR, @Cantidad - @CantidadUsada))) + '"' 
+
+					-- kdc: sit. #105763
+
+					+ '", Co_Alma: "' + LTRIM(RTRIM(CONVERT(VARCHAR, @CoAlma))) + '"'
+
+		
+
+                IF ( ( @Cantidad - @CantidadUsada ) >= 0 ) 
+
+                    SET @NuevoStock = @Cantidad - @CantidadUsada
+
+                ELSE 
+
+                    BEGIN
+
+                        SET @NuevoStock = 0
+
+                        SET @PistaMensaje = @PistaMensaje + ' *NC'
+
+                    END
+
+
+
+                IF ( @bCorregir = 1
+
+                     AND @StockActual <> @NuevoStock
+
+                   ) 
+
+                    BEGIN
+
+                        UPDATE
+
+                            saLoteEntrada
+
+                        SET stock_actual = @NuevoStock
+
+                        WHERE
+
+                            rowguid = @Id
+
+                        SET @HoraCorrida = GETDATE()
+
+                        EXEC [pInsertarPista] @sUsuario_Id = 'VALCON', @dtFecha = @HoraCorrida, @sCo_Sucu = NULL,
+
+                            @sTablaOri = 'saLoteEntrada', @rowguidOri = @Id, @sTipo_Op = N'E', @sMaquina = NULL,
+
+                            @sCampos = @PistaMensaje
+
+                    END
+
+
+
+                SET @HoraCorrida = GETDATE()
+
+                EXEC [pInsertarPista] @sUsuario_Id = 'VALCON', @dtFecha = @HoraCorrida, @sCo_Sucu = NULL,
+
+                    @sTablaOri = 'saLoteEntrada', @rowguidOri = @IdProcess, @sTipo_Op = N'E', @sMaquina = NULL,
+
+                    @sCampos = @PistaMensaje
+
+
+
+                INSERT  INTO @ValStatusResult
+
+                        ( Motivo )
+
+                VALUES
+
+
+
+
+======================================================================
+SP: RepArticulosCostosxLotexAlmacen (PROCEDURE)
+======================================================================
+
+
+/*=============================================
+
+ Author:		<Softech Sistemas
+
+ Create date:   <30-10-2014>
+
+ Description:	<ArtÝculos con sus Costos x Lote x AlmacÚn>
+
+ =============================================*/
+
+CREATE PROCEDURE [dbo].[RepArticulosCostosxLotexAlmacen]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL ,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+--------------Fin Valores por Defecto----------------
+
+        DECLARE @sCo_fecha_h DATETIME
+
+        SET @sCo_fecha_h = GETDATE() 
+
+
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+
+
+        SELECT TOP 10000
+
+            A.*, LE.numero_lote,--Le.fecha_expiracion,
+
+            AL.co_alma, AL.des_alma, AU.co_uni AS co_unidad,
+
+            CASE WHEN LE.tipo_doc = 'COMP' THEN
+
+					'Factura de Compra'
+
+				WHEN LE.tipo_doc = 'TRAS' THEN
+
+					'Traslado'
+
+				WHEN LE.tipo_doc = 'GCOM' THEN
+
+					'Generaci¾n de Compuesto'
+
+				WHEN LE.tipo_doc = 'NREC' THEN
+
+					'Nota de Recepci¾n'
+
+				WHEN LE.tipo_doc ='DCLI' THEN
+
+					'Devoluci¾n de Cliente'
+
+			END AS tipo_doc, 
+
+			ISNULL(FCR.doc_num, ISNULL(TR.tras_num, ISNULL(ACGR.gene_num, ISNULL(NRR.doc_num, DCR.doc_num)))) AS doc_num,
+
+			ISNULL(FC.fec_emis, ISNULL(T.fecha, ISNULL(ACG.fecha, ISNULL(NR.fec_emis, DC.fec_emis)))) AS fec_emis,
+
+			ISNULL(FCR.cost_unit, ISNULL(TR.cost_unit, ISNULL(ACGR.cost_unit, ISNULL(NRR.cost_unit, 0)))) AS costo_unit,
+
+			LE.fecha_expiracion
+
+			
+
+        FROM
+
+            saArticulo AS A   
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art
+
+                                            AND AU.uni_principal = 1
+
+			LEFT JOIN saFacturaCompraReng FCR ON LE.rowguid_reng = FCR.rowguid
+
+			LEFT JOIN saFacturaCompra FC ON FC.doc_num = FCR.doc_num
+
+
+
+			LEFT JOIN saTrasladoReng TR ON LE.rowguid_reng = TR.rowguid
+
+			LEFT JOIN satraslado T ON T.tras_num = TR.tras_num 
+
+
+
+			LEFT JOIN saArtCompuestoGenReng ACGR ON LE.rowguid_reng = ACGR.rowguid
+
+			LEFT JOIN saArtCompuestoGen ACG ON ACG.gene_num = ACGR.gene_num
+
+
+
+			LEFT JOIN saNotaRecepcionCompraReng NRR ON LE.rowguid_reng = NRR.rowguid
+
+			LEFT JOIN saNotaRecepcionCompra NR ON NR.doc_num = NRR.doc_num 
+
+
+
+			LEFT JOIN saDevolucionClienteReng DCR ON LE.rowguid_reng = DCR.rowguid
+
+			LEFT JOIN saDevolucionCliente DC ON DC.doc_num = DCR.doc_num
+
+		WHERE
+
+            ( ( @sCo_Codigo_d IS NULL
+
+                OR A.co_art >= @sCo_Codigo_d
+
+              )
+
+              AND ( @sCo_Codigo_h IS NULL
+
+                    OR A.co_art <= @sCo_Codigo_h
+
+                  )
+
+            )
+
+		 AND ( ( @sCo_Linea_d IS NULL
+
+                    OR A.co_lin >= @sCo_Linea_d
+
+                  )
+
+                  AND ( @sCo_Linea_h IS NULL
+
+                        OR A.co_lin <= @sCo_Linea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_SubLinea_d IS NULL
+
+                   
+
+
+======================================================================
+SP: RepArticulosPreciosRefxLotexAlmacen (PROCEDURE)
+======================================================================
+
+
+
+
+/*=============================================
+
+ Author:		<Softech Sistemas
+
+ Create date:   <30-10-2014>
+
+ Description:	<ArtÝculos con sus Precios de Referencia x Lote x AlmacÚn>
+
+ =============================================*/
+
+CREATE PROCEDURE [dbo].[RepArticulosPreciosRefxLotexAlmacen]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL ,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+--------------Fin Valores por Defecto----------------
+
+        DECLARE @sCo_fecha_h DATETIME
+
+        SET @sCo_fecha_h = GETDATE() 
+
+
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+
+
+        SELECT TOP 10000
+
+            A.*, LE.numero_lote,--Le.fecha_expiracion,
+
+            AL.co_alma, AL.des_alma, AU.co_uni AS co_unidad,
+
+            CASE WHEN LE.tipo_doc = 'COMP' THEN
+
+					'Factura de Compra'
+
+				WHEN LE.tipo_doc = 'TRAS' THEN
+
+					'Traslado'
+
+				WHEN LE.tipo_doc = 'GCOM' THEN
+
+					'Generaci¾n de Compuesto'
+
+				WHEN LE.tipo_doc = 'NREC' THEN
+
+					'Nota de Recepci¾n'
+
+				WHEN LE.tipo_doc ='DCLI' THEN
+
+					'Devoluci¾n de Cliente'
+
+			END AS tipo_doc, 
+
+			ISNULL(FCR.doc_num, ISNULL(TR.tras_num, ISNULL(ACGR.gene_num, ISNULL(NRR.doc_num, DCR.doc_num)))) AS doc_num,
+
+			ISNULL(FC.fec_emis, ISNULL(T.fecha, ISNULL(ACG.fecha, ISNULL(NR.fec_emis, DC.fec_emis)))) AS fec_emis,
+
+			LE.precio, LE.fecha_expiracion
+
+			
+
+        FROM
+
+            saArticulo AS A   
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art
+
+                                            AND AU.uni_principal = 1
+
+			LEFT JOIN saFacturaCompraReng FCR ON LE.rowguid_reng = FCR.rowguid
+
+			LEFT JOIN saFacturaCompra FC ON FC.doc_num = FCR.doc_num
+
+
+
+			LEFT JOIN saTrasladoReng TR ON LE.rowguid_reng = TR.rowguid
+
+			LEFT JOIN satraslado T ON T.tras_num = TR.tras_num 
+
+
+
+			LEFT JOIN saArtCompuestoGenReng ACGR ON LE.rowguid_reng = ACGR.rowguid
+
+			LEFT JOIN saArtCompuestoGen ACG ON ACG.gene_num = ACGR.gene_num
+
+
+
+			LEFT JOIN saNotaRecepcionCompraReng NRR ON LE.rowguid_reng = NRR.rowguid
+
+			LEFT JOIN saNotaRecepcionCompra NR ON NR.doc_num = NRR.doc_num 
+
+
+
+			LEFT JOIN saDevolucionClienteReng DCR ON LE.rowguid_reng = DCR.rowguid
+
+			LEFT JOIN saDevolucionCliente DC ON DC.doc_num = DCR.doc_num
+
+		WHERE
+
+            ( ( @sCo_Codigo_d IS NULL
+
+                OR A.co_art >= @sCo_Codigo_d
+
+              )
+
+              AND ( @sCo_Codigo_h IS NULL
+
+                    OR A.co_art <= @sCo_Codigo_h
+
+                  )
+
+            )
+
+		 AND ( ( @sCo_Linea_d IS NULL
+
+                    OR A.co_lin >= @sCo_Linea_d
+
+                  )
+
+                  AND ( @sCo_Linea_h IS NULL
+
+                        OR A.co_lin <= @sCo_Linea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_SubLinea_d IS NULL
+
+                    OR A.co_subl >= @sCo_SubLinea_d
+
+                  )
+
+                  AND ( @s
+
+
+======================================================================
+SP: RepFormatoNotaEntregaVentaOM_Lote (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [dbo].[RepFormatoNotaEntregaVentaOM_Lote] 
+
+
+
+    @sCo_Numero_d CHAR(20) = NULL ,
+
+    @sCo_Numero_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+
+
+		DECLARE @Direc VARCHAR(1000),@Telef VARCHAR(100), @Email VARCHAR(100) ;
+
+		select @Direc = val_str from saAdiCampo where co_adicampo='DIR_FIS';
+
+		select @Telef = val_str from saAdiCampo where co_adicampo='TELEF';
+
+		select @Email = val_str from saAdiCampo where co_adicampo='EMAIL';
+
+
+
+        DECLARE @Tipo_doc CHAR(11) ;
+
+        SET @Tipo_doc = 'notaeventa' ;
+
+	
+
+        SELECT 
+
+			@Direc AS DIRECCION_EMP, @Telef AS TELEFONO_EMP, @Email AS CORREO_EMP,
+
+			CL.cli_des, CL.rif, CL.nit, CL.telefonos, CL.fax, CL.direc1,
+
+            (CASE WHEN (FV.dir_ent IS NOT NULL AND len(ltrim(FV.dir_ent)) > 0) THEN FV.dir_ent ELSE CL.dir_ent2 END) AS dir_entrega,
+
+            VE.ven_des, TR.des_tran, ISNULL(CP.cond_des, '') AS cod_des, MO.mone_des,
+
+		/*Campos saNotaEntregaVenta*/ 
+
+			FV.doc_num, FV.descrip, FV.co_cli, FV.co_tran, FV.co_mone, FV.co_ven,
+
+            FV.co_cond, FV.fec_emis, FV.fec_venc, FV.fec_reg, FV.anulado, FV.status, FV.n_control, FV.ven_ter, FV.tasa,
+
+            FV.porc_desc_glob, 
+
+			FV.monto_desc_glob, FV.monto_desc_glob / FV.tasa AS monto_desc_glob2, 
+
+			FV.porc_reca,
+
+            FV.monto_reca, FV.monto_reca / FV.tasa AS monto_reca2, 
+
+			FV.total_bruto, FV.total_bruto / FV.tasa AS total_bruto2,
+
+            FV.monto_imp, FV.monto_imp / FV.tasa AS monto_imp2, 
+
+			FV.monto_imp2 / FV.tasa AS monto_imp2, FV.monto_imp3,
+
+            FV.otros1 / FV.tasa AS otros1, 
+
+			FV.otros2 / FV.tasa AS otros2, 
+
+			FV.otros3 / FV.tasa AS otros3, 
+
+			FV.total_neto, FV.total_neto / FV.tasa AS total_neto2, 
+
+            FV.saldo,  FV.otros3 / FV.tasa AS otros3,
+
+			FV.dir_ent, FV.comentario, 
+
+			FV.campo3,FV.campo4,
+
+		/*Campos saNotaEntregaVentaReng*/ 
+
+			FVR.reng_num, FVR.doc_num, FVR.co_art, ART.art_des,
+
+            FVR.total_art
+
+			, LS.cantidad AS cantidad
+
+			, LS.cantidad/UNI.equivalencia AS cajas
+
+			, UNI.equivalencia
+
+			, LS.numero_lote
+
+			, ART.stock_pedido AS peso
+
+			, (LS.cantidad * ART.stock_pedido) AS peso_renglon
+
+			, LE.fecha_inicio, LE.fecha_expiracion,
+
+			FVR.co_alma, FVR.stotal_art, FVR.co_uni, FVR.sco_uni, FVR.co_precio, ART.modelo, art.item, art.ref,
+
+            FVR.prec_vta, FVR.prec_vta / FV.tasa AS prec_vta2, 
+
+			FVR.prec_vta_om, FVR.porc_desc, 
+
+			FVR.monto_desc, FVR.monto_desc / FV.tasa AS monto_desc2,
+
+            FVR.tipo_imp, FVR.tipo_imp2, FVR.tipo_imp3, FVR.porc_imp, FVR.porc_imp2, FVR.porc_imp3,
+
+            FVR.monto_imp as reng_monto_imp, FVR.monto_imp / FV.tasa AS reng_monto_imp2, 
+
+			FVR.monto_imp2 / FV.tasa AS monto_imp2,
+
+            FVR.monto_imp3 / FV.tasa AS monto_imp3, 
+
+			FVR.reng_neto, FVR.reng_neto / FV.tasa AS reng_neto2, 
+
+			FVR.pendiente, FVR.pendiente2,
+
+			FVR.comentario,
+
+            FVR.lote_asignado
+
+			, LS.cantidad * FVR.prec_vta / FV.tasa AS reng_neto3
+
+			, ((LS.cantidad/UNI.equivalencia) * FVR.prec_vta / FV.tasa) AS reng_neto4
+
+        FROM
+
+            saNotaEntregaVenta AS FV
+
+            INNER JOIN saNotaEntregaVentaReng AS FVR ON FVR.doc_num = FV.doc_num
+
+            INNER JOIN saCliente AS CL ON CL.co_cli = FV.co_cli
+
+            INNER JOIN saVendedor AS VE ON VE.co_ven = FV.co_ven
+
+            INNER JOIN saTransporte AS TR ON TR.co_tran = FV.co_tran
+
+            LEFT JOIN saCondicionPago AS CP ON CP.co_cond = FV.co_cond
+
+            INNER JOIN saMoneda AS MO ON MO.co_mone = FV.co_mone
+
+            INNER JOIN saArticulo AS ART ON ART.co_art = FVR.co_art
+
+			INNER JOIN saArtUnidad AS UNI ON UNI.co_art = ART.co_art AND UNI.co_uni = 'CAJ'
+
+			INNER JOIN saLoteSalida AS LS ON LS.co_art = FVR.co_art AND LS.rowguid_reng = FVR.rowguid
+
+			INNER JOIN saLoteEntrada AS LE ON LE.rowguid = LS.Rowguid_Lote AND LS.co_art = LE.co_art AND LE.co_alma = L
+
+
+======================================================================
+SP: RepMovimientoInventarioxArticuloXlote (PROCEDURE)
+======================================================================
+CREATE PROCEDURE [dbo].[RepMovimientoInventarioxArticuloXlote]
+
+    @sCo_Art_d CHAR(30) = NULL ,
+
+    @sCo_Art_h CHAR(30) = NULL ,
+
+    @dCo_fecha_d DATETIME = NULL ,
+
+    @dCo_fecha_h DATETIME = NULL ,
+
+    @sCo_Almacen CHAR(6) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_Movimiento CHAR(4) = NULL ,
+
+    @sCostos CHAR(4) = NULL ,
+
+    @sNumero_Lote CHAR(20) = NULL ,
+
+    @sAsignacion CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+
+
+    -- 1. Normalizaci¾n de Parßmetros y Fechas
+
+    DECLARE @Desde DATETIME = CAST(@dCo_fecha_d AS DATETIME);
+
+    DECLARE @Hasta DATETIME = DATEADD(SECOND, -1, DATEADD(DAY, 1, CAST(@dCo_fecha_h AS DATETIME)));
+
+
+
+    -- 2. Tabla temporal con estructura original
+
+    CREATE TABLE #TmpResult (
+
+        co_art CHAR(30) COLLATE DATABASE_DEFAULT,
+
+        art_des VARCHAR(200) COLLATE DATABASE_DEFAULT,
+
+        total_art DECIMAL(18,5),
+
+        co_uni CHAR(6) COLLATE DATABASE_DEFAULT,
+
+        total DECIMAL(18,5),
+
+        total_entrada DECIMAL(18,5),
+
+        total_salida DECIMAL(18,5),
+
+        co_uni_base CHAR(6) COLLATE DATABASE_DEFAULT,
+
+        co_alma CHAR(6) COLLATE DATABASE_DEFAULT,
+
+        fecha DATETIME,
+
+        reng_num INT,
+
+        doc_num CHAR(20) COLLATE DATABASE_DEFAULT,
+
+        anulado BIT,
+
+        co_prov CHAR(20) COLLATE DATABASE_DEFAULT,
+
+        co_cli CHAR(20) COLLATE DATABASE_DEFAULT,
+
+        tipo CHAR(4) COLLATE DATABASE_DEFAULT,
+
+        tipo_art CHAR(1) COLLATE DATABASE_DEFAULT,
+
+        numero_lote VARCHAR(30) COLLATE DATABASE_DEFAULT
+
+    );
+
+
+
+    -- 3. UNIFICACIËN CON B┌SQUEDA DIRECTA (Optimizaci¾n de Rendimiento)
+
+    INSERT INTO #TmpResult
+
+    SELECT 
+
+        l.co_art, a.art_des, 
+
+        ISNULL(dbo.ArtUnidadBase(l.co_art, ISNULL(U_Mov.co_uni, u.co_uni), l.cantidad), 0),
+
+        ISNULL(U_Mov.co_uni, u.co_uni),
+
+        l.cantidad,
+
+        CASE WHEN l.es_entrada = 1 THEN l.cantidad ELSE 0 END,
+
+        CASE WHEN l.es_entrada = 0 THEN (l.cantidad * -1) ELSE 0 END,
+
+        u.co_uni,
+
+        l.co_alma, 
+
+        ISNULL(U_Mov.fec_mov, l.fecha_inicio),
+
+        l.reng_num,
+
+        ISNULL(U_Mov.doc_nro, l.tipo_doc),
+
+        ISNULL(U_Mov.anul, 0),
+
+        ISNULL(U_Mov.prov, ''),
+
+        ISNULL(U_Mov.cli, ''),
+
+        l.tipo_doc,
+
+        a.tipo,
+
+        l.numero_lote
+
+    FROM (
+
+        SELECT co_art, co_alma, cantidad, reng_num, tipo_doc, numero_lote, rowguid_reng, 1 as es_entrada, fecha_inicio FROM saLoteEntrada
+
+        UNION ALL
+
+        SELECT co_art, co_alma, cantidad, reng_num, tipo_doc, numero_lote, rowguid_reng, 0 as es_entrada, NULL FROM saLoteSalida
+
+    ) l
+
+    INNER JOIN saArticulo a ON l.co_art = a.co_art
+
+    LEFT JOIN saArtUnidad u ON l.co_art = u.co_art AND u.uni_principal = 1
+
+    CROSS APPLY (
+
+        SELECT TOP 1 
+
+            r.co_uni, c.fec_emis as fec_mov, c.doc_num as doc_nro, c.anulado as anul, c.co_prov as prov, '' as cli
+
+        FROM saFacturaCompraReng r INNER JOIN saFacturaCompra c ON r.doc_num = c.doc_num 
+
+        WHERE l.rowguid_reng = r.rowguid AND l.tipo_doc = 'COMP'
+
+        UNION ALL
+
+        SELECT TOP 1 r.co_uni, c.fec_emis, c.doc_num, c.anulado, c.co_prov, ''
+
+        FROM saNotaRecepcionCompraReng r INNER JOIN saNotaRecepcionCompra c ON r.doc_num = c.doc_num 
+
+        WHERE l.rowguid_reng = r.rowguid AND l.tipo_doc = 'NREC'
+
+        UNION ALL
+
+        SELECT TOP 1 r.co_uni, c.fec_emis, c.doc_num, c.anulado, '', c.co_cli
+
+        FROM saFacturaVentaReng r INNER JOIN saFacturaVenta c ON r.doc_num = c.doc_num 
+
+        WHERE l.rowguid_reng = r.rowguid AND l.tipo_doc = 'FACT'
+
+        UNION ALL
+
+        SELECT TOP 1 r.co_uni, c.fec_emis, c.doc_num, c.anulado, '', c.co_cli
+
+        FROM saNotaEntregaVentaReng r INNE
+
+
+======================================================================
+SP: RepMovimientoInventarioxArticuloXloteAsignados (PROCEDURE)
+======================================================================
+
+
+-- =============================================
+
+-- Author:		SOFTECH SISTEMAS
+
+-- Create date: <10/09/2010>
+
+-- Last Update: 2017-06-20
+
+-- Description:	<Movimientos de Inventarios por Articulo X Lote Asignados>
+
+-- =============================================
+
+CREATE PROCEDURE [dbo].[RepMovimientoInventarioxArticuloXloteAsignados]
+
+    @sCo_Art_d CHAR(30) = NULL ,
+
+    @sCo_Art_h CHAR(30) = NULL ,
+
+    @dCo_fecha_d DATETIME = NULL ,
+
+    @dCo_fecha_h DATETIME = NULL ,
+
+    @sCo_Almacen CHAR(6) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_Movimiento CHAR(4) = NULL ,
+
+    @sCostos CHAR(4) = NULL ,
+
+    @sNumero_Lote CHAR(20) = NULL ,
+
+    @sAsignacion CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+
+
+
+
+        IF ( @sCo_Movimiento IS NULL  OR @sCo_Movimiento = 'TODO'
+
+           ) 
+
+            SET @sCo_Movimiento = NULL
+
+
+
+        IF @sAsignacion IS NULL 
+
+            SET @sAsignacion = '4'
+
+
+
+        IF @dCo_fecha_h IS NOT NULL 
+
+            SET @dCo_fecha_h = DATEADD(ss, -1, DATEADD(day, 1, @dCo_fecha_h))
+
+
+
+        IF @sCostos IS NULL
+
+            OR @sCostos = 'NO' 
+
+            SET @sCostos = NULL
+
+
+
+        SET @dCo_fecha_d = dbo.fechasimple(@dCo_fecha_d)
+
+        SET @dCo_fecha_h = dbo.fechasimple(@dCo_fecha_h)
+
+
+
+
+
+        SELECT
+
+            A.*, B.StockInic, B.StockFinal, CASE WHEN @sCostos = 'SI' THEN '1'
+
+                                                 ELSE '0'
+
+                                            END AS detalle
+
+        FROM
+
+            (	
+
+	--1saFacturaCompraReng
+
+              SELECT
+
+                A.co_art, A.art_des, ISNULL(dbo.ArtUnidadBase(FCR.co_art, FCR.co_uni, FCR.total_art), 0) AS total_art,
+
+                FCR.co_uni, ISNULL(FCR.total, 0) AS total, FCR.total * CASE WHEN FC.anulado = 1 THEN 0
+
+                                                                            ELSE 1
+
+                                                                       END AS total_entrada, 0.00 AS total_salida,
+
+                AU2.co_uni AS co_uni_base, FCR.co_alma, dbo.fechasimple(FC.fec_emis) AS fecha, FCR.reng_num, FCR.doc_num,
+
+                FC.anulado AS anulado, FC.co_prov, '' AS co_cli, 'COMP' AS tipo, 
+
+				A.tipo AS tipo_art,
+
+                ISNULL(FCR.numero_lote, 'Por Asignar') AS numero_lote
+
+              FROM
+
+                saArticulo AS A
+
+                LEFT JOIN ( SELECT
+
+                                DVR.co_art, DVR.doc_num, DVR.co_uni, DVR.co_alma, DVR.reng_num, DEVR.total,
+
+                                DVR.total_art, DVR.rowguid, DVR.tipo_doc, DEVR.numero_lote
+
+                            FROM
+
+                                saFacturaCompraReng AS DVR
+
+                                INNER JOIN ( SELECT
+
+                                                SUM(SL.cantidad) AS total, DEVR.doc_num, DEVR.co_alma, DEVR.co_art,
+
+                                                DEVR.reng_num, SL.numero_lote
+
+                                             FROM
+
+                                                saFacturaCompraReng AS DEVR
+
+                                                LEFT JOIN saLoteEntrada AS SL ON DEVR.rowguid = SL.rowguid_reng
+
+                                                                                 AND DEVR.co_art = SL.co_art
+
+                                                                                 AND SL.tipo_doc = 'COMP'
+
+                                             WHERE
+
+                                                ( DEVR.tipo_doc <> 'NREC'
+
+                                                  OR DEVR.tipo_doc IS NULL
+
+                                                )
+
+                                                AND ( @sCo_Art_d IS NULL
+
+                                                 
+
+
+======================================================================
+SP: RepMovimientoInventarioxArticuloXloteOriginal (PROCEDURE)
+======================================================================
+/*=============================================
+
+ Author:		SOFTECH SISTEMAS
+
+ Create date: <10/09/2010>
+
+ Modify date: <12/01/2018>
+
+ Last Update: 2021-02-20
+
+ Description:	<Movimientos de Inventarios por Articulo X Lote Asignados>
+
+=============================================*/
+
+CREATE   PROCEDURE [dbo].[RepMovimientoInventarioxArticuloXlote]
+
+    @sCo_Art_d CHAR(30) = NULL ,
+
+    @sCo_Art_h CHAR(30) = NULL ,
+
+    @dCo_fecha_d DATETIME = NULL ,
+
+    @dCo_fecha_h DATETIME = NULL ,
+
+    @sCo_Almacen CHAR(6) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_Movimiento CHAR(4) = NULL ,
+
+    @sCostos CHAR(4) = NULL ,
+
+    @sNumero_Lote CHAR(20) = NULL ,
+
+    @sAsignacion CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+
+
+
+
+        IF ( @sCo_Movimiento IS NULL
+
+             OR @sCo_Movimiento = 'TODO'
+
+           )
+
+            SET @sCo_Movimiento = NULL
+
+
+
+        IF @sAsignacion IS NULL
+
+            SET @sAsignacion = '4'
+
+
+
+        IF @dCo_fecha_h IS NOT NULL
+
+            SET @dCo_fecha_h = DATEADD(ss, -1, DATEADD(day, 1, @dCo_fecha_h))
+
+
+
+        IF @sCostos IS NULL
+
+            OR @sCostos = 'NO'
+
+            SET @sCostos = NULL
+
+
+
+        SET @dCo_fecha_d = dbo.fechasimple(@dCo_fecha_d)
+
+        SET @dCo_fecha_h = dbo.fechasimple(@dCo_fecha_h)
+
+
+
+
+
+        SELECT
+
+            A.*, B.StockInic, B.StockFinal, CASE WHEN @sCostos = 'SI' THEN '1'
+
+                                                 ELSE '0'
+
+                                            END AS detalle
+
+        FROM
+
+            (
+
+	--1saFacturaCompraReng
+
+              SELECT
+
+                A.co_art, A.art_des, ISNULL(dbo.ArtUnidadBase(FCR.co_art, FCR.co_uni, FCR.total_art), 0) AS total_art,
+
+                FCR.co_uni, ISNULL(FCR.total, 0) AS total, FCR.total * CASE WHEN FC.anulado = 1 THEN 0
+
+                                                                            ELSE 1
+
+                                                                       END AS total_entrada, 0.00 AS total_salida,
+
+                AU2.co_uni AS co_uni_base, FCR.co_alma, dbo.fechasimple(FC.fec_emis) AS fecha, FCR.reng_num, FCR.doc_num,
+
+                FC.anulado AS anulado, FC.co_prov, '' AS co_cli, 'COMP' AS tipo,
+
+				A.tipo AS tipo_art,
+
+                ISNULL(FCR.numero_lote, 'Por Asignar') AS numero_lote
+
+              FROM
+
+                saArticulo AS A
+
+                LEFT JOIN ( SELECT
+
+                                DVR.co_art, DVR.doc_num, DVR.co_uni, DVR.co_alma, DVR.reng_num, DEVR.total,
+
+                                DVR.total_art, DVR.rowguid, DVR.tipo_doc, DEVR.numero_lote
+
+                            FROM
+
+                                saFacturaCompraReng AS DVR
+
+                                INNER JOIN (
+
+											SELECT
+
+                                                SUM(SL.cantidad) AS total, DEVR.doc_num, DEVR.co_alma, DEVR.co_art,
+
+                                                DEVR.reng_num, SL.numero_lote
+
+
+
+                                             FROM
+
+                                                saFacturaCompraReng AS DEVR
+
+                                                LEFT JOIN saLoteEntrada AS SL ON DEVR.rowguid = SL.rowguid_reng
+
+                                                                                 AND DEVR.co_art = SL.co_art
+
+                                                                                 AND SL.tipo_doc = 'COMP'
+
+                                             WHERE
+
+                                                ( DEVR.tipo_doc <> 'NREC'
+
+                                                  OR DEVR.tipo_doc IS NULL
+
+                                                )
+
+                                                AND ( @sCo_Art_d IS NULL
+
+                    
+
+
+======================================================================
+SP: RepPlanillaParaTomaDelFisicoBelen (PROCEDURE)
+======================================================================
+
+
+/*=============================================
+
+ Author:		OCTAVIO VARGAS
+
+ Create date:	<29-04-2.024>
+
+ Description:	<Planilla para toma del FÝsico>
+
+ =============================================*/
+
+CREATE PROCEDURE [dbo].[RepPlanillaParaTomaDelFisicoBelen]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Art_d CHAR(30) = NULL ,
+
+    @sCo_Art_h CHAR(30) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_Color_d CHAR(6) = NULL ,
+
+    @sCo_Color_h CHAR(6) = NULL ,
+
+    @sCo_Alma CHAR(6) = NULL ,
+
+    @sTipoStock CHAR(4) = NULL ,
+
+    @sCo_NivelStock CHAR(4) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+
+
+        IF ( @sCo_NivelStock IS NULL ) 
+
+            SET @sCo_NivelStock = 'TODO'
+
+
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_art'
+
+
+
+        SELECT
+
+            A.co_art
+
+			, A.art_des
+
+			, AU.co_uni
+
+			, ISNULL(LTE.numero_lote, '') AS numero_lote
+
+        FROM
+
+            saArticulo A
+
+            CROSS JOIN saAlmacen AS AL
+
+            LEFT JOIN saStockAlmacen B ON ( ( A.co_art = B.co_art )
+
+                                            AND ( B.tipo = @sTipoStock )
+
+                                            AND ( AL.co_alma = B.co_alma )
+
+                                          )
+
+            LEFT JOIN saArtUnidad AU ON ( ( A.co_art = AU.co_art )
+
+                                          AND ( AU.uni_principal = 1 )
+
+                                        )
+
+			LEFT JOIN saLoteEntrada AS LTE ON LTE.co_alma = B.co_alma AND LTE.co_art = A.co_art
+
+            INNER JOIN saLineaArticulo AS LA ON LA.co_lin = A.co_lin
+
+            INNER JOIN saCatArticulo AS CA ON CA.co_cat = A.co_cat
+
+            INNER JOIN saColor AS CO ON CO.co_color = A.co_color
+
+        WHERE
+
+            ( ( @sCo_Art_d IS NULL
+
+                OR A.co_art >= @sCo_Art_d
+
+              )
+
+              AND ( @sCo_Art_h IS NULL
+
+                    OR A.co_art <= @sCo_Art_h
+
+                  )
+
+            )
+
+            AND ( ( @sCo_Linea_d IS NULL
+
+                    OR LA.co_lin >= @sCo_Linea_d
+
+                  )
+
+                  AND ( @sCo_Linea_h IS NULL
+
+                        OR LA.co_lin <= @sCo_Linea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_Categoria_d IS NULL
+
+                    OR CA.co_cat >= @sCo_Categoria_d
+
+                  )
+
+                  AND ( @sCo_Categoria_h IS NULL
+
+                        OR CA.co_cat <= @sCo_Categoria_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_Color_d IS NULL
+
+                    OR CO.co_color >= @sCo_Color_d
+
+                  )
+
+                  AND ( @sCo_Color_h IS NULL
+
+                        OR CO.co_color <= @sCo_Color_h
+
+                      )
+
+                )
+
+            AND ( @sCo_Alma IS NULL
+
+                  OR B.co_alma = @sCo_Alma
+
+                )
+
+            AND ( ( @sCo_NivelStock = 'TODO' )
+
+                  OR -- TODOS
+
+                  ( @sCo_NivelStock = 'IA0'
+
+                    AND ISNULL(B.stock, 0) = 0
+
+                  )
+
+                  OR -- IGUAL A CERO
+
+                  ( @sCo_NivelStock = 'MAY'
+
+                    AND ISNULL(B.stock, 0) > 0
+
+                  )
+
+                  OR -- MAYOR A CERO
+
+                  ( @sCo_NivelStock = 'MEN'
+
+                    AND ISNULL(B.stock, 0) < 0
+
+                  )
+
+                  OR -- MENOR A CERO
+
+                  ( @sCo_NivelStock = 'PMAX'
+
+                    AND ISNULL(B.stock, 0) >= A.stock_max
+
+                  )
+
+                  OR -- MAYOR A PUNTO MAXIMO
+
+                  ( @sCo_NivelStock = 'PMIN'
+
+                    AND ISNULL(B.stock, 0) <= A.stock_min
+
+          
+
+
+======================================================================
+SP: RepStockArticulosxLote (PROCEDURE)
+======================================================================
+
+
+/*=============================================
+
+ Author:		<Softech Sistemas
+
+ Create date:   <22-07-10>
+
+ Lastdate Update: <12-01-2018>  
+
+ Description:	<Articulos con su Stock por Lote>
+
+ =============================================*/
+
+CREATE PROCEDURE [dbo].[RepStockArticulosxLote]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL ,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sTipoStock CHAR(4) = NULL ,
+
+    @sCo_NivelStock CHAR(4) = NULL ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+                                    
+
+        IF @sCo_NivelStock IS NULL 
+
+            SET @sCo_NivelStock = 'DIFE' 
+
+--------------Fin Valores por Defecto----------------
+
+        DECLARE @sCo_fecha_h DATETIME
+
+        SET @sCo_fecha_h = GETDATE() 
+
+
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+        SELECT
+
+            A.co_art, LE.numero_lote, Le.fecha_expiracion, AL.co_alma, AL.des_alma, @sTipoStock AS TipoStock,
+
+            AU.co_uni AS co_unidad,
+
+            dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, NULL, @sCo_fecha_h, NULL, NULL, LE.numero_lote) AS StockActual
+
+        FROM
+
+            saArticulo AS A
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art --AND A.tipo <> 'S' --AND A.maneja_lote = '1'
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art
+
+                                            AND AU.uni_principal = 1
+
+        WHERE
+
+            ( ( @sCo_Codigo_d IS NULL
+
+                OR A.co_art >= @sCo_Codigo_d
+
+              )
+
+              AND ( @sCo_Codigo_h IS NULL
+
+                    OR A.co_art <= @sCo_Codigo_h
+
+                  )
+
+            )
+
+            AND ( ( @sCo_Linea_d IS NULL
+
+                    OR A.co_lin >= @sCo_Linea_d
+
+                  )
+
+                  AND ( @sCo_Linea_h IS NULL
+
+                        OR A.co_lin <= @sCo_Linea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_SubLinea_d IS NULL
+
+                    OR A.co_subl >= @sCo_SubLinea_d
+
+                  )
+
+                  AND ( @sCo_SubLinea_h IS NULL
+
+                        OR A.co_subl <= @sCo_SubLinea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_Categoria_d IS NULL
+
+                    OR A.co_cat >= @sCo_Categoria_d
+
+                  )
+
+                  AND ( @sCo_Categoria_h IS NULL
+
+                        OR A.co_cat <= @sCo_Categoria_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_NumeroLote_d IS NULL
+
+                    OR LE.numero_lote >= @sCo_NumeroLote_d
+
+                  )
+
+                  AND ( @sCo_NumeroLote_h IS NULL
+
+                        OR LE.numero_lote <= @sCo_NumeroLote_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_NivelStock = 'TODO' )
+
+                  OR -- TODOS
+
+                  ( @sCo_NivelStock = 'IAO'
+
+                    AND ISNULL(dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, AL.co_alma, @sC
+
+
+======================================================================
+SP: RepStockArticulosxLoteFecVec (PROCEDURE)
+======================================================================
+
+
+/*=============================================
+
+ Author:		SOFTECH SISTEMAS
+
+ Create date:   <04-04-11>
+
+ Description:	<Articulos con su Stock por Lote>
+
+ =============================================*/
+
+CREATE PROCEDURE [RepStockArticulosxLoteFecVec]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL ,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sCo_Fecha_d DATETIME = NULL ,
+
+    @sCo_Fecha_h DATETIME = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sTipoStock CHAR(4) = NULL ,
+
+    @sCo_NivelStock CHAR(4) = NULL ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+                         
+
+        IF @sCo_NivelStock IS NULL 
+
+            SET @sCo_NivelStock = 'DIFE' 
+
+--------------Fin Valores por Defecto----------------
+
+
+
+
+
+        SET @sCo_fecha_d = dbo.fechasimple(@sCo_fecha_d)
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+        SELECT TOP 10000
+
+            A.*, LE.numero_lote, Le.fecha_expiracion, AL.co_alma, AL.des_alma, '' AS TipoStock, AU.co_uni AS co_unidad,
+
+            dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, NULL, @sCo_Fecha_h, NULL, NULL, LE.numero_lote) AS StockActual
+
+        FROM
+
+            saArticulo AS A
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art --AND A.tipo <> 'S' --AND A.maneja_lote = '1'
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art
+
+                                            AND AU.uni_principal = 1
+
+        WHERE
+
+            ( ( @sCo_Codigo_d IS NULL
+
+                OR A.co_art >= @sCo_Codigo_d
+
+              )
+
+              AND ( @sCo_Codigo_h IS NULL
+
+                    OR A.co_art <= @sCo_Codigo_h
+
+                  )
+
+            )
+
+            AND ( A.maneja_lote = 1 )
+
+            AND ( ( @sCo_NumeroLote_d IS NULL
+
+                    OR LE.numero_lote >= @sCo_NumeroLote_d
+
+                  )
+
+                  AND ( @sCo_NumeroLote_h IS NULL
+
+                        OR LE.numero_lote <= @sCo_NumeroLote_h
+
+                      )
+
+                )
+
+        ORDER BY
+
+            CASE @sDir
+
+              WHEN 'DESC' THEN CASE @sCampOrderBy
+
+                                 WHEN 'art_des' THEN A.art_des
+
+                                 ELSE A.co_art
+
+                               END
+
+            END DESC, CASE @sDir
+
+                        WHEN 'ASC' THEN CASE @sCampOrderBy
+
+                                          WHEN 'art_des' THEN A.art_des
+
+                                          ELSE A.co_art
+
+                                        END
+
+                      END ASC
+
+
+
+    END
+
+
+
+
+======================================================================
+SP: RepStockArticulosxLotexAlmacen (PROCEDURE)
+======================================================================
+
+
+/*=============================================
+
+ Author:		<Softech Sistemas
+
+ Create date:   <22-07-10>
+
+ Description:	<Articulos con su Stock por Lote>
+
+ =============================================*/
+
+CREATE PROCEDURE [RepStockArticulosxLotexAlmacen]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL ,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL ,
+
+    @sCo_Linea_h CHAR(6) = NULL ,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sTipoStock CHAR(4) = NULL ,
+
+    @sCo_NivelStock CHAR(4) = NULL ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+                                    
+
+        IF @sCo_NivelStock IS NULL 
+
+            SET @sCo_NivelStock = 'DIFE' 
+
+--------------Fin Valores por Defecto----------------
+
+        DECLARE @sCo_fecha_h DATETIME
+
+        SET @sCo_fecha_h = GETDATE() 
+
+
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+
+
+        SELECT TOP 10000
+
+            A.*, LE.numero_lote,--Le.fecha_expiracion,
+
+            AL.co_alma, AL.des_alma, @sTipoStock AS TipoStock, AU.co_uni AS co_unidad,
+
+            dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, AL.co_alma, @sCo_fecha_h, NULL, NULL, LE.numero_lote)
+
+            AS StockActual
+
+        FROM
+
+            saArticulo AS A --LEFT JOIN saLoteSalida AS LE ON A.co_art = LE.co_art  
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art
+
+                                            AND AU.uni_principal = 1
+
+        WHERE
+
+            ( ( @sCo_Codigo_d IS NULL
+
+                OR A.co_art >= @sCo_Codigo_d
+
+              )
+
+              AND ( @sCo_Codigo_h IS NULL
+
+                    OR A.co_art <= @sCo_Codigo_h
+
+                  )
+
+            )
+
+		--AND
+
+		--((@sCo_Descripcion_d IS NULL OR A.art_des >= @sCo_Descripcion_d) AND (@sCo_Descripcion_h IS NULL OR A.art_des <= @sCo_Descripcion_h))
+
+            AND ( ( @sCo_Linea_d IS NULL
+
+                    OR A.co_lin >= @sCo_Linea_d
+
+                  )
+
+                  AND ( @sCo_Linea_h IS NULL
+
+                        OR A.co_lin <= @sCo_Linea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_SubLinea_d IS NULL
+
+                    OR A.co_subl >= @sCo_SubLinea_d
+
+                  )
+
+                  AND ( @sCo_SubLinea_h IS NULL
+
+                        OR A.co_subl <= @sCo_SubLinea_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_Categoria_d IS NULL
+
+                    OR A.co_cat >= @sCo_Categoria_d
+
+                  )
+
+                  AND ( @sCo_Categoria_h IS NULL
+
+                        OR A.co_cat <= @sCo_Categoria_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_Almacen_d IS NULL
+
+                    OR AL.co_alma >= @sCo_Almacen_d
+
+                  )
+
+                  AND ( @sCo_Almacen_h IS NULL
+
+                        OR AL.co_alma <= @sCo_Almacen_h
+
+                      )
+
+                )
+
+            AND ( ( @sCo_NumeroLote_d IS NULL
+
+                    OR LE.numero_lote >= @s
+
+
+======================================================================
+SP: RepStockArticulosxLotexAlmacen_Carmal (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE [dbo].[RepStockArticulosxLotexAlmacen_Carmal]
+
+    -- Se restauran todos los parßmetros para cumplir con la interfaz de Profit Plus
+
+    @sCo_Codigo_d CHAR(30) = NULL,
+
+    @sCo_Codigo_h CHAR(30) = NULL,
+
+    @sCo_Descripcion_d CHAR(120) = NULL,
+
+    @sCo_Descripcion_h CHAR(120) = NULL,
+
+    @sCo_Linea_d CHAR(6) = NULL,
+
+    @sCo_Linea_h CHAR(6) = NULL,
+
+    @sCo_Categoria_d CHAR(6) = NULL,
+
+    @sCo_Categoria_h CHAR(6) = NULL,
+
+    @sCo_SubLinea_d CHAR(6) = NULL,
+
+    @sCo_SubLinea_h CHAR(6) = NULL,
+
+    @sCo_Almacen_d CHAR(6) = NULL,
+
+    @sCo_Almacen_h CHAR(6) = NULL,
+
+    @sTipo_Unidad CHAR(4) = NULL,
+
+    @sCo_Uni CHAR(6) = NULL,
+
+    @sTipoStock CHAR(4) = NULL,
+
+    @sCo_NivelStock CHAR(4) = 'DIFE',
+
+    @sCo_NumeroLote_d CHAR(20) = NULL,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL,
+
+    @sCo_Sucursal CHAR(6) = NULL,
+
+    @sCampOrderBy VARCHAR(16) = NULL,
+
+    @sDir VARCHAR(6) = NULL,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED;
+
+
+
+    -- 1. Tabla temporal con Collation para evitar conflictos
+
+    CREATE TABLE #MovimientosLote (
+
+        co_art CHAR(30) COLLATE DATABASE_DEFAULT,
+
+        co_alma CHAR(6) COLLATE DATABASE_DEFAULT,
+
+        numero_lote VARCHAR(30) COLLATE DATABASE_DEFAULT,
+
+        cantidad DECIMAL(18,5)
+
+    );
+
+
+
+    -- 2. ENTRADAS: Se filtran por almacÚn y lote desde el inicio
+
+    INSERT INTO #MovimientosLote
+
+    SELECT co_art, co_alma, numero_lote, SUM(cantidad)
+
+    FROM saLoteEntrada
+
+    WHERE (@sCo_Almacen_d IS NULL OR co_alma >= @sCo_Almacen_d)
+
+      AND (@sCo_Almacen_h IS NULL OR co_alma <= @sCo_Almacen_h)
+
+      AND (@sCo_NumeroLote_d IS NULL OR numero_lote >= @sCo_NumeroLote_d)
+
+      AND (@sCo_NumeroLote_h IS NULL OR numero_lote <= @sCo_NumeroLote_h)
+
+    GROUP BY co_art, co_alma, numero_lote;
+
+
+
+    -- 3. SALIDAS: Se filtran por almacÚn y lote desde el inicio
+
+    INSERT INTO #MovimientosLote
+
+    SELECT co_art, co_alma, numero_lote, SUM(cantidad * -1)
+
+    FROM saLoteSalida
+
+    WHERE (@sCo_Almacen_d IS NULL OR co_alma >= @sCo_Almacen_d)
+
+      AND (@sCo_Almacen_h IS NULL OR co_alma <= @sCo_Almacen_h)
+
+      AND (@sCo_NumeroLote_d IS NULL OR numero_lote >= @sCo_NumeroLote_d)
+
+      AND (@sCo_NumeroLote_h IS NULL OR numero_lote <= @sCo_NumeroLote_h)
+
+    GROUP BY co_art, co_alma, numero_lote;
+
+
+
+    -- 4. CONSOLIDACIËN FINAL (Se agregan los filtros de LÝnea, CategorÝa y Sub-LÝnea)
+
+    SELECT 
+
+        A.co_art,
+
+        RTRIM(ISNULL(A.ref,'')) + ' - ' + RTRIM(A.art_des) AS art_des,
+
+        M.numero_lote,
+
+        LE.fecha_inicio,
+
+        LE.fecha_expiracion,
+
+        M.co_alma,
+
+        ALM.des_alma,
+
+        @sTipoStock AS TipoStock,
+
+        AU.co_uni AS co_unidad,
+
+        AE.co_uni AS co_uni_sec,
+
+        ISNULL(AE.equivalencia, 0) AS equivalencia,
+
+        SUM(M.cantidad) AS StockActual,
+
+        CAST(CASE WHEN ISNULL(AE.equivalencia, 0) > 0 
+
+                  THEN SUM(M.cantidad) / AE.equivalencia 
+
+                  ELSE 0 END AS DECIMAL(18,5)) AS StockSecActual
+
+    INTO #FinalReport
+
+    FROM #MovimientosLote M
+
+    INNER JOIN saArticulo A ON M.co_art = A.co_art COLLATE DATABASE_DEFAULT
+
+    INNER JOIN saAlmacen ALM ON M.co_alma = ALM.co_alma COLLATE DATABASE_DEFAULT
+
+    INNER JOIN saArtUnidad AU ON A.co_art = AU.co_art COLLATE DATABASE_DEFAULT AND AU.uni_principal = 1
+
+    LEFT JOIN saArtUnidad AE ON A.co_art = AE.co_art COLLATE DATABASE_DEFAULT AND AE.uni_principal = 0 AND AE.uso_principal = 1
+
+    LEFT JOIN (
+
+        SELECT co_art COLLATE DATABASE_DEFAULT as co_art, 
+
+               numero_lote COLLATE DATABASE_DEFAULT as numero_lote, 
+
+               MIN(fecha_inicio) as fecha_inicio, 
+
+               MAX(fecha_expiracion) as fecha_expiracion
+
+        FROM saLoteEntrada
+
+        GROUP BY co_art, numero_lote
+
+    ) LE ON M.co_art = LE.co_art AND M.numero_lote = LE.numero_lote
+
+    WHERE ( @sCo_Codigo_d IS NULL OR A.co_art >= @sCo_Codigo_d )
+
+      AND ( @sCo_Codigo_h IS NULL OR A.co_art <= @s
+
+
+======================================================================
+SP: RepStockArticulosxLotexAlmacen_Carmal_ORIGINAL (PROCEDURE)
+======================================================================
+
+
+
+
+CREATE PROCEDURE [dbo].[RepStockArticulosxLotexAlmacen_Carmal]
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Codigo_d CHAR(30) = NULL ,
+
+    @sCo_Codigo_h CHAR(30) = NULL,
+
+    @sCo_Descripcion_d CHAR(120) = NULL ,
+
+    @sCo_Descripcion_h CHAR(120) = NULL ,
+
+    @sCo_Linea_d CHAR(6) = NULL,
+
+    @sCo_Linea_h CHAR(6) = NULL,
+
+    @sCo_Categoria_d CHAR(6) = NULL ,
+
+    @sCo_Categoria_h CHAR(6) = NULL ,
+
+    @sCo_SubLinea_d CHAR(6) = NULL ,
+
+    @sCo_SubLinea_h CHAR(6) = NULL ,
+
+    @sCo_Almacen_d CHAR(6) = NULL ,
+
+    @sCo_Almacen_h CHAR(6) = NULL ,
+
+    @sTipo_Unidad CHAR(4) = NULL , -- (Si es primaria o secundaria)
+
+    @sCo_Uni CHAR(6) = NULL ,
+
+    @sTipoStock CHAR(4) = NULL ,
+
+    @sCo_NivelStock CHAR(4) = 'DIFE'  ,
+
+    @sCo_NumeroLote_d CHAR(20) = NULL ,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+        DECLARE @bObtenerUnidadPrincipal BIT ;
+
+
+
+---------------Valores por Defecto-------------------
+
+        IF ( @sDir IS NULL ) 
+
+            SET @sDir = 'ASC'
+
+
+
+        IF ( @sCampOrderBy IS NULL ) 
+
+            SET @sCampOrderBy = 'co_alma'
+
+
+
+                                    
+
+        IF @sCo_NivelStock IS NULL 
+
+            SET @sCo_NivelStock = 'TODO' 
+
+
+
+--------------Fin Valores por Defecto----------------
+
+        DECLARE @sCo_fecha_h DATETIME
+
+        SET @sCo_fecha_h = GETDATE() 
+
+
+
+        SET @sCo_fecha_h = dbo.fechasimple(@sCo_fecha_h)
+
+
+
+SELECT DISTINCT co_art, 
+
+			art_des, 
+
+			numero_lote, 
+
+			MAX(fecha_inicio) AS fecha_inicio, 
+
+			MAX(fecha_expiracion) AS fecha_expiracion,
+
+            co_alma, 
+
+			des_alma,
+
+			TipoStock, 
+
+			co_unidad, 
+
+			co_uni,
+
+			equivalencia,  
+
+		isnull(dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, co_alma, @sCo_fecha_h, NULL, NULL, numero_lote),0) AS StockActual,
+
+		isnull(isnull(dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, co_alma, @sCo_fecha_h, NULL, NULL, numero_lote),0)/nullif(equivalencia,0),0)  StockSecActual
+
+FROM (
+
+        SELECT 
+
+            A.co_art, 
+
+			LTRIM(RTRIM(ISNULL(A.ref,''))) + ' - ' + LTRIM(RTRIM(a.art_des)) as art_des, 
+
+			LTRIM(RTRIM(LE.numero_lote)) AS numero_lote, 
+
+			DBO.FechaSimple(Le.fecha_inicio) AS fecha_inicio, 
+
+			DBO.FechaSimple(Le.fecha_expiracion) AS fecha_expiracion,
+
+            AL.co_alma, AL.des_alma, @sTipoStock AS TipoStock, 
+
+			AU.co_uni AS co_unidad, 
+
+			AE.co_uni, isnull(AE.equivalencia,0) as equivalencia
+
+        FROM
+
+            saArticulo AS A
+
+            LEFT JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art
+
+            LEFT JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+            INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art AND AU.uni_principal = 1
+
+			LEFT JOIN saArtUnidad AS AE ON AE.co_art = A.co_art AND AE.uni_principal = 0 AND AE.uso_principal=1
+
+        WHERE
+
+            ( ( @sCo_Codigo_d IS NULL OR A.co_art >= @sCo_Codigo_d ) AND ( @sCo_Codigo_h IS NULL OR A.co_art <= @sCo_Codigo_h ) )
+
+            AND ( ( @sCo_Linea_d IS NULL OR A.co_lin >= @sCo_Linea_d ) AND ( @sCo_Linea_h IS NULL OR A.co_lin <= @sCo_Linea_h ) )
+
+            AND ( ( @sCo_SubLinea_d IS NULL OR A.co_subl >= @sCo_SubLinea_d ) AND ( @sCo_SubLinea_h IS NULL OR A.co_subl <= @sCo_SubLinea_h ) )
+
+            AND ( ( @sCo_Categoria_d IS NULL OR A.co_cat >= @sCo_Categoria_d ) AND ( @sCo_Categoria_h IS NULL OR A.co_cat <= @sCo_Categoria_h ) )
+
+            AND ( ( @sCo_Almacen_d IS NULL  OR AL.co_alma >= @sCo_Almacen_d ) AND ( @sCo_Almacen_h IS NULL OR AL.co_alma <= @sCo_Almacen_h ) )
+
+            AND ( ( @sCo_NumeroLote_d IS NULL OR LE.numero_lote >= @sCo_NumeroLote_d ) AND ( @sCo_NumeroLote_h IS NULL OR LE.numero_lote <= @sCo_NumeroLote_h ) )
+
+            AND ( ( @sCo_NivelStock = 'TODO' )  OR -- TODOS 
+
+				  ( @sCo_NivelStock = 'IAO'  AND ISNULL(dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, AL.co_alma, @sCo_fecha_h, N
+
+
+======================================================================
+SP: RepStockArticulosxLotexAlmacen_CarmalPrueba (PROCEDURE)
+======================================================================
+
+
+create PROCEDURE [dbo].[RepStockArticulosxLotexAlmacen_CarmalPrueba]
+
+    @sCo_Codigo_d CHAR(30) = NULL,
+
+    @sCo_Codigo_h CHAR(30) = NULL,
+
+    @sCo_Descripcion_d CHAR(120) = NULL,
+
+    @sCo_Descripcion_h CHAR(120) = NULL,
+
+    @sCo_Linea_d CHAR(6) = NULL,
+
+    @sCo_Linea_h CHAR(6) = NULL,
+
+    @sCo_Categoria_d CHAR(6) = NULL,
+
+    @sCo_Categoria_h CHAR(6) = NULL,
+
+    @sCo_SubLinea_d CHAR(6) = NULL,
+
+    @sCo_SubLinea_h CHAR(6) = NULL,
+
+    @sCo_Almacen_d CHAR(6) = NULL,
+
+    @sCo_Almacen_h CHAR(6) = NULL,
+
+    @sTipo_Unidad CHAR(4) = NULL,
+
+    @sCo_Uni CHAR(6) = NULL,
+
+    @sTipoStock CHAR(4) = NULL,
+
+    @sCo_NivelStock CHAR(4) = 'DIFE',
+
+    @sCo_NumeroLote_d CHAR(20) = NULL,
+
+    @sCo_NumeroLote_h CHAR(20) = NULL,
+
+    @sCo_Sucursal CHAR(6) = NULL,
+
+    @sCampOrderBy VARCHAR(16) = NULL,
+
+    @sDir VARCHAR(6) = NULL,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+    SET TRANSACTION ISOLATION LEVEL READ UNCOMMITTED; 
+
+
+
+    -- 1. Manejo de parßmetros iniciales
+
+    IF ( @sDir IS NULL ) SET @sDir = 'ASC';
+
+    IF ( @sCampOrderBy IS NULL ) SET @sCampOrderBy = 'co_alma';
+
+    IF ( @sCo_NivelStock IS NULL ) SET @sCo_NivelStock = 'TODO';
+
+
+
+    DECLARE @sCo_fecha_h DATETIME = dbo.fechasimple(GETDATE());
+
+
+
+    -- 2. Limpieza y Creaci¾n de tabla temporal
+
+    IF OBJECT_ID('tempdb..#TmpStockArt') IS NOT NULL DROP TABLE #TmpStockArt;
+
+
+
+    CREATE TABLE #TmpStockArt (
+
+        co_art CHAR(30), 
+
+        art_des VARCHAR(200), 
+
+        numero_lote VARCHAR(30),
+
+        fecha_inicio DATETIME, 
+
+        fecha_expiracion DATETIME,
+
+        co_alma CHAR(6), 
+
+        des_alma VARCHAR(100),
+
+        co_unidad CHAR(6), 
+
+        co_uni_sec CHAR(6), 
+
+        equivalencia DECIMAL(18,5),
+
+        stock_max DECIMAL(18,5), 
+
+        stock_min DECIMAL(18,5), 
+
+        stock_pedido DECIMAL(18,5),
+
+        StockActual DECIMAL(18,5)
+
+    );
+
+
+
+    -- 3. Inserci¾n de datos con filtros completos
+
+    INSERT INTO #TmpStockArt
+
+    SELECT 
+
+        A.co_art, 
+
+        LTRIM(RTRIM(ISNULL(A.ref,''))) + ' - ' + LTRIM(RTRIM(a.art_des)), 
+
+        LTRIM(RTRIM(LE.numero_lote)), 
+
+        DBO.FechaSimple(Le.fecha_inicio), 
+
+        DBO.FechaSimple(Le.fecha_expiracion),
+
+        AL.co_alma, 
+
+        AL.des_alma, 
+
+        AU.co_uni, 
+
+        AE.co_uni, 
+
+        ISNULL(AE.equivalencia, 0),
+
+        A.stock_max, A.stock_min, A.stock_pedido,
+
+        ISNULL(dbo.ConsultarStockActualxAlmacenxFechaxLote(A.co_art, AL.co_alma, @sCo_fecha_h, NULL, NULL, LE.numero_lote), 0)
+
+    FROM saArticulo AS A
+
+    INNER JOIN saLoteEntrada AS LE ON A.co_art = LE.co_art
+
+    INNER JOIN saAlmacen AS AL ON AL.co_alma = LE.co_alma
+
+    INNER JOIN saArtUnidad AS AU ON AU.co_art = A.co_art AND AU.uni_principal = 1
+
+    LEFT JOIN saArtUnidad AS AE ON AE.co_art = A.co_art AND AE.uni_principal = 0 AND AE.uso_principal = 1
+
+    WHERE ( ( @sCo_Codigo_d IS NULL OR A.co_art >= @sCo_Codigo_d ) AND ( @sCo_Codigo_h IS NULL OR A.co_art <= @sCo_Codigo_h ) )
+
+      AND ( ( @sCo_Linea_d IS NULL OR A.co_lin >= @sCo_Linea_d ) AND ( @sCo_Linea_h IS NULL OR A.co_lin <= @sCo_Linea_h ) )
+
+      AND ( ( @sCo_Almacen_d IS NULL OR AL.co_alma >= @sCo_Almacen_d ) AND ( @sCo_Almacen_h IS NULL OR AL.co_alma <= @sCo_Almacen_h ) )
+
+      AND ( ( @sCo_NumeroLote_d IS NULL OR LE.numero_lote >= @sCo_NumeroLote_d ) AND ( @sCo_NumeroLote_h IS NULL OR LE.numero_lote <= @sCo_NumeroLote_h ) )
+
+      AND ( A.maneja_lote = 1 )
+
+      AND ( @sCo_Sucursal IS NULL OR A.co_sucu_in = @sCo_Sucursal );
+
+
+
+    -- 4. Retorno final
+
+    SELECT 
+
+        co_art, 
+
+        art_des, 
+
+        numero_lote, 
+
+        fecha_inicio, 
+
+        fecha_expiracion,
+
+        co_alma, 
+
+        des_alma, 
+
+        @sTipoStock AS TipoStock, 
+
+        co_unidad, 
+
+        co_uni_sec AS co_uni, 
+
+        equivalencia,
+
+        StockActual,
+
+        ISNULL(StockActual / NULLIF(equivalencia, 0), 0) AS StockSecActual
+
+    FROM #TmpStockArt
+
+    WHERE 
+
+        ( @sCo_NivelStock = 'TODO' ) OR
+
+        ( @sCo_NivelStock = 'IAO'  AND 
+
+
+======================================================================
+SP: RepTrasladoEntreAlmacen (PROCEDURE)
+======================================================================
+
+
+-- =============================================
+
+-- Author:		SOFTECH SISTEMAS
+
+-- Create date: <22/04/2010>
+
+-- Description:	<Formato de Traslados entre AlmacÚnes>
+
+-- =============================================
+
+CREATE PROCEDURE [dbo].[RepTrasladoEntreAlmacen] 
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Numero_d CHAR(20) = NULL ,
+
+    @sCo_Numero_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+    -- Insert statements for procedure here
+
+
+
+
+
+        SELECT
+
+            ( dbo.getseriales(TR.rowguid) ) AS SerialAsoc, AR.co_art, AR.modelo, AR.art_des, LE.numero_lote as campo6,T.*, TR.*,
+
+            'Confirmado' = CASE WHEN T.confirma = 1 THEN 'SI'
+
+                                ELSE 'NO'
+
+                           END
+
+        FROM
+
+            saTraslado AS T
+
+            INNER JOIN saTrasladoReng AS TR ON TR.tras_num = T.tras_num
+
+            INNER JOIN saArticulo AS AR ON AR.co_art = TR.co_art
+
+            LEFT JOIN saSeriales AS SE ON SE.doc_num_s = T.rowguid
+
+			LEFT JOIN saLoteEntrada LE ON TR.rowguid = LE.rowguid_reng
+
+        WHERE
+
+            ( @sCo_Numero_d IS NULL
+
+              OR T.tras_num >= @sCo_Numero_d
+
+            )
+
+            AND ( @sCo_Numero_h IS NULL
+
+                  OR T.tras_num <= @sCo_Numero_h
+
+                )
+
+            AND ( T.anulado = 0 )
+
+            AND ( @sCo_Sucursal IS NULL
+
+                  OR T.co_sucu_in = @sCo_Sucursal
+
+                )
+
+        ORDER BY
+
+            T.tras_num
+
+    END
+
+
+
+
+======================================================================
+SP: RepTrasladoEntreAlmacenDB1 (PROCEDURE)
+======================================================================
+
+
+-- =============================================
+
+-- Author:		SOFTECH SISTEMAS
+
+-- Create date: <22/04/2010>
+
+-- Description:	<Formato de Traslados entre AlmacÚnes>
+
+-- =============================================
+
+create PROCEDURE [dbo].[RepTrasladoEntreAlmacenDB1] 
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Numero_d CHAR(20) = NULL ,
+
+    @sCo_Numero_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+    -- Insert statements for procedure here
+
+
+
+
+
+        SELECT
+
+            ( dbo.getseriales(TR.rowguid) ) AS SerialAsoc, AR.co_art, AR.modelo, AR.art_des, LS.numero_lote as LoteSalida, LE.numero_lote as LoteEntrada, T.*, TR.*,
+
+            'Confirmado' = CASE WHEN T.confirma = 1 THEN 'SI'
+
+                                ELSE 'NO'
+
+                           END
+
+        FROM
+
+            saTraslado AS T
+
+            INNER JOIN saTrasladoReng AS TR ON TR.tras_num = T.tras_num
+
+            INNER JOIN saArticulo AS AR ON AR.co_art = TR.co_art
+
+            LEFT JOIN saSeriales AS SE ON SE.doc_num_s = T.rowguid
+
+			LEFT JOIN saLoteEntrada LE ON TR.rowguid = LE.rowguid_reng
+
+            LEFT JOIN saLoteSalida LS ON TR.rowguid = LS.rowguid_reng
+
+        WHERE
+
+            ( @sCo_Numero_d IS NULL
+
+              OR T.tras_num >= @sCo_Numero_d
+
+            )
+
+            AND ( @sCo_Numero_h IS NULL
+
+                  OR T.tras_num <= @sCo_Numero_h
+
+                )
+
+            AND ( T.anulado = 0 )
+
+            AND ( @sCo_Sucursal IS NULL
+
+                  OR T.co_sucu_in = @sCo_Sucursal
+
+                )
+
+        ORDER BY
+
+            T.tras_num
+
+    END
+
+
+
+
+======================================================================
+SP: RepTrasladoEntreAlmacenDB2 (PROCEDURE)
+======================================================================
+
+
+-- =============================================
+
+-- Author:		SOFTECH SISTEMAS
+
+-- Create date: <22/04/2010>
+
+-- Description:	<Formato de Traslados entre AlmacÚnes>
+
+-- =============================================
+
+CREATE PROCEDURE [dbo].[RepTrasladoEntreAlmacenDB2] 
+
+	-- Add the parameters for the stored procedure here
+
+    @sCo_Numero_d CHAR(20) = NULL ,
+
+    @sCo_Numero_h CHAR(20) = NULL ,
+
+    @sCo_Sucursal CHAR(6) = NULL ,
+
+    @sCampOrderBy VARCHAR(16) = NULL ,
+
+    @sDir VARCHAR(6) = NULL ,
+
+    @bHeaderRep BIT = 0
+
+AS 
+
+    BEGIN
+
+        SET NOCOUNT ON ;
+
+    -- Insert statements for procedure here
+
+
+
+
+
+        SELECT
+
+            (dbo.getseriales(TR.rowguid)) AS SerialAsoc, AR.co_art, AR.modelo, AR.art_des, LE.numero_lote, T.*, TR.*,
+
+            'Confirmado' = CASE WHEN T.confirma = 1 THEN 'SI'
+
+                                ELSE 'NO'
+
+                           END
+
+        FROM
+
+            saTraslado AS T
+
+            INNER JOIN saTrasladoReng AS TR ON TR.tras_num = T.tras_num
+
+            INNER JOIN saArticulo AS AR ON AR.co_art = TR.co_art
+
+            LEFT JOIN saSeriales AS SE ON SE.doc_num_s = T.rowguid
+
+			LEFT JOIN saLoteEntrada LE ON TR.rowguid = LE.rowguid_reng
+
+            
+
+        WHERE
+
+            ( @sCo_Numero_d IS NULL
+
+              OR T.tras_num >= @sCo_Numero_d
+
+            )
+
+            AND ( @sCo_Numero_h IS NULL
+
+                  OR T.tras_num <= @sCo_Numero_h
+
+                )
+
+            AND ( T.anulado = 0 )
+
+            AND ( @sCo_Sucursal IS NULL
+
+                  OR T.co_sucu_in = @sCo_Sucursal
+
+                )
+
+        ORDER BY
+
+            T.tras_num
+
+
+
+			UPDATE T
+
+        SET campo6 = LE.numero_lote
+
+        FROM saTrasladoReng AS TR
+
+            INNER JOIN saTraslado AS T ON TR.tras_num = T.tras_num
+
+            LEFT JOIN saLoteEntrada LE ON TR.rowguid = LE.rowguid_reng
+
+        WHERE
+
+            ( @sCo_Numero_d IS NULL OR T.tras_num >= @sCo_Numero_d )
+
+            AND ( @sCo_Numero_h IS NULL OR T.tras_num <= @sCo_Numero_h )
+
+            AND ( T.anulado = 0 )
+
+            AND ( @sCo_Sucursal IS NULL OR T.co_sucu_in = @sCo_Sucursal )
+
+			
+
+    END
+
+
+
+
+======================================================================
+SP: SP_CRM_TRASLADOSENTREALMACEN (PROCEDURE)
+======================================================================
+
+
+----**CV 3-12-2025 SP para consumo de traslados 
+
+------------------------------------------------
+
+CREATE PROCEDURE [dbo].[SP_CRM_TRASLADOSENTREALMACEN]
+
+    @tras_num CHAR(20) = NULL
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+
+
+    SELECT
+
+        T.tras_num AS NumeroTraslado,
+
+        LE.numero_lote AS NroLote,
+
+        T.fecha AS Fecha,
+
+        T.alm_orig AS AlmacenOrigen,
+
+        T.alm_dest AS AlmacenDestino,
+
+        AR.co_art AS CodigoArticulo,
+
+        AR.art_des AS DescripcionArticulo,
+
+        CASE 
+
+            WHEN T.confirma = 1 THEN 'SI'
+
+            ELSE 'NO'
+
+        END AS Confirmado
+
+    FROM
+
+        saTraslado AS T
+
+        INNER JOIN saTrasladoReng AS TR ON TR.tras_num = T.tras_num
+
+        INNER JOIN saArticulo AS AR ON AR.co_art = TR.co_art
+
+        LEFT JOIN saLoteEntrada LE ON TR.rowguid = LE.rowguid_reng
+
+    WHERE
+
+        T.anulado = 0
+
+        AND (@tras_num IS NULL OR T.tras_num = @tras_num)
+
+    ORDER BY
+
+        T.tras_num;
+
+END
+
+
+======================================================================
+SP: sp_CROM_CONSULTARLOTESENTRADAXARTICULO (PROCEDURE)
+======================================================================
+
+
+CREATE PROCEDURE sp_CROM_CONSULTARLOTESENTRADAXARTICULO
+
+    @co_art VARCHAR(50) = '%'
+
+AS
+
+BEGIN
+
+    SET NOCOUNT ON;
+
+
+
+    SELECT 
+
+        a.co_art, 
+
+        a.art_des, 
+
+        ale.numero_lote AS LoteEntrada, ale.stock_actual
+
+    FROM saArticulo a
+
+    LEFT JOIN saLoteEntrada ale
+
+        ON a.co_art = ale.co_art
+
+    WHERE a.co_art LIKE @co_art
+
+        AND (ale.stock_actual > 0 OR ale.stock_actual IS NULL)
+
+    ORDER BY a.co_art, ale.numero_lote;
+
+END
+
+
+

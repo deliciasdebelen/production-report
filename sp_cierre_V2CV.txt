@@ -1,0 +1,1539 @@
+CREATE procedure [dbo].[nsp_spordenproduccioncierre]  
+@odp_num varchar(10),@cie_num varchar(10),@usa_TR BIT,@TiempoR VARCHAR(32),
+@co_mone CHAR(6),@tasa DECIMAL(13,8),@DB2k12 varchar(32),
+@co_sucu_in varchar(10),@action varchar(32),@fecha DATETIME 
+ 
+ 
+as  
+/*
+===================================================================================================
+===================================================================================================
+COMPANY: NIKKOSOFT CONSULTORES                  
+Type: Stored Procedured                         
+Name: nsp_spordenproduccioncierre                                                              
+Creator: Luis Gonzalez                                                             
+Create Date: 11/12/2019                                                             
+Procedimiento para cerrar ODP                                
+===================================================================================================
+===================================================================================================
+Pruebas: 
+BEGIN TRAN
+--COSTO CIERRE
+DECLARE @cost_PT2 DECIMAL(18,5)
+EXECUTE SPCOSTOUNI_PT  '0000003511', 150, 'EPDLH_A', 1, NULL, @CostoPT = @cost_PT2 OUTPUT
+SELECT @COST_PT2
+
+--COMMIT TRAN
+--ROLLback tran
+--select * from NSPOrdenproduccion
+--select num_lote from NSPOrdenproduccion where odp_num = '0000000006'
+DECLARE @FECHA DATETIME = GETDATE()
+exec nsp_spordenproduccioncierre '0000003511','0000003319',0,'','BS',36.02,'EPDLH_A','','cerrar',@FECHA
+--update NSPOrdenproduccion set status = 'PROCESADA' where odp_num = '0000000007'
+ROLLBACK TRAN   
+===================================================================================================
+===================================================================================================            
+MODIFICADO: lsgonzalez10/02/2019 - 13:40 PM
+MODIFICADO: lsgonzalez11/02/2019 - 14:42 PM
+MODIFICADO: lsgonzalez03/03/2020 - 
+MODIFICADO: lsgonzalez06/03/2020 - 14:19 PM
+MODIFICADO: lsgonzalez09/03/2020 - 12:50 PM
+MODIFICADO: lsgonzalez19/03/2020 - 12:50 AM
+alter table NSPFormulareng  
+add costo DECIMAL(18,2) null
+alter table NSPOrdenproduccionreng  
+add costo DECIMAL(18,2) null 
+update NSPOrdenproduccionreng set costo = 1 
+ALTER table NSPCostocierre 
+add CO_UNI char(20)
+add  NUM_LOTE char(20)
+alter column cantidad decimal(18,2)
+alter column costo_uni decimal(18,2)
+MODIFICADO: lsgonzalez 30/04/2020
+Se Agrega Documentacion, Manejo de Transacciones y Pistas.
+MODIFICADO: lsgonzalez 21/05/2020
+MODIFICADO: lsgonzalez 13/06/2020
+Agregado Select al INSERT y UPDATE para evitar error al updatear el cierre queda vacio.
+MODIFICADO: lsgonzalez 15/06/2020
+Validacion de Lote de entrada Vacio.
+MODIFICADO: 23/06/2020
+Agregado Variable de sucursar para SP de PROFIT
+MODIFICADO: 30/06/2020
+Se Aplico consultade la longitud de numero de los documentos
+MODIFICADO: 01/07/2020
+Se Modifica Parametro Fecha para coincidir con la fecha del Documento
+MODIFICADO: 06/07/2020
+Inclusion de Codigo sucursal
+Inclusion de SP pSeleccionarUsoSucursalConsecutivoTipo
+MODIFICADO: 09/07/2020
+Incluida rutina Eliminar de Cierre
+MODIFICADO: 13/07/2020
+Clausula Not Null en Lotes 
+MODIFICADO: 15/07/2020
+Verificacion de Stock Negativo
+MODIFICADO: 19/07/2020
+Agregado fecha de Cierre 
+MODIFICADO: 23/07/2020 
+Agregado Prefijo y Sufijo de COrrelativo
+MODIFICADO: 30/07/2020 
+Agregado Fecha de Cierre 
+MODIFICADO: 03/08/2020
+Agregado Validacion de Actualizacion de Lotes
+MODIFICADO: 09/10/2020
+Agregado stotal en cero
+MODIFICADO: 07/11/2020
+lsgonzalez: Bloque Nuevo de Verificacion de Ajustes
+MODIFICADO: 29/04/2021 SE Subio el leng del lote de 12 a 20 Caracteres como en profit
+MODIFICADO: 23/05/2021 Se modifico la descripcion del ajuste
+MODIFICADO: 30/06/2021 Se Coloca un restriccion si el articulo tiene costo cero 
+MODIFICADO: 29/07/2021 Se Usa SET NOCOUNT ON 
+MODIFICADO: 09/08/2021 SE Subio el leng de la cuenta contable de 13 a 20 Caracteres como en profit
+MODIFICADO: 21/04/2022 Se coloco validacion LIKE a consulta de Ajuste existente.
+MODIFICADO: 05/09/2022 Se agrega @usa_TR BIT,@TiempoR VARCHAR(32)
+MODIFICADO: 30/09/2022 Se Modifica Rutina de Lotes al Cierre
+MODIFICADO: 20/01/2023 Se Modifica Rutina de Cierre 
+MODIFICADO: 09/05/2023 Se Coloca Validaciones a Moneda y Tasa
+MODIFICADO: 11/05/2023 Se Modificaron rutinas de sucursal en los correlativos.
+MODIFICADO: 09/01/2024 Revision Rutinas de Cierre
+MODIFICADO: 17/01/2024 Agregados Rutinas (NEW)
+MODIFICADO: 27/02/2024 Agregados Rutinas (NEW)
+===================================================================================================
+===================================================================================================
+select * from nspordenproduccion where odp_num='0000000006'
+select * from NSPCierreOP where odp_num='0000000010'
+select * from NSPcierreOP
+select * from NSPCierreOPReng
+select * from NSPOrdenproduccion
+select num_lote from NSPOrdenproduccion where odp_num = '0000000007'
+===================================================================================================
+=================================================================================================== 
+*/
+
+PRINT object_name(@@PROCID)  
+DECLARE @fechaDT DATETIME = GETDATE()
+--DECLARE @fecha DATETIME = GETDATE()
+DECLARE @Err_no VARCHAR(9)
+DECLARE @modulo VARCHAR(32) = object_name(@@PROCID) 
+DECLARE @CURSORACT VARCHAR(128)
+DECLARE @Resultado VARCHAR(MAX)
+DECLARE @rowguidOri VARCHAR(128)
+DECLARE @sCampos VARCHAR(MAX)
+DECLARE @co_us_in VARCHAR(22)
+DECLARE @CursorName VARCHAR(22) = ''
+DECLARE @CursorNameII VARCHAR(22) = ''
+DECLARE @saStockAlmacen DECIMAL(18,5)
+SET @co_us_in = (select top 1 co_us_in from NSPOrdenproduccion where odp_num = @odp_num) --03/07/2020
+DECLARE @Act_Process VARCHAR(64)
+ 
+ set language español --// 19/07/2020 //--
+ SET NOCOUNT ON
+
+ begin tran
+	 begin try  
+
+	if @action = 'select'  
+	begin
+		select c.cie_num,c.odp_num,c.fec_emis,isnull(c.USAR_TR,0) as USAR_TR,
+		REPLACE(isnull(c.TIEMPO_REAL,'00,00,00,00'),' ','') as TIEMPO_REAL,	
+		o.cantidad,
+		o.status,o.fecha,o.TiempoT,O.fe_us_in,o.fe_us_mo,o.co_us_in,o.co_us_mo,
+		o.co_sucu_in,o.co_sucu_mo,o.rowguid
+		from NSPcierreOP C 
+		inner join NSPOrdenproduccion o on (c.odp_num = o.odp_num)
+		where o.odp_num = @odp_num  and o.status in ('CERRADA','PROCESADA','ABIERTA')
+		--and c.cie_num = @cie_num
+		--select cie_num,odp_num,fec_emis from NSPcierreOP
+		--where odp_num in (select odp_num  from NSPOrdenproduccion where status = 'CERRADA')
+		--select [fecha],[fec_ini],[fec_fin],[odp_num],[status],[prioridad],          
+		--[co_art],[descripcion],[co_for],[cantidad],[descripcion],[almacendest],  
+		--[dis_cen],[num_lote],[TiempoT],[campo1],[campo2],[campo3],[campo4],[campo5],  
+		--[campo6],[campo7],[campo8],[co_us_in],[co_sucu_in],[fe_us_in],[co_us_mo],          
+		--[co_sucu_mo],[fe_us_mo],[revisado],[trasnfe] from [NSPOrdenproduccion]   
+		--where odp_num = @odp_num --status = 'CERRADA' -- 
+	end  
+
+	if @action = 'select_new'  
+	begin
+		select c.cie_num,c.odp_num,c.fec_emis,isnull(c.USAR_TR,0) as USAR_TR,
+		REPLACE(isnull(c.TIEMPO_REAL,'00,00,00,00'),' ','') as TIEMPO_REAL,	
+		o.cantidad,
+		o.status,o.fecha,o.TiempoT,O.fe_us_in,o.fe_us_mo,o.co_us_in,o.co_us_mo,
+		o.co_sucu_in,o.co_sucu_mo,o.rowguid
+		from NSPcierreOP C 
+		inner join NSPOrdenproduccion o on (c.odp_num = o.odp_num)
+		where o.status in ('CERRADA','PROCESADA','ABIERTA')
+		and c.cie_num = @cie_num
+		--select cie_num,odp_num,fec_emis from NSPcierreOP
+		--where odp_num in (select odp_num  from NSPOrdenproduccion where status = 'CERRADA')
+		--select [fecha],[fec_ini],[fec_fin],[odp_num],[status],[prioridad],          
+		--[co_art],[descripcion],[co_for],[cantidad],[descripcion],[almacendest],  
+		--[dis_cen],[num_lote],[TiempoT],[campo1],[campo2],[campo3],[campo4],[campo5],  
+		--[campo6],[campo7],[campo8],[co_us_in],[co_sucu_in],[fe_us_in],[co_us_mo],          
+		--[co_sucu_mo],[fe_us_mo],[revisado],[trasnfe] from [NSPOrdenproduccion]   
+		--where odp_num = @odp_num --status = 'CERRADA' -- 
+	end  
+
+	if @action = 'selectnew'  
+	begin  
+	 select @cie_num as cie_num,[fecha],[fec_ini],[fec_fin],[odp_num],[status],[prioridad],          
+		[co_art],[descripcion],[co_for],[cantidad],[descripcion],[almacendest],  
+		[dis_cen],[num_lote],[TiempoT],[campo1],[campo2],[campo3],[campo4],[campo5],  
+		[campo6],[campo7],[campo8],[co_us_in],[co_sucu_in],[fe_us_in],[co_us_mo],          
+		[co_sucu_mo],[fe_us_mo],[revisado],[trasnfe] from [NSPOrdenproduccion]   
+		where status = 'ABIERTA' and odp_num = @odp_num  
+	end  
+
+	if @action = 'insert'  
+	begin 
+	if not exists (select odp_num from NSPcierreOP where odp_num = @odp_num)
+	Begin
+
+	   /*
+	   DECLARE @fecha DATETIME = getdate()
+	   exec nsp_spordenproduccioncierre '0000000001','0000000001','PRUEBA_A','02','insert',@fecha
+	   */
+		--declare @MySmalldatetime smalldatetime = getdate()
+		--set @MySmalldatetime = (select Convert(nvarchar,fecha,103) from NSPOrdenproduccion where odp_num = @odp_num)	
+
+		--PRINT '@MySmalldatetime: ' + CONVERT(VARCHAR(32),@fechaDT)
+
+		--declare @fecha DATETIME --= Convert(nvarchar,getdate(),103)
+		--declare @MySmalldatetime smalldatetime --= getdate()
+		--set @fechaDT  = (select fecha from NSPOrdenproduccion where odp_num = @odp_num)
+		--SET @MySmalldatetime = (select datename(YEAR ,@fechaDT) + '' + datename(MONTH,@fechaDT) + '' + datename(DAY ,@fechaDT))
+		----SELECT @MySmalldatetime
+		
+		--SET @fecha = (select FORMAT(@fechaDT,'yyyy.dd.mmmm'))
+	
+		--PRINT 'FECHA: ' + CONVERT(VARCHAR(10),@fecha)
+
+		--declare @fp smalldatetime= '2020.20.10'
+		--select @fp
+		
+		--SET @fecha = GETDATE()
+
+	   INSERT INTO [dbo].NSPcierreOP        
+	   ([cie_num],USAR_TR,TIEMPO_REAL,odp_num,fec_emis,trasnfe)      
+	   VALUES        
+	   (@cie_num,@usa_TR,@TiempoR,@odp_num,@fecha,'')
+	   
+
+	   /*
+	   	SET @rowguidOri = (select Top 1 rowguid from NSPcierreOP where cie_num = @cie_num and odp_num = @odp_num)
+		SET @sCampos = ('Insertar Cierre: ' + ltrim(rtrim(Convert(CHAR(128),@cie_num)))  +
+						' | ' + '[ODP] -> ' + ltrim(rtrim(Convert(CHAR(128),@odp_num))) +
+						' | ' + '[Fecha] -> ' + ltrim(rtrim(Convert(CHAR(128),@fechaDT))) + 
+						' | ')
+						
+		EXEC nsp_spPista 'AUDITOR',@fecha,'','NSPcierreOP',@rowguidOri,'I','MANUFACTURA',
+		@sCampos,'','',0,'','insert'
+		*/ 
+	   update [NSPOrdenproduccion] set status = 'PROCESADA' where odp_num = @odp_num 
+	   
+		select c.cie_num,c.odp_num,c.fec_emis,isnull(c.USAR_TR,0) as USAR_TR,
+		REPLACE(isnull(c.TIEMPO_REAL,'00,00,00,00'),' ','') as TIEMPO_REAL,o.cantidad,
+		o.status,o.fecha,o.TiempoT,O.fe_us_in,o.fe_us_mo,o.co_us_in,o.co_us_mo,
+		o.co_sucu_in,o.co_sucu_mo,o.rowguid
+		from NSPcierreOP C 
+		inner join NSPOrdenproduccion o on (c.odp_num = o.odp_num)
+		where o.status in ('CERRADA','PROCESADA','ABIERTA')
+		and c.odp_num = @odp_num
+		
+	End    
+	 --select [fecha],[fec_ini],[fec_fin],[odp_num],[status],[prioridad],          
+	 --   [co_art],[descripcion],[co_for],[cantidad],[descripcion],[almacendest],  
+		--[dis_cen],[num_lote],[TiempoT],[campo1],[campo2],[campo3],[campo4],[campo5],  
+		--[campo6],[campo7],[campo8],[co_us_in],[co_sucu_in],[fe_us_in],[co_us_mo],          
+		--[co_sucu_mo],[fe_us_mo],[revisado],[trasnfe] from [NSPOrdenproduccion]   
+		--where status = 'ABIERTA' and odp_num = @odp_num  
+	end 
+
+	if @action = 'update'  
+	begin
+	
+		Update NSPcierreOP set fec_emis = @fecha,USAR_TR = @usa_TR,TIEMPO_REAL= @TiempoR  
+		where cie_num = @cie_num        
+	    
+	--if not exists (select odp_num from NSPcierreOP where odp_num = @odp_num)
+	--Begin
+	--   INSERT INTO [dbo].NSPcierreOP        
+	--   ([cie_num],odp_num,fec_emis,trasnfe)      
+	--   VALUES        
+	--   (@cie_num,@odp_num,GETDATE(),'') 
+	   update [NSPOrdenproduccion] set status = 'PROCESADA' where odp_num = @odp_num 
+	--End    
+	 --select [fecha],[fec_ini],[fec_fin],[odp_num],[status],[prioridad],          
+	 --   [co_art],[descripcion],[co_for],[cantidad],[descripcion],[almacendest],  
+		--[dis_cen],[num_lote],[TiempoT],[campo1],[campo2],[campo3],[campo4],[campo5],  
+		--[campo6],[campo7],[campo8],[co_us_in],[co_sucu_in],[fe_us_in],[co_us_mo],          
+		--[co_sucu_mo],[fe_us_mo],[revisado],[trasnfe] from [NSPOrdenproduccion]   
+		--where status = 'ABIERTA' and odp_num = @odp_num 
+		
+		select c.cie_num,c.odp_num,c.fec_emis,isnull(c.USAR_TR,0) as USAR_TR,
+		REPLACE(isnull(c.TIEMPO_REAL,'00,00,00,00'),' ','') as TIEMPO_REAL,o.cantidad,
+		o.status,o.fecha,o.TiempoT,O.fe_us_in,o.fe_us_mo,o.co_us_in,o.co_us_mo,
+		o.co_sucu_in,o.co_sucu_mo,o.rowguid
+		from NSPcierreOP C 
+		inner join NSPOrdenproduccion o on (c.odp_num = o.odp_num)
+		where o.status in ('CERRADA','PROCESADA','ABIERTA')
+		and c.odp_num = @odp_num		 
+	end 
+
+	if @action = 'delete'  
+	begin 
+		update NSPOrdenproduccion set status = 'ABIERTA' where odp_num = @odp_num 
+
+		Delete NSPcierreOPreng Where cie_num = @cie_num     
+	   
+	   	SET @rowguidOri = (select Top 1 rowguid from NSPcierreOP where cie_num = @cie_num and odp_num = @odp_num)
+		SET @sCampos = ('Eliminar Cierre: ' + ltrim(rtrim(Convert(CHAR(128),@cie_num)))  +
+						' | ' + '[ODP] -> ' + ltrim(rtrim(Convert(CHAR(128),@odp_num))) +
+						' | ' + '[Fecha] -> ' + ltrim(rtrim(Convert(CHAR(128),@fechaDT))) + 
+						' | ')
+						
+		EXEC nsp_spPista 'AUDITOR',@fecha,'','NSPcierreOP',@rowguidOri,'E','MANUFACTURA',
+		@sCampos,'','',0,'','delete'
+		 
+	   delete NSPcierreOP where cie_num = @cie_num and odp_num = @odp_num
+	End    
+
+	if @action = 'cerrar'  
+	begin 
+	DECLARE @co_for VARCHAR(32)  
+	DECLARE @Costo DECIMAL(18,5)  
+	DECLARE @Rowguid VARCHAR(128)  
+	DECLARE @reng_num int  
+	DECLARE @co_art VARCHAR(128)    
+	DECLARE @co_uni CHAR(6)    
+	DECLARE @cantmax DECIMAL(18,5)    
+	DECLARE @num_lote varchar(20)    
+	DECLARE @requerida DECIMAL(18,5)    
+	DECLARE @solicitada DECIMAL(18,5)    
+	DECLARE @entregada DECIMAL(18,5)    
+	DECLARE @recibida DECIMAL(18,5)    
+	DECLARE @co_alma VARCHAR(128)    
+	DECLARE @destino VARCHAR(128)    
+	DECLARE @Origen VARCHAR(128)    
+	DECLARE @alma_ori VARCHAR(128)    
+	DECLARE @alma_des VARCHAR(128)    
+	DECLARE @Envio VARCHAR(128)    
+	DECLARE @sqltext VARCHAR(4000)    
+	DECLARE @Count INT    
+	--DECLARE @Resultado VARCHAR(MAX)    
+	DECLARE @cod_almacen VARCHAR(128) 
+	DECLARE @Tipo VARCHAR(128) 
+	DECLARE @num_reg INT 
+	--DECLARE @co_alma VARCHAR(128) 
+	DECLARE @cantidad DECIMAL(18,5)
+	DECLARE @costo_uni DECIMAL(18,5)
+	DECLARE @lote VARCHAR(20)
+	DECLARE @asie_pt decimal(18,5)
+	 DECLARE @asie_varcto decimal(18,5)
+	 DECLARE @asie_pm decimal(18,5)
+	 DECLARE @asie_mo decimal(18,5)
+	 DECLARE @asie_gfd decimal(18,5)
+	 DECLARE @asie_gfi decimal(18,5)
+	 DECLARE @cuentacont1 varchar(20)
+	 DECLARE @cuentacont2 varchar(20)
+	 DECLARE @cuentacont3 varchar(20)
+	 DECLARE @cuentacont4 varchar(20)
+	 DECLARE @cuentacont5 varchar(20)
+	 DECLARE @cuentacont6 varchar(20)
+	 DECLARE @AjusTipo varchar(10)
+	 DECLARE @Moneda CHAR(6)
+	 --DECLARE @co_us_in VARCHAR(6)
+	 --DECLARE @co_sucu_in varchar(6)
+	 DECLARE @co_sucu_P varchar(6)
+	 DECLARE @LENG INT
+	 DECLARE @numenv VARCHAR(10)
+
+	/*** lsgonzalez 07/11/2020 Bloque Nuevo de Verificacion de Ajustes ***/
+	--select ajue_num,rowguid from CACSA_A.dbo.saAjuste where motivo = 'AJUSTE MANUFACTURA OPD:0000000001 CIERRE: 0000000001'				    
+	PRINT 'Obtener el Rowguid del Renglon'
+	declare @Scount int = 0
+	declare @ajue_num varchar(32) 
+	declare @tableV table                    
+	([ajue_num] varchar(32),[Rowguid] varchar(128))      
+	--SET @sqltext = '' 
+	--SET @sqltext = 'select ajue_num,rowguid from '+@DB2k12+'.dbo.saAjuste where motivo = ''ODP:'+@odp_num+' CIERRE: '+@cie_num+''''    
+	SET @sqltext = '' 
+	SET @sqltext = 'select ajue_num,rowguid from '+@DB2k12+'.dbo.saAjuste where motivo like ''ODP:%'+@odp_num+' CIERRE:%'+@cie_num+'%'''         
+	PRINT 'SQLTEXT: ' + @sqltext 
+	insert into @tableV      
+	exec (@sqltext)
+	SET @Scount = (select count(ajue_num) from @tableV)      
+	PRINT'Scount: ' + Convert(VARCHAR(20),@count) 
+
+	if @Scount > 0 
+	BEGIN
+		SET @ajue_num = (select Top 1 ajue_num from @tableV) 	--// Top 1 //--	     
+		PRINT'Sajue_num: ' + @ajue_num      
+		delete @tableV 
+
+		DECLARE @NonNumeric varchar(1000) = @ajue_num
+		DECLARE @Index int  
+		SET @Index = 0  
+		while 1=1  
+		begin  
+			set @Index = patindex('%[^0-9]%',@NonNumeric)  
+			if @Index <> 0  
+		begin  
+           SET @NonNumeric = replace(@NonNumeric,substring(@NonNumeric,@Index, 1), '')  
+		end  
+		else    
+           break;   
+		end    
+		 
+		SET @ajue_num  = (select @NonNumeric )-- 0001000 select * from NSPCierreOP
+
+		PRINT 'Update NSPCierre.'
+		update NSPCierreOP set aju_num = @ajue_num where cie_num = @cie_num and odp_num = @odp_num
+		update NSPOrdenproduccion set status = 'CERRADA' 		
+		select @ajue_num as ajue_num 
+
+	END
+	ELSE
+	BEGIN		
+		delete @tableV 
+		SET @co_us_in = (select top 1 co_us_in from NSPOrdenproduccion where odp_num = @odp_num) --03/07/2020
+		PRINT 'USUARIO: ' + @co_us_in
+		--SET @co_sucu_in = (select top 1 co_sucu_in from NSPOrdenproduccion where odp_num = @odp_num)
+
+		--IF @co_us_in = ''
+		--BEGIN
+		--	SET @co_us_in = null
+		--END
+
+		IF @co_sucu_in = ''
+		BEGIN
+			SET @co_sucu_P = NULL
+		END
+		ELSE
+		BEGIN
+			SET @co_sucu_P = @co_sucu_in
+		END
+   
+   	PRINT 'SOLICITO LONGITUD DEL CORRELATIVO'
+	declare @tablealeng table                
+	(                
+	 [leng] INT    
+	)
+		 
+ 	if @co_sucu_P is null
+	 BEGIN
+		SET @sqltext = ''
+		SET @sqltext = 'SELECT ST.LONGITUD FROM '+@DB2k12+'.[dbo].[saConsecutivo] A   
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerie] S ON  A.co_SERIE=S.CO_SERIE 
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerieTipo] ST  ON ST.CO_TIPO_SERIE=S.CO_TIPO_SERIE 
+		WHERE A.CO_SUCUR IS NULL AND A.CO_CONSECUTIVO=''AJUS_NUM''' 		
+		delete @tablealeng
+		insert into @tablealeng 
+		exec (@sqltext)
+		SET @LENG = (select leng from @tablealeng)
+		PRINT 'DIGITO ' + CONVERT(VARCHAR(4),@LENG) 		
+	 END
+	ELSE
+	 BEGIN
+		SET @sqltext = ''
+		SET @sqltext = 'SELECT ST.LONGITUD FROM '+@DB2k12+'.[dbo].[saConsecutivo] A   
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerie] S ON  A.co_SERIE=S.CO_SERIE 
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerieTipo] ST  ON ST.CO_TIPO_SERIE=S.CO_TIPO_SERIE 
+		WHERE A.CO_SUCUR='''+@co_sucu_P+'''  AND A.CO_CONSECUTIVO=''AJUS_NUM'''
+		delete @tablealeng 
+		insert into @tablealeng 
+		exec (@sqltext)
+		SET @LENG = (select leng from @tablealeng)
+		PRINT 'DIGITO ' + CONVERT(VARCHAR(4),@LENG) 		
+	 END
+
+	 if (CONVERT(INT,(select COUNT(leng) from @tablealeng)) = 0)
+	 BEGIN
+		SET @sqltext = ''
+		SET @sqltext = 'SELECT ST.LONGITUD FROM '+@DB2k12+'.[dbo].[saConsecutivo] A   
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerie] S ON  A.co_SERIE=S.CO_SERIE 
+		INNER JOIN '+@DB2k12+'.[dbo].[saSerieTipo] ST  ON ST.CO_TIPO_SERIE=S.CO_TIPO_SERIE 
+		WHERE A.CO_SUCUR IS NULL AND A.CO_CONSECUTIVO=''AJUS_NUM''' 		
+		delete @tablealeng 
+		insert into @tablealeng 
+		exec (@sqltext)
+		SET @LENG = (select leng from @tablealeng)
+		PRINT 'DIGITO ' + CONVERT(VARCHAR(4),@LENG) 
+		--delete @tablealeng
+	 END
+
+	--DECLARE @fecha DATETIME    
+	--SET @fecha = GETDATE()
+	SET @fecha = (select fec_emis from NSPCierreOP  where cie_num = @cie_num)    
+	SET @Count = 0   
+ 
+    PRINT 'Verificar uso de correlativo'
+	DECLARE @correlativ INT
+	declare @tablecorrelativ table                
+	(                
+	 [correlativ] INT,
+	 [correlativA] INT   
+	)
+
+	SET @Act_Process = 'pSeleccionarUsoSucursalConsecutivoTipo'
+ 	SET @sqltext = ''
+	SET @sqltext = 'exec '+@DB2k12+'.[dbo].pSeleccionarUsoSucursalConsecutivoTipo @sCo_Consecutivo=N''AJUS_NUM'''  		
+	insert into @tablecorrelativ 
+	exec (@sqltext)
+	SET @correlativ = (select [correlativ] from @tablecorrelativ)
+	PRINT 'VERIFICAR ' + CONVERT(VARCHAR(4),@correlativ) 
+	delete @tablecorrelativ
+
+	if @correlativ = 1
+	BEGIN
+	 SET @Act_Process = 'pConsecutivoProximo'
+	 PRINT 'Optener Proximo Correlativo.'
+	 SET @sqltext = ''    
+	 SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pConsecutivoProximo @sCo_Consecutivo=N''AJUS_NUM'',@sCo_Sucur=N'''+@co_sucu_in+''''
+	 PRINT 'SqlText' + @sqltext   
+	 exec (@sqltext) 
+	END 
+	ELSE
+	BEGIN
+	 SET @Act_Process = 'pConsecutivoProximo'
+	 PRINT 'Optener Proximo Correlativo.'
+	 SET @sqltext = ''    
+	 SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pConsecutivoProximo @sCo_Consecutivo=N''AJUS_NUM'',@sCo_Sucur=N''''' 
+	 PRINT 'SqlText' + @sqltext   
+	 exec (@sqltext) 
+	END
+           
+	 declare @tableresultadoII table                  
+	 (                  
+	  	[prefijo] varchar(10),     
+		[sufijo] varchar(10),            
+		[next] varchar(10)        
+	 )      
+    
+	 insert into @tableresultadoII    
+	 exec sp_nspvextcorrelativoajust @DB2k12,@co_sucu_in    
+	 SET @Envio = (select [next] from @tableresultadoII)
+	 SET @numenv = (select [next] from @tableresultadoII)      	  
+	 --SET @Envio = (select replicate ('0',(8 - len(@Envio))) + convert(varchar, @Envio)) 
+	 SET @Envio = (select replicate ('0',(@LENG - len(@Envio))) + convert(varchar, @Envio))
+	 SET @Envio = LTRIM(RTRIM((select [prefijo] from @tableresultadoII))) + @Envio + LTRIM(RTRIM(( select [sufijo] from @tableresultadoII))) --// 23/07/2020 //--       
+	 
+	if (CONVERT(INT,(select COUNT([next]) from @tableresultadoII)) = 0)
+	BEGIN
+		DELETE @tableresultadoII
+		insert into @tableresultadoII  
+		exec sp_nspvextcorrelativoajust @DB2k12,'' 
+		SET @Envio = (select [next] from @tableresultadoII)
+		SET @numenv = (select [next] from @tableresultadoII) 
+		--SET @Envio = (select replicate ('0',(8 - len(@Envio))) + convert(varchar, @Envio))  
+		SET @Envio = (select replicate ('0',(@LENG - len(@Envio))) + convert(varchar, @Envio)) 
+		SET @Envio = LTRIM(RTRIM((select [prefijo] from @tableresultadoII))) + @Envio + LTRIM(RTRIM(( select [sufijo] from @tableresultadoII))) --// 23/07/2020 //--
+		PRINT 'Envio ' + @Envio
+	END
+
+	if (CONVERT(INT,(select COUNT([next]) from @tableresultadoII)) = 0)
+	BEGIN
+		rollback tran  
+		SET @Resultado = 'CIERRE: ' + Convert(varchar(12),@cie_num) + ' | ' + ERROR_MESSAGE() + ' | ERROR_LINE: ' + Convert(varchar(9),ERROR_LINE()) 
+		SET @Err_no = Convert(varchar(9),ERROR_NUMBER())
+		SET @modulo = CONVERT(VARCHAR(32),ERROR_PROCEDURE())
+		Select @Resultado as Resultado
+	
+		SET @fecha = GETDATE()	 
+		EXEC nsp_SPLog @Err_no,@Resultado,@modulo,'','','','','','','','',
+			 @co_us_in,@co_sucu_in,@fecha,@co_sucu_in,@co_sucu_in,@fecha,'','','insert'
+	
+		PRINT 'Error: ' + @Resultado-- ERROR_MESSAGE()
+		PRINT 'Error Linea: ' + Convert(varchar(9),ERROR_LINE())
+		PRINT 'Error Numero: ' + @Err_no --Convert(varchar(9),ERROR_NUMBER())
+		PRINT 'Error Estatus: ' + Convert(varchar(9),ERROR_STATE())
+		PRINT 'Error Severidad: ' + Convert(varchar(9),ERROR_SEVERITY()	)
+		PRINT 'Error Procedure: ' + @modulo --ERROR_PROCEDURE()     
+	END
+	 
+	 SET @Count = @Count + 1   
+	 PRINT 'Envio: ' + @Envio    
+	 PRINT 'Cuenta: ' + Convert(Varchar(5),@Count) 
+
+	  declare @tablemoneda table                
+	 (                
+	 moneda varchar(10)    
+	 )  
+	 SET @sqltext = ''  
+	 SET @sqltext = 'select g_moneda from  '+@DB2k12+'.dbo.par_emp'  
+	 insert into @tablemoneda  
+	 exec (@sqltext)  
+	 SET @Moneda = (select moneda from @tablemoneda)  
+	 PRINT'Moneda: ' + @Moneda  
+	 delete @tablemoneda  
+
+	 PRINT 'Optener datos asiento cierre.'
+	 --DECLARE @asie_pt decimal(18,2)
+	 --DECLARE @asie_varcto decimal(18,2)
+	 --DECLARE @asie_pm decimal(18,2)
+	 --DECLARE @asie_mo decimal(18,2)
+	 --DECLARE @asie_gfd decimal(18,2)
+	 --DECLARE @asie_gfi decimal(18,2)
+
+	 --select * from NSPCierreOP
+	 select  @asie_pt = asie_pt,@asie_varcto = asie_varcto, @asie_pm =  asie_pm,
+	 @asie_mo = asie_mo, @asie_gfd = asie_gfd, @asie_gfi = asie_gfi
+	 from NSPCierreOP where cie_num = @cie_num
+
+	 Print 'asie_pt: ' + convert(varchar(128),Replace(@asie_pt,'.',','))
+
+	 PRINT 'Optener cuentas asiento cierre.'
+	 select @cuentacont1 = cuentacont1,@cuentacont2 = cuentacont2,
+	 @cuentacont3 = cuentacont3,@cuentacont4 = cuentacont4,
+	 @cuentacont5 = cuentacont5,@cuentacont6 = cuentacont6
+	 from NSPMantenimiento
+
+	 If (@tasa = 0) BEGIN SET @tasa = 1 END
+	 If @tasa = null BEGIN SET @tasa = 1 END
+	 If @co_mone = null BEGIN SET @co_mone = @moneda END
+	 If @co_mone = '' BEGIN SET @co_mone = @moneda END
+
+	  PRINT 'Insertar Ajuste.'
+	  SET @Act_Process = 'pInsertarAjusteEntradaSalida'
+	 --SET @sqltext = ''
+	 -- SET @Moneda = 'select g_moneda from  '+@DB2k12+'.dbo.par_emp'
+		--////////////////////PRODUCCION///////////////////////////--
+		SET @sqltext = 'exec  '+ @DB2k12 +'.dbo.pInsertarAjusteEntradaSalida     
+		 @sAjue_Num='''+@Envio+''',    
+		 @sMotivo=''ODP:' +@odp_num+' CIERRE: '+ @cie_num +' MANUFACTURA'', 
+		 @sCo_Mone='''+@co_mone+''', 
+		 @sdFecha='''+CONVERT(varchar(32),@fecha)+''',
+		 @detasa='+CONVERT(varchar(32),@tasa)+',
+		 @banulado=0, 
+		 @sdis_cen='' <InformacionContable>
+					  <Carpeta01>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont1)+'</CuentaContable>
+					  </Carpeta01>
+					  <Carpeta02>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont2)+'</CuentaContable>
+					  </Carpeta02>
+					  <Carpeta03>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont3)+'</CuentaContable>
+					  </Carpeta03>
+					  <Carpeta04>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont4)+'</CuentaContable>
+					  </Carpeta04>
+					  <Carpeta05>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont5)+'</CuentaContable>
+					  </Carpeta05>
+					  <Carpeta06>
+						<CuentaContable>'+CONVERT(varchar(20),@cuentacont6)+'</CuentaContable>
+					  </Carpeta06>
+					</InformacionContable>'',
+		 @deaux01=NULL,
+		 @saux02=NULL,
+		 @sCo_InvFisico=NULL,
+		 @sCampo1=''NSP_CIE'',
+		 @sCampo2='''+convert(varchar(128),Replace(@asie_pt,'.',','))+''',
+		 @sCampo3='''+convert(varchar(128),Replace(@asie_varcto,'.',','))+''',
+		 @sCampo4='''+convert(varchar(128),Replace(@asie_pm,'.',','))+''',
+		 @sCampo5='''+convert(varchar(128),Replace(@asie_mo,'.',','))+''',
+		 @sCampo6='''+convert(varchar(128),Replace(@asie_gfd,'.',','))+''',
+		 @sCampo7='''+convert(varchar(128),Replace(@asie_gfi,'.',','))+''',
+		 @sCampo8=''MANUFACTURA'','
+		 if @co_sucu_P is null
+			 BEGIN
+				SET @sqltext =  @sqltext + 	' @sRevisado=NULL,@sTrasnfe=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+			 END
+			 ELSE
+			 BEGIN
+				SET @sqltext =  @sqltext + ' @sRevisado=NULL,@sTrasnfe=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+			 END		  		 
+		 --////////////////////DESARROLLO///////////////////////////--   
+	 --SET @sqltext = 'exec  '+ @DB2k12 +'.dbo.pInsertarAjusteEntradaSalida     
+	 --    @sAjue_Num='''+@Envio+''',    
+	 --    @sMotivo=''AJUSTE MANUFACTURA OPD:' +@odp_num+' CIERRE: '+ @cie_num +''', 
+		-- @sCo_Mone=''BSS'', 
+		-- @sdFecha='''+CONVERT(varchar(32),@fecha)+''',
+	 --    @detasa=1,
+		-- @banulado=0, 
+		-- @sdis_cen='' <InformacionContable>
+		--			  <Carpeta01>
+		--				<CuentaContable>1.11.11.111</CuentaContable>
+		--			  </Carpeta01>
+		--			  <Carpeta02>
+		--				<CuentaContable>1.1.11.111</CuentaContable>
+		--			  </Carpeta02>
+		--			  <Carpeta03>
+		--				<CuentaContable>1.1.11.111</CuentaContable>
+		--			  </Carpeta03>
+		--			  <Carpeta04>
+		--				<CuentaContable>1.1.11.111</CuentaContable>
+		--			  </Carpeta04>
+		--			  <Carpeta05>
+		--				<CuentaContable>1.1.11.111</CuentaContable>
+		--			  </Carpeta05>
+		--			  <Carpeta06>
+		--				<CuentaContable>1.1.11.111</CuentaContable>
+		--			  </Carpeta06>
+		--			</InformacionContable>'',
+		-- @deaux01=NULL,
+		-- @saux02=NULL,
+		-- @sCo_InvFisico=NULL,
+		-- @sCampo1=''NSP_CIE'',
+		-- @sCampo2='''+convert(varchar(128),Replace(@asie_pt,'.',','))+''',
+		-- @sCampo3='''+convert(varchar(128),Replace(@asie_varcto,'.',','))+''',
+		-- @sCampo4='''+convert(varchar(128),Replace(@asie_pm,'.',','))+''',
+		-- @sCampo5='''+convert(varchar(128),Replace(@asie_mo,'.',','))+''',
+		-- @sCampo6='''+convert(varchar(128),Replace(@asie_gfd,'.',','))+''',
+		-- @sCampo7='''+convert(varchar(128),Replace(@asie_gfi,'.',','))+''',
+		-- @sCampo8=''MANUFACTURA'', 
+		-- @sRevisado=NULL,@sTrasnfe=NULL,@sco_sucu_in=''01'',@sco_us_in=''PROFIT'',@sMaquina=''ANALISTA-PC'''                              
+	 PRINT 'SQLTEXT: ' + @sqltext  
+	 exec (@sqltext)    
+	       
+	 delete @tableresultadoII 
+
+	  PRINT 'Update NSPCierre.'
+	  	SET @NonNumeric = @numenv 
+		SET @Index = 0  
+		while 1=1  
+		begin  
+			set @Index = patindex('%[^0-9]%',@NonNumeric)  
+			if @Index <> 0  
+		begin  
+           SET @NonNumeric = replace(@NonNumeric,substring(@NonNumeric,@Index, 1), '')  
+		end  
+		else    
+           break;   
+		end  
+
+	  update NSPCierreOP set aju_num = @numenv where cie_num = @cie_num and odp_num = @odp_num
+
+	 SET @num_reg = 0
+
+	 /*INICIO PROCEDIMIENTO NUEVO MULTILOTES POR TRASLADOS 17/01/2023*/
+	DECLARE @TrasladoTable TABLE (tipo VARCHAR(10),co_art VARCHAR(32),
+	co_alma VARCHAR(10),co_uni VARCHAR(10),nro_lote VARCHAR(20),
+	cantidad DECIMAL(18,5),costo_uni  DECIMAL(18,5))
+	DECLARE @TipoTT VARCHAR(10),@co_artTT VARCHAR(32),@co_almaTT VARCHAR(10),
+	@co_uniTT VARCHAR(10),@nro_loteTT VARCHAR(20),@cantidadTT DECIMAL(18,5),
+	@costo_uniTT  DECIMAL(18,5)
+
+	DECLARE @co_almaPP VARCHAR(10) = (select Top 1 almacenPP from NSPMantenimiento)
+	
+	SET @sqltext = 'select ''000002'',co_art,'''+@co_almaPP+''',co_uni,''Lote'',SUM(total_art),0 from
+	'+@DB2k12+'.dbo.saTrasladoReng where tras_num in (select tras_num from '+@DB2k12+'.dbo.saTraslado 
+	where motivo_glo like ''Requisicion:%ODP: '' + '''+Convert(varchar(10),@Odp_num)+''' 
+	and confirma = 1 and anulado = 0 and alm_dest = '''+@co_almaPP+''')
+	GROUP by co_art,co_uni'
+	PRINT 'sqltext: ' + @sqltext
+	insert into @TrasladoTable
+	exec(@sqltext)
+	
+	DECLARE LotesCursor CURSOR FOR    
+    
+		select tipo,co_art,co_alma,co_uni,nro_lote,cantidad,costo_uni from @TrasladoTable
+    
+	OPEN LotesCursor      
+      
+	FETCH NEXT FROM LotesCursor       
+	INTO @TipoTT,@co_artTT,@co_almaTT,@co_uniTT,@nro_loteTT,@cantidadTT,@costo_uniTT  
+      
+	WHILE @@FETCH_STATUS = 0      
+	BEGIN
+		PRINT 'INICIO CURSOR'
+		PRINT 'ARTICULO: ' + @co_artTT
+
+		SET @sqltext = 'select isnull(SUM(total_art),0) from '+@DB2k12+'.dbo.saTrasladoReng 
+		where tras_num in (select tras_num from '+@DB2k12+'.dbo.saTraslado 
+		where motivo_glo like ''Devolucion:%ODP: '' + '''+Convert(varchar(10),@Odp_num)+''' 
+		and confirma = 1 and anulado = 0 and alm_orig = '''+@co_almaPP+''') 
+		AND co_art = '''+@co_artTT+''''
+		PRINT 'sqltext: ' + @sqltext
+
+		declare @tablecantidaddev table (cant_dev DECIMAL(18,5))    
+		insert into @tablecantidaddev
+		exec(@sqltext)
+
+		DECLARE @TotalDev DECIMAL(18,5) = (select Top 1 cant_dev from @tablecantidaddev)
+		Delete @tablecantidaddev
+		PRINT 'Cantidad: ' + CONVERT(VARCHAR(28),@cantidadTT)
+		PRINT 'Cantidd Dev: ' + CONVERT(VARCHAR(28),@TotalDev)
+		UPDATE @TrasladoTable SET cantidad = cantidad - @TotalDev where co_art = @co_artTT
+		
+		DECLARE @Costo_Cierre DECIMAL(18,5) = (select isnull((select TOP 1 costo_uni from NSPCostocierre 
+		where num_cierre = Convert(INT,@cie_num) and co_art = @co_artTT),0.01))
+		UPDATE @TrasladoTable SET costo_uni = @Costo_Cierre where co_art = @co_artTT 
+
+	FETCH NEXT FROM LotesCursor       
+	INTO @TipoTT,@co_artTT,@co_almaTT,@co_uniTT,@nro_loteTT,@cantidadTT,@costo_uniTT       
+	END       
+	CLOSE LotesCursor      
+	DEALLOCATE LotesCursor 
+
+	insert into @TrasladoTable
+	select '000001' as Tipo, co_art,'PT' as co_alma,co_uni,nro_lote,total_art,costo_uni 
+	from NSPCierreOPReng
+	where cie_num = @cie_num order by Tipo
+	--select * from @TrasladoTable
+
+			select tipo,co_art,co_alma,co_uni,nro_lote,cantidad,costo_uni from @TrasladoTable
+		where cantidad > 0 
+
+	/*FIN PROCEDIMIENTO NUEVO MULTILOTES POR TRASLADOS 17/01/2023*/
+
+	 PRINT 'Inicio Cursor Cierre.'  
+	 DECLARE CierreCursor CURSOR FOR    
+  
+		--declare @cie_num varchar(10)
+		--set @cie_num = '0000000009'
+		--select * from NSPCostocierre
+		--select * from NSPCierreOPReng
+		--select '000002' as Tipo,n.co_art,n.co_alma,n.CO_UNI,n.NUM_LOTE,n.cantidad,n.costo_uni 
+		--from NSPCostocierre n
+		--where n.num_cierre = Convert(INT,@cie_num)
+		select tipo,co_art,co_alma,co_uni,nro_lote,cantidad,costo_uni from @TrasladoTable
+		where cantidad > 0 
+		/*
+		select distinct '000002' as Tipo,n.co_art,n.co_alma,n.CO_UNI,'',SUM(n.cantidad),n.costo_uni 
+		from NSPCostocierre n
+		where n.num_cierre = Convert(INT,@cie_num)
+		GROUP by n.co_art,n.co_alma,n.CO_UNI,n.costo_uni
+		union
+		select '000001' as Tipo, co_art,'PT' as co_alma,co_uni,nro_lote,total_art,costo_uni 
+		from NSPCierreOPReng
+		where cie_num = @cie_num order by Tipo
+		*/
+
+	OPEN CierreCursor      
+      
+	FETCH NEXT FROM CierreCursor       
+	INTO @Tipo,@co_art,@co_alma,@co_uni,@lote,@cantidad,@costo_uni    
+      
+	WHILE @@FETCH_STATUS = 0    
+	BEGIN     
+	SET @CursorName = 'CierreCursor'
+	 -- PRINT 'Verificar Cantidad Negativa'
+	 -- if (@cantidad < 0)
+	 -- BEGIN
+		--SET @cantidad = @cantidad * -1
+	 -- END
+	   /*INICIO MODIFICADO 30/06/2021*/
+  if @costo_uni <= 0
+  BEGIN	
+		
+		CLOSE CierreCursor      
+		DEALLOCATE CierreCursor 
+		rollback tran  
+		SET @Resultado = ' | ' + Convert(varchar(9),'ERRCS999') + ' | ' + 'El Articulo ' + @co_art + ' Tiene Costo Cero'
+		--//SET @Err_no = Convert(varchar(9),ERROR_NUMBER())
+		SET @Err_no = 'ERRCS999'
+		SET @modulo = CONVERT(VARCHAR(32),'nsp_spordenproduccioncierre')
+		Select @Resultado as Resultado
+		 
+		EXEC nsp_SPLog @Err_no,@Resultado,@modulo,'','','','','','','','',
+			 @co_us_in,@co_sucu_in,@fecha,@co_sucu_in,@co_sucu_in,@fecha,'','','insert'
+	
+		PRINT 'Error: ' + @Resultado-- ERROR_MESSAGE()
+		PRINT 'Error Linea: ' + Convert(varchar(9),ERROR_LINE())
+		PRINT 'Error Numero: ' + @Err_no --Convert(varchar(9),ERROR_NUMBER())
+		PRINT 'Error Estatus: ' + Convert(varchar(9),ERROR_STATE())
+		PRINT 'Error Severidad: ' + Convert(varchar(9),ERROR_SEVERITY()	)
+		PRINT 'Error Procedure: ' + @modulo --ERROR_PROCEDURE()  
+		RETURN 	
+ END	
+  /*FIN MODIFICADO 30/06/2021*/
+
+	  set @num_reg = @num_reg + 1    
+	  PRINT 'Yo soy el renglon ' + Convert(varchar(10),@num_reg) + ' del envio ' + @Envio  
+	  --select * from NSPOrdenproduccionreng
+	  --exec nsp_spordenproduccioncierre '0000000003','0000000003','DEMOCILCA','cerrar'
+		update NSPOrdenproduccionreng set costo = @costo_uni 
+		where odp_num = @odp_num and co_art = @co_art --and reng_num = @reng_num  
+
+		update NSPOrdenproduccion set status = 'CERRADA'  
+		where odp_num = @odp_num 
+
+		 
+		if @Tipo = '000002'
+		BEGIN
+			PRINT 'Tipo de Ajuste: ' + @Tipo
+			--SET @co_uni = (select co_uni from NSPOrdenproduccionreng where odp_num = @odp_num and co_art = @co_art)
+			SET @AjusTipo = (select AjusSal from NSPMantenimiento)
+		END
+
+		if @Tipo = '000001'
+		BEGIN
+			PRINT 'Tipo de Ajuste: ' + @Tipo
+			SET @co_uni = (select unidad from NSPFormula where co_for in (select co_for from NSPOrdenproduccion where odp_num = @odp_num and co_art = @co_art))
+			SET @AjusTipo = (select AjusEnt from NSPMantenimiento)
+			SET @co_alma = (select almacendest from NSPOrdenproduccion where odp_num = @odp_num and co_art = @co_art)
+			SET @lote = (select num_lote from NSPOrdenproduccion where odp_num = @odp_num and co_art = @co_art)   
+			--PRINT @co_alma
+		END
+
+		if (@costo_uni <= 0.01 )
+		BEGIN
+			--csalamanca
+		  PRINT 'Recostear'
+	  SET @sqltext = ''    
+	  SET @sqltext = 'exec '+@DB2k12+'.dbo.pCostoPromedioCalcular @strCoArtDesde=N'''+@co_art+''',@strCoArtHasta=N'''+@co_art+''',@strCoAlmaDesde=N'''',@strCoAlmaHasta=N'''''       
+	  exec (@sqltext) 
+	  PRINT 'Sqltext: ' +  @sqltext
+	  --Donde  @cur_coart es el código del artículo
+    
+	  PRINT 'Obtener el Rowguid'
+	  declare @tableRow table                  
+	  (                  
+	  [Rowguid] varchar(128)      
+	  )    
+	  SET @sqltext = ''    
+	  SET @sqltext = 'select Rowguid from '+@DB2k12+'.dbo.saArticulo where co_art = '''+ @co_art +''''    
+	  insert into @tableRow    
+	  exec (@sqltext)    
+	  SET @Rowguid = (select Rowguid from @tableRow)    
+	  PRINT'Rowguid: ' + @Rowguid    
+	  delete @tableRow   
+ 
+	  PRINT 'Calculo de Costo'
+	  declare @tableCosto table                  
+	  (                  
+	  cod_costo_historico_entrada VARCHAR(128),  
+	  cod_articulo_rowguid VARCHAR(128),   
+	  cod_almacen VARCHAR(128),   
+	  tipo_doc VARCHAR(128),   
+	  doc_orig VARCHAR(128),   
+	  cantidad DECIMAL(18,2),   
+	  cantidad_usada DECIMAL(18,2),   
+	  costo DECIMAL(18,2),   
+	  fecha_emision DATETIME,  
+	  fecha_registro DATETIME,  
+	  fecha_recepcion DATETIME,  
+	  rengNum INT,  
+	  validador VARCHAR(128),   
+	  documento VARCHAR(128),  
+	  cod_proceso VARCHAR(128)     
+	  )  
+
+	  SET @sqltext = ''    
+	  SET @sqltext = 'exec '+@DB2k12+'.dbo.pObtenerUltimoCosto @gRowguid_Articulo='''+@Rowguid+''',@sTipoCosto=N''2'''  
+	  insert into @tableCosto   
+	  exec (@sqltext)    
+	  SET @Costo = (select costo from @tableCosto)    
+	  PRINT'Costo: ' + Convert(varchar(20),@Costo)    
+	  delete @tableCosto  
+	---csalamanca
+
+	if @costo_uni = 0.01 and @Costo > 0.01
+	SET @costo_uni = @Costo
+	END
+	
+		SET @Act_Process = 'pInsertarRenglonesAjusteEntradaSalida'
+		PRINT 'Insertar Renglones.'
+		PRINT  '@Envio' +@Envio
+		PRINT  '@AjusTipo' +Convert(varchar(26),@AjusTipo)
+		PRINT  '@co_art' +@co_art
+		PRINT  '@co_alma' +@co_alma
+		--PRINT  '' +Convert(varchar(26),@cantidad)
+		--PRINT  '' +Convert(varchar(26),@costo_uni)
+		--PRINT  '' +
+		--PRINT  '' +
+		--PRINT  '' +
+		--PRINT  '' +
+		--PRINT  '' +
+
+		SET @sqltext = ''    
+		SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pInsertarRenglonesAjusteEntradaSalida      
+		@sAjue_num='''+@Envio+''',
+		@sCo_Tipo='''+Convert(varchar(26),@AjusTipo)+''',
+		@sCo_Art='''+@co_art+''', 
+		@sCo_Alma='''+@co_alma+''',
+		@sdis_cen=NULL, 
+		@deTotal_Art='+Convert(varchar(26),@cantidad)+',
+		@desTotal_Art=0,
+		@deCost_Unit='+Convert(varchar(26),@costo_uni)+', 
+		@sCo_Uni='''+@co_uni+''',  
+		@sSco_Uni=NULL,  
+		@deCosto_Adi1=0,
+		@deCosto_Adi2=0,
+		@deCosto_Adi3=0,
+		@iRENG_NUM='+Convert(varchar(26),@num_reg)+','
+		if @co_sucu_P is null
+			 BEGIN
+				SET @sqltext =  @sqltext + 	' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''ANALISTA-PC''' 
+			 END
+			 ELSE
+			 BEGIN
+				SET @sqltext =  @sqltext + ' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+			 END
+			     
+		PRINT 'SQLTEXT: ' + @sqltext   
+		exec (@sqltext)    
+		    
+		PRINT 'Obtener el Rowguid del Renglon'  
+		declare @tableRowR table                    
+		(                    
+		[Rowguid] varchar(128)        
+		)      
+		SET @sqltext = ''      
+		SET @sqltext = 'select Rowguid from '+@DB2k12+'.dbo.saajustereng where ajue_num = '''+ @Envio +''' and reng_num =  '''+ Convert(varchar(26),@num_reg) +''''      
+		insert into @tableRowR      
+		exec (@sqltext)      
+		SET @Rowguid = (select Rowguid from @tableRowR) 
+		PRINT 'SQLTEXT: ' + @sqltext      
+		PRINT'Rowguid: ' + @Rowguid      
+		delete @tableRowR 
+
+		PRINT 'Maneja Lote'
+		declare @Mlote int  
+		declare @tableMLote table                    
+		(                    
+		Lote int        
+		)      
+		SET @sqltext = ''      
+		SET @sqltext = 'select Convert(int,maneja_lote) from '+@DB2k12+'.dbo.saArticulo where co_art =  '''+ Convert(varchar(26),@co_art) +''''      
+		PRINT 'SQLTEXT: ' + @sqltext  
+		insert into @tableMLote      
+		exec (@sqltext)      
+		SET @Mlote = (select Lote from @tableMLote) 		    
+		PRINT'Maneja Lote: ' + CONVERT(VARCHAR(6),@Mlote)  
+		delete @tableMLote 
+
+		/*Bloque Nuevo lsgonzalez 15/07/2020*/
+		  PRINT 'Verificar STOCK Negativo'
+		  declare @stocknegativo BIT = 0
+		  declare @tablestocknegativo table                  
+		  (                  
+			[stocknegativo] BIT    
+		  )    
+		  SET @sqltext = ''    
+		  SET @sqltext = 'select i_stock_negativo from '+@DB2k12+'.dbo.par_emp'    
+		  insert into @tablestocknegativo    
+		  exec (@sqltext)    
+		  SET @stocknegativo = (select stocknegativo from @tablestocknegativo)    
+		  PRINT'@stocknegativo: ' + CONVERT(VARCHAR(1),@stocknegativo )   
+		  delete @tablestocknegativo 
+
+	  /*PERMITIR NEGATIVOS EN EL PAPA DE LOS HELADOS*/
+	  if @DB2k12 = 'EPDLH_A' BEGIN SET @stocknegativo = 0 END
+
+		If @Mlote = 1
+		BEGIN
+			PRINT 'Obtener el Numero de Lote'
+			declare @tablelote table                     
+			(                    
+			[lote] varchar(128)        
+			)      
+			SET @sqltext = ''      
+			SET @sqltext = 'select num_lote from NSPOrdenproduccion where odp_num = '''+@odp_num+''''      
+			insert into @tablelote      
+			exec (@sqltext)  
+			PRINT 'Sqltext: ' +  @sqltext   
+			--SET @lote = (select lote from @tablelote) --//Comentado 09/03/2020//--      
+			PRINT'Lote: ' + @lote      
+			delete @tablelote 
+
+			SET @Act_Process = 'pActualizaCampoLoteAsignado'
+			PRINT 'Actualizar Numero de Lote en el Renglon del Ajuste'
+			SET @sqltext = ''      
+			SET @sqltext = 'exec '+@DB2k12+'.dbo.pActualizaCampoLoteAsignado @sTipo_Documento=N''AJUS'',@sLoteAsignado=1,@gRowguid='''+@Rowguid+''''      
+			insert into @tablelote      
+			exec (@sqltext)
+			PRINT 'SQLTEXT: ' + @sqltext 
+	
+  			if @Tipo = '000001'
+			BEGIN
+				if @lote is not null
+				BEGIN
+					if @lote <> ''
+					BEGIN		
+						PRINT 'Insertar Reglon Lote Entrada'
+						DECLARE @FECHAEXPE DATETIME = GETDATE()
+
+						/**FECHA DE VENCIMIENTO PARA LABORATORIO VINCENTI**/
+						if (DB_NAME() = 'VICENTI01_M')
+						BEGIN
+							DECLARE @DD VARCHAR(2) = (select Substring(campo1,1,2) from NSPOrdenproduccion where odp_num = @odp_num)
+							DECLARE @MM VARCHAR(2) = (select Substring(campo1,4,2) from NSPOrdenproduccion where odp_num = @odp_num)
+							DECLARE @YYYY VARCHAR(4) = (select Substring(campo1,7,4) from NSPOrdenproduccion where odp_num = @odp_num)
+							IF (@DD <> '')
+							BEGIN
+								SET @FECHAEXPE = (select CONVERT(DATETIME,@YYYY+@MM+@DD))
+							END						
+
+							DECLARE @EXISTEFECHA INT = (SELECT COUNT(campo1) from NSPOrdenproduccion where num_lote = @lote)
+							if (@EXISTEFECHA > 0)
+							BEGIN
+								SET @DD = (select Substring(campo1,1,2) from NSPOrdenproduccion where  num_lote = @lote and campo1 <> '')
+								SET @MM = (select Substring(campo1,4,2) from NSPOrdenproduccion where num_lote = @lote and campo1 <> '')
+								SET @YYYY = (select Substring(campo1,7,4) from NSPOrdenproduccion where num_lote = @lote and campo1 <> '')
+								IF (@DD <> '')
+								BEGIN
+									SET @FECHAEXPE = (select CONVERT(DATETIME,@YYYY+@MM+@DD))
+								END	
+							END						
+						END
+
+						PRINT 'FECHA: ' + CONVERT(VARCHAR(32),@FECHAEXPE)
+						SET @Act_Process = 'pInsertarRenglonesLote ' + @Rowguid + @lote
+						SET @sqltext = ''    
+						SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pInsertarRenglonesLote @gRowGuid_Reng='''+@Rowguid+''',@sTipo_Doc=''AJUST'',@sCo_Art='''+@co_art+''',
+						@sCo_Alma='''+@co_alma+''',@sNumero_Lote='''+@lote+''',@sdFecha_Inicio='''+CONVERT(varchar(32),@fechaDT)+''',
+						@sdFecha_Expiracion='''+CONVERT(varchar(32),@FECHAEXPE)+''',@deCantidad='''+Convert(varchar(26),@cantidad)+''',
+						@dePrecio='+Convert(varchar(26),@costo_uni)+',@iRENG_NUM='+ Convert(varchar(26),@num_reg) +','
+						if @co_sucu_P is null
+							 BEGIN
+								SET @sqltext =  @sqltext + 	' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							 END
+							 ELSE
+							 BEGIN
+								SET @sqltext =  @sqltext + ' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							 END
+
+						PRINT 'SQLTEXT: ' + @sqltext       
+						exec (@sqltext)    					  
+					END
+				END
+			END	
+
+			if @Tipo = '000002'
+			BEGIN 
+				--if @lote is not null
+				--BEGIN
+				--	if @lote <> ''
+				--	BEGIN
+					/*PROCEDIMIENTO Nuevo 16/01/2023AA*/
+					PRINT 'CODIGO NUEVO > 16/01/2023'					
+					DECLARE @co_artLE VARCHAR(32)
+					DECLARE @co_almaLE VARCHAR(10)
+					DECLARE @numero_loteLE varchar(20)
+					DECLARE @cantidadLE DECIMAL(18,5)
+					DECLARE @precioLE DECIMAL(18,5)
+					DECLARE @rowguid_rengLE Varchar(256)
+					DECLARE @rowguidLE Varchar(256)
+					DECLARE @CAntidadASIG DECIMAL(18,5) 
+					DECLARE @Lote_Rengon INT = 1
+
+					DECLARE @TableRowguid table
+					(
+						--tras_num varchar(10),
+						--reng_num INT,
+						co_art varchar(32),
+						co_alma varchar(10),
+						numero_lote varchar(20),
+						cantidad DECIMAL(18,5),
+						precio DECIMAL(18,5),
+						rowguid_reng Varchar(256),
+						rowguid Varchar(256)
+					)
+					DELETE @TableRowguid
+
+					SET @sqltext = 'select co_art,co_alma,numero_lote,cantidad,precio,rowguid_reng,rowguid
+					from '+@DB2k12+'.dbo.saLoteEntrada where co_art =  '''+ @co_art +''' and co_alma = '''+@co_alma+''' 
+					and rowguid_reng in (select rowguid from '+@DB2k12+'.dbo.saTrasladoReng 
+					where tras_num in (select tras_num from '+@DB2k12+'.dbo.saTraslado where 
+					motivo_glo like ''Requisicion:%ODP: '' + '''+Convert(varchar(10),@Odp_num)+''' 
+					AND confirma = 1))'
+					PRINT 'sqltext: ' + @sqltext
+					insert into @TableRowguid
+					exec(@sqltext)
+
+					DECLARE LotesCursor CURSOR FOR    
+    
+						select co_art,co_alma,numero_lote,cantidad,precio,rowguid_reng,rowguid from @TableRowguid
+    
+					OPEN LotesCursor      
+      
+					FETCH NEXT FROM LotesCursor       
+					INTO @co_artLE,@co_almaLE,@numero_loteLE,@cantidadLE,@precioLE,@rowguid_rengLE,@rowguidLE   
+      
+					WHILE @@FETCH_STATUS = 0      
+					BEGIN
+						PRINT 'INICIO CURSOR'
+
+						SET @sqltext = 'select isnull(SUM(cantidad),0) as cantidad from '+ @DB2k12 +'.dbo.saLoteSalida 
+						where co_art = '''+ @co_artLE +''' and co_alma = '''+@co_almaLE+''' and 
+						Rowguid_Lote = '''+ @rowguidLE +''' and rowguid_reng in (select rowguid 
+						from '+ @DB2k12 +'.dbo.saTrasladoReng where tras_num in 
+						(select tras_num from '+@DB2k12+'.dbo.saTraslado where 
+						motivo_glo like ''Devolucion:%ODP: '' + '''+Convert(varchar(10),@Odp_num)+''' 
+						AND confirma = 1))'
+	
+						PRINT 'sqltext: ' + @sqltext
+						DECLARE @CantidadevTABLE table (cantidad DECIMAL(18,5))
+						insert into @CantidadevTABLE exec(@sqltext)
+
+						DECLARE @Cantidadev DECIMAL(18,5) = (select TOP 1 cantidad from @CantidadevTABLE)
+						DELETE @CantidadevTABLE
+						SET @CAntidadASIG = @cantidadLE - @Cantidadev
+
+						PRINT '@rowguid: ' + @rowguid
+						PRINT 'rowguidLE: ' + @rowguidLE
+						PRINT '@co_artLE: ' + convert(varchar(128),@co_artLE)
+						PRINT '@co_almaLE: ' + convert(varchar(128),@co_almaLE)
+						PRINT '@loteLE: ' + convert(varchar(128),@numero_loteLE)
+						PRINT '@cantidadLE: ' + convert(varchar(128),@cantidadLE)
+						PRINT '@Cantidadev: ' + convert(varchar(128),@Cantidadev)
+						PRINT '@CAntidadASIG: ' + convert(varchar(128),@CAntidadASIG)
+						--PRINT '@stock_actual: ' + convert(varchar(128),@stock_actual) 
+						--PRINT '@cantidad: ' + convert(varchar(128),@CANTIDAD_LOTE)
+						WHILE @CAntidadASIG > 0
+						BEGIN
+							SET @Act_Process = 'pInsertarRenglonesLoteSalida ' + @rowguid + ' | ' + @rowguidLE
+							SET @sqltext = ''    
+							SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pInsertarRenglonesLoteSalida @gRowGuid_Reng='''+@rowguid+''',@sTipo_Doc=''AJUS'',@sCo_Art='''+@co_artLE+''',
+							@sCo_Alma='''+@co_almaLE+''',@sNumero_Lote='''+@numero_loteLE+''',@deCantidad='''+Convert(varchar(20),@CAntidadASIG)+''',
+							@dePrecio=0,@gRowguid_Lote='''+@rowguidLE+''',@iRENG_NUM='+Convert(varchar(26),@Lote_Rengon)+','
+							if @co_sucu_P is null
+							BEGIN
+								SET @sqltext =  @sqltext + 	' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							END
+							ELSE
+							BEGIN
+								SET @sqltext =  @sqltext + ' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							END						   
+							PRINT 'SQLTEXT: ' + @sqltext
+							exec (@sqltext)
+
+							SET @Act_Process = 'pActualizarLote ' + @rowguidLE + ' | ' + @numero_loteLE
+							SET @sqltext = ' exec '+ @DB2k12 +'.dbo.pActualizarLote @bPermiteStockNegativo='+CONVERT(VARCHAR(9),@stocknegativo)+',@gRowguid='''+@rowguidLE+''',
+							@sNumero_Lote='''+@numero_loteLE+''',@deCantidad='+CONVERT(VARCHAR(26),@CAntidadASIG)+',@bSumarStock=0'
+							PRINT '@sqltext: ' + @sqltext	
+							exec (@sqltext)
+							SET @Lote_Rengon = @Lote_Rengon + 1
+							SET @Cantidadev = 0
+							SEt @CAntidadASIG = 0
+							PRINT 'CANTIDAD POR ASIGNAR: ' +  CONVERT(VARCHAR(26),@CAntidadASIG)
+						END
+						FETCH NEXT FROM LotesCursor       
+					INTO @co_artLE,@co_almaLE,@numero_loteLE,@cantidadLE,@precioLE,@rowguid_rengLE,@rowguidLE      
+					END       
+					CLOSE LotesCursor      
+					DEALLOCATE LotesCursor 
+
+					/*--//////////////////////CODIGO NUEVO > 26/09/2022 > COMENTADO 16/01/2023///////////////////--						
+					DECLARE @Lote_Rengon INT = 1				
+					DECLARE @CAntidadASIG DECIMAL(18,5) = @cantidad
+					DECLARE @Reng_numR INT,@tras_num VARCHAR(20)
+					DECLARE @reng_numT varchar(4),@rowguid_rengT varchar(128), 
+					@rowguidT varchar(128),@numero_lote VARCHAR(20),@stock_actual decimal(18,5)
+					DECLARE @Tabletraslados TABLE(Reng_num INT,tras_num VARCHAR(20))	
+					delete @Tabletraslados
+					insert into @Tabletraslados									
+					select reng_num,num_envio from NSPRequisicionreng where co_art = @co_art AND alma_des = @co_alma AND
+					req_num in (select req_num from NSPRequisicion where odp_num = @odp_num) order by co_art
+
+					--select * from @Tabletraslados
+
+					PRINT 'Inicio Cursor Traslados.'  
+					DECLARE TrasladosCursor CURSOR FOR    
+  
+						select * from @Tabletraslados
+
+					OPEN TrasladosCursor      
+      
+					FETCH NEXT FROM TrasladosCursor       
+					INTO @Reng_numR,@tras_num 
+      
+					WHILE @@FETCH_STATUS = 0    
+					BEGIN 						
+						SET @CURSORACT = 'TrasladosCursor'
+						declare @tablesaLoteEntradaR table ([rowguid] varchar(128)) 
+						/* 11-01-2023 MODIFICADO */
+						SET @sqltext = 'select rowguid from '+ @DB2k12 +'.dbo.saTrasladoReng 
+						where tras_num = '''+ @tras_num +''' and co_art  = '''+CONVERT(VARCHAR(32),@co_art)+'''
+						--and co_alma  = '''+CONVERT(VARCHAR(10),@co_alma)+''' --and reng_num  = '''+CONVERT(VARCHAR(26),@Reng_numR)+''''      
+						PRINT 'SQLTEXT: ' + @sqltext
+						insert into @tablesaLoteEntradaR 
+						exec (@sqltext)
+						DECLARE @rowguid_rengTT VARCHAR(128) = (select TOP 1 rowguid from @tablesaLoteEntradaR)
+						DELETE @tablesaLoteEntradaR
+
+						declare @tablesaLoteEntrada table 
+						([reng_num] varchar(4),[rowguid_reng] varchar(128), [rowguid] varchar(128),numero_lote VARCHAR(20),stock_actual decimal(18,5)) 
+						DECLARE @sqltextAUX VARCHAR(MAX) = ''      
+						SET @sqltextAUX = 'select reng_num,rowguid_reng,rowguid,numero_lote,stock_actual from '+ @DB2k12 +'.dbo.saLoteEntrada 
+						where rowguid_reng = '''+ @rowguid_rengTT +''' and stock_actual > 0 --order by reng_num desc'      
+						PRINT 'SQLTEXT: ' + @sqltextAUX 
+						insert into @tablesaLoteEntrada      
+						exec (@sqltextAUX)
+	
+						PRINT 'Inicio Cursor LotesS.'  
+						DECLARE LotesSCursor CURSOR FOR    
+  
+							select * from @tablesaLoteEntrada order by reng_num
+
+						OPEN LotesSCursor      
+      
+						FETCH NEXT FROM LotesSCursor       
+						INTO @reng_numT,@rowguid_rengT,@rowguidT,@numero_lote,@stock_actual
+      
+						WHILE @@FETCH_STATUS = 0    
+						BEGIN 
+						SET @CURSORACT = 'LotesSCursor'
+						--PRINT 'DATOS: ' + @reng_numT + '|' + @rowguid_rengT + '|' +  @rowguidT    + '|' + CONVERT(VARCHAR(26),@stock_actual)
+						if @CAntidadASIG > 0
+						BEGIN
+							DECLARE @CANTIDAD_LOTE DECIMAL(18,5) = 0	
+							if @CAntidadASIG >= @stock_actual
+							BEGIN
+								SET @CANTIDAD_LOTE = @stock_actual
+							END
+							if @CAntidadASIG < @stock_actual
+							BEGIN
+								SET @CANTIDAD_LOTE = @CAntidadASIG
+							END
+							
+							DECLARE @reng_numTEMP VARCHAR(4) = CONVERT(VARCHAR(26),@reng_numT) 
+							DECLARE @rowguid_rengTEMP VARCHAR(128) = @rowguid_rengT
+							DECLARE @rowguidTEMP VARCHAR(128) = @rowguidT				 		     
+							PRINT '@reng_numTEMP: ' + @reng_numTEMP 
+							PRINT '@rowguid_rengTEMP: ' + @rowguid_rengTEMP 
+							PRINT '@rowguidTEMP: ' + @rowguidTEMP
+							PRINT '@rowguid: ' + @rowguid
+							PRINT '@reng_num: ' + convert(varchar(128),@num_reg)
+							PRINT '@co_art: ' + convert(varchar(128),@co_art)
+							PRINT '@co_alma: ' + convert(varchar(128),@co_alma)
+							PRINT '@lote: ' + convert(varchar(128),@numero_lote)
+							PRINT '@CAntidadASIG: ' + convert(varchar(128),@CAntidadASIG)
+							PRINT '@stock_actual: ' + convert(varchar(128),@stock_actual) 
+							PRINT '@cantidad: ' + convert(varchar(128),@CANTIDAD_LOTE)
+
+							SET @sqltext = ''    
+							SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pInsertarRenglonesLoteSalida @gRowGuid_Reng='''+@rowguid+''',@sTipo_Doc=''AJUS'',@sCo_Art='''+@co_art+''',
+							@sCo_Alma='''+@co_alma+''',@sNumero_Lote='''+@numero_lote+''',@deCantidad='''+Convert(varchar(20),@CANTIDAD_LOTE)+''',
+							@dePrecio=0,@gRowguid_Lote='''+@rowguidTEMP+''',@iRENG_NUM='+Convert(varchar(26),@Lote_Rengon)+','
+							if @co_sucu_P is null
+							BEGIN
+								SET @sqltext =  @sqltext + 	' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							END
+							ELSE
+							BEGIN
+								SET @sqltext =  @sqltext + ' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							END						   
+							PRINT 'SQLTEXT: ' + @sqltext
+							exec (@sqltext)
+
+							SET @sqltext = ' exec '+ @DB2k12 +'.dbo.pActualizarLote @bPermiteStockNegativo='+CONVERT(VARCHAR(9),@stocknegativo)+',@gRowguid='''+@rowguidTEMP+''',
+							@sNumero_Lote='''+@numero_lote+''',@deCantidad='+CONVERT(VARCHAR(26),@CANTIDAD_LOTE)+',@bSumarStock=0'
+							PRINT '@sqltext: ' + @sqltext	
+							exec (@sqltext)
+							SET @Lote_Rengon = @Lote_Rengon + 1
+							SET @CAntidadASIG = @CAntidadASIG - @stock_actual
+							PRINT 'CANTIDAD POR ASIGNAR: ' +  CONVERT(VARCHAR(26),@CAntidadASIG)
+						END
+
+						FETCH NEXT FROM LotesSCursor       
+						INTO @reng_numT,@rowguid_rengT,@rowguidT,@numero_lote,@stock_actual       
+						END       
+						CLOSE LotesSCursor      
+						DEALLOCATE LotesSCursor 
+						SET @CURSORACT = 'TrasladosCursor'
+						delete @tablesaLoteEntrada
+
+						FETCH NEXT FROM TrasladosCursor       
+						INTO @Reng_numR,@tras_num        
+						END       
+						CLOSE TrasladosCursor      
+						DEALLOCATE TrasladosCursor 
+						SET @CURSORACT = 'CierreCursor'
+						SET @Lote_Rengon = 0
+						*/
+						/* CODIGO COMENTADO EL 26/09/2022A SE REALIZA NUEVO PROCESO			
+						PRINT 'Insertar Reglon Lote Salida'		
+						declare @tablesaLoteEntrada table                    
+						( 
+						[reng_num] varchar(4),                
+						[rowguid_reng] varchar(128), 
+						[rowguid] varchar(128)      
+						)      
+						SET @sqltext = ''      
+						SET @sqltext = 'select top 1 reng_num,rowguid_reng,rowguid from '+@DB2k12+'.dbo.saLoteEntrada where numero_lote = '''+ @lote +''' 
+										and co_art = '''+ @co_art+'''  and co_alma = '''+ @co_alma +''' order by reng_num desc'      
+						insert into @tablesaLoteEntrada      
+						exec (@sqltext)
+						PRINT 'SQLTEXT: ' + @sqltext 
+		      
+						--SET @Rowguid = (select Rowguid from @tablesaLoteEntrada)
+						DECLARE @reng_numTEMP VARCHAR(4) = '' 
+						DECLARE @rowguid_rengTEMP VARCHAR(128) = ''
+						DECLARE @rowguidTEMP VARCHAR(128) = ''
+		
+						SET @reng_numTEMP = (select [reng_num] from @tablesaLoteEntrada) 
+						SET @rowguid_rengTEMP = (select [rowguid_reng] from @tablesaLoteEntrada) 
+						SET @rowguidTEMP = (select [rowguid] from @tablesaLoteEntrada)
+		 
+		     
+						PRINT '@reng_numTEMP: ' + @reng_numTEMP 
+						PRINT '@rowguid_rengTEMP: ' + @rowguid_rengTEMP 
+						PRINT '@rowguidTEMP: ' + @rowguidTEMP 
+		     
+						delete @tablesaLoteEntrada 
+
+							--exec nsp_spordenproduccioncierre '0000000005','0000000003','DEMOCILCA','cerrar'
+							--update NSPOrdenproduccion set status = 'PROCESADA' where odp_num = '0000000005' 
+							PRINT '@rowguid: ' + @rowguid
+							PRINT '@reng_num: ' + convert(varchar(128),@num_reg)
+							PRINT '@rowguid_rengTEMP: ' + convert(varchar(128),@rowguid_rengTEMP)
+							PRINT '@co_art: ' + convert(varchar(128),@co_art)
+							PRINT '@co_alma: ' + convert(varchar(128),@co_alma)
+							PRINT '@lote: ' + convert(varchar(128),@lote)
+							PRINT '@cantidad: ' + convert(varchar(128),@cantidad)
+							PRINT '@rowguidTEMP: ' + convert(varchar(128),@rowguidTEMP)
+							PRINT '@reng_numTEMP: ' + convert(varchar(128),@reng_numTEMP)
+
+							SET @sqltext = ''    
+							SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pInsertarRenglonesLoteSalida @gRowGuid_Reng='''+@rowguid+''',@sTipo_Doc=''AJUS'',@sCo_Art='''+@co_art+''',
+							@sCo_Alma='''+@co_alma+''',@sNumero_Lote='''+@lote+''',@deCantidad='''+Convert(varchar(20),@cantidad)+''',
+							@dePrecio=0,@gRowguid_Lote='''+@rowguidTEMP+''',@iRENG_NUM='+Convert(varchar(26),@num_reg)+','
+							if @co_sucu_P is null
+							 BEGIN
+								SET @sqltext =  @sqltext + 	' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in=NULL,@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							 END
+							 ELSE
+							 BEGIN
+								SET @sqltext =  @sqltext + ' @sREVISADO=NULL,@sTRASNFE=NULL,@sco_sucu_in='''+@co_sucu_P+''',@sco_us_in='''+@co_us_in+''',@sMaquina=''MANUFACTURA-PC''' 
+							 END
+						   
+							PRINT 'SQLTEXT: ' + @sqltext
+							exec (@sqltext)
+
+							SET @sqltext = ' exec '+ @DB2k12 +'.dbo.pActualizarLote @bPermiteStockNegativo='+CONVERT(VARCHAR(9),@stocknegativo)+',@gRowguid='''+@rowguidTEMP+''',
+							@sNumero_Lote='''+@num_lote+''',@deCantidad='+CONVERT(VARCHAR(26),@cantidad)+',@bSumarStock=0'
+							PRINT '@sqltext: ' + @sqltext	
+							exec (@sqltext)
+							*/
+					END
+				END    			  
+		--	END	
+		--END
+				
+		if @Tipo = '000001'
+		BEGIN
+			PRINT 'Actualizar Stock 000001'
+			SET @Act_Process = 'pStockActualizar ' + @co_art
+			SET @sqltext = ''    
+			SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pStockActualizar @sCo_Alma='''+@co_alma+''',@sCo_Art='''+@co_art+''',    
+			@sCo_Uni='''+@co_uni+''',@deCantidad='+Convert(varchar(20),@cantidad)+',@sTipoStock=''ACT'',@bSumarStock=''1'',
+			@bPermiteStockNegativo='''+Convert(varchar(26),@stocknegativo)+''''    
+			exec (@sqltext)    
+			PRINT 'SQLTEXT: ' + @sqltext  
+		END
+
+		if @Tipo = '000002'
+		BEGIN
+			PRINT 'Actualizar Stock 000002'
+
+			PRINT 'VERIFICAR STOCK ALMACEN'
+			DECLARE @saStockAlmacentable table
+			(
+				saStockAlmacen DECIMAL(18,5)
+			)
+		
+			SET @sqltext = ''
+			SET @sqltext = 'select distinct stock from '+ @DB2k12 +'.dbo.saStockAlmacen where co_art COLLATE SQL_Latin1_General_CP1_CI_AS ='''+@co_art+'''
+							and co_alma COLLATE SQL_Latin1_General_CP1_CI_AS ='''+@co_alma+''''
+			delete @saStockAlmacentable
+			print 'Sqltext' + @sqltext
+			insert into @saStockAlmacentable	
+			exec (@sqltext)	
+			SET @saStockAlmacen = (select saStockAlmacen from @saStockAlmacentable)
+			delete @saStockAlmacentable
+			PRINT 'STOCK: ' + Convert(varchar(23),@saStockAlmacen)
+
+			if @saStockAlmacen >= @cantidad
+			BEGIN
+				SET @Act_Process = 'pStockActualizar ' + @co_art
+				SET @sqltext = ''    
+				SET @sqltext = 'exec '+ @DB2k12 +'.dbo.pStockActualizar @sCo_Alma='''+@co_alma+''',@sCo_Art='''+@co_art+''',    
+				@sCo_Uni='''+@co_uni+''',@deCantidad='+Convert(varchar(20),@cantidad)+',@sTipoStock=''ACT'',@bSumarStock=''0'',
+				@bPermiteStockNegativo='''+Convert(varchar(26),@stocknegativo)+''''    
+				exec (@sqltext)    
+				PRINT 'SQLTEXT: ' + @sqltext  
+			END
+		END
+	/*Bloque Nuevo lsgonzalez 15/07/2020*/
+	-- declare @tableRow table          
+	-- (                  
+	-- [Rowguid] varchar(128)      
+	-- )    
+	-- SET @sqltext = ''    
+	-- SET @sqltext = 'select Rowguid from '+@DB2k12+'.dbo.saArticulo where co_art = '''+ @co_art +''''    
+	-- insert into @tableRow    
+	-- exec (@sqltext)    
+	-- SET @Rowguid = (select Rowguid from @tableRow)    
+	-- PRINT'Rowguid: ' + @Rowguid    
+	-- delete @tableRow   
+   
+	-- declare @tableCosto table                  
+	-- (                  
+	--cod_costo_historico_entrada VARCHAR(128),  
+	--cod_articulo_rowguid VARCHAR(128),   
+	--cod_almacen VARCHAR(128),   
+	--tipo_doc VARCHAR(128),   
+	--doc_orig VARCHAR(128),   
+	--cantidad DECIMAL(18,2),   
+	--cantidad_usada DECIMAL(18,2),   
+	--costo DECIMAL(18,2),   
+	--fecha_emision DATETIME,  
+	--fecha_registro DATETIME,  
+	--fecha_recepcion DATETIME,  
+	--rengNum INT,  
+	--validador VARCHAR(128),   
+	--documento VARCHAR(128),  
+	--cod_proceso VARCHAR(128)     
+	-- )  
+  
+	--SET @sqltext = ''    
+	--SET @sqltext = 'exec '+@DB2k12+'.dbo.pObtenerUltimoCosto @gRowguid_Articulo='''+@Rowguid+''',@sTipoCosto=N''2'''  
+	--insert into @tableCosto   
+	--exec (@sqltext)    
+	--SET @Costo = (select costo from @tableCosto)    
+	--PRINT'Costo: ' + Convert(varchar(20),@Costo)    
+	--delete @tableCosto    
+
+	   PRINT 'End Cursor.'
+	FETCH NEXT FROM CierreCursor       
+	INTO @Tipo,@co_art,@co_alma,@co_uni,@lote,@cantidad,@costo_uni        
+	END       
+	CLOSE CierreCursor      
+	DEALLOCATE CierreCursor     
+  
+	end 
+
+END 
+
+commit tran
+
+end try
+begin catch
+	rollback tran
+	if(@CursorName = 'CierreCursor')
+	BEGIN
+		CLOSE CierreCursor      
+		DEALLOCATE CierreCursor 
+	END
+	if(@CURSORACT = 'TrasladosCursor')
+	BEGIN
+		CLOSE TrasladosCursor      
+		DEALLOCATE TrasladosCursor 
+	END
+	if(@CURSORACT = 'LotesSCursor')
+	BEGIN
+		CLOSE LotesSCursor      
+		DEALLOCATE LotesSCursor 
+		CLOSE TrasladosCursor      
+		DEALLOCATE TrasladosCursor 
+	END
+	SET @fecha = GETDATE()
+	SET @Resultado = 'CIERRE: '+ @cie_num +' | ' + Convert(varchar(9),ERROR_LINE()) + ' | ' + @Act_Process + ' | ' +ERROR_MESSAGE()
+	SET @Err_no = Convert(varchar(9),ERROR_NUMBER())
+	SET @modulo = CONVERT(VARCHAR(32),ERROR_PROCEDURE())
+	Select @Resultado as Resultado
+		 
+	EXEC nsp_SPLog @Err_no,@Resultado,@modulo,'','','','','','','','',
+		 @co_us_in,'',@fecha,@co_us_in,'',@fecha,'','','insert'
+	
+	PRINT 'Error: ' + @Resultado-- ERROR_MESSAGE()
+	PRINT 'Error Linea: ' + Convert(varchar(9),ERROR_LINE())
+	PRINT 'Error Numero: ' + @Err_no --Convert(varchar(9),ERROR_NUMBER())
+	PRINT 'Error Estatus: ' + Convert(varchar(9),ERROR_STATE())
+    PRINT 'Error Severidad: ' + Convert(varchar(9),ERROR_SEVERITY()	)
+	PRINT 'Error Procedure: ' + @modulo --ERROR_PROCEDURE()
+  
+end catch

@@ -1,0 +1,74 @@
+================================================================================
+COMMAND: docker exec production-report python3 -c "from app.database import SessionLocal; from sqlalchemy import text; db=SessionLocal(); print('Tables:', db.execute(text(\"SELECT table_name FROM information_schema.tables WHERE table_schema='public'\")).fetchall()); db.close()" || true
+================================================================================
+Tables: [('production_reports',), ('production_planning',), ('logistics_reception_production',), ('logistics_reception_merchandise',), ('notification_subscribers',), ('audit_logs',), ('system_insights',), ('support_settings',), ('email_logs',), ('telegram_subscribers',), ('profit_automation_config',), ('mismatch_automation_config',), ('sales_forecasts',), ('profit_articulo',), ('profit_stock_almacen',), ('profit_formula',), ('profit_formula_reng',), ('audi_logs',), ('chatbot_configs',), ('chatbot_sessions',), ('roles',), ('users',), ('logistics_routes',), ('logistics_dispatch',), ('ai_functionalities',), ('ai_parameters',), ('projects',), ('project_boards',), ('inventory_captures',), ('messages',), ('channels',), ('inventory_headers',), ('support_tickets',), ('support_departments',), ('support_types',), ('support_priorities',), ('support_status',), ('user_roles',), ('project_lists',), ('project_labels',), ('inventory_lines',), ('message_statuses',), ('project_cards',), ('project_card_status_history',), ('project_activity_logs',), ('project_comments',), ('project_card_members',), ('project_card_labels',), ('project_checklists',), ('project_checklist_items',)]
+
+================================================================================
+COMMAND: docker exec production-report python3 -c "from app.database import SessionLocal; from sqlalchemy import text; db=SessionLocal(); print('User Count:', db.execute(text(\"SELECT COUNT(*) FROM users\")).scalar()); print('Users:', db.execute(text(\"SELECT username, role_id, is_active FROM users\")).fetchall()); db.close()" || true
+================================================================================
+User Count: 1
+
+STDERR: Traceback (most recent call last):
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+psycopg2.errors.UndefinedColumn: column "role_id" does not exist
+LINE 1: SELECT username, role_id, is_active FROM users
+                         ^
+HINT:  Perhaps you meant to reference the column "users.role".
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2308, in execute
+    return self._execute_internal(
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2199, in _execute_internal
+    result = conn.execute(
+             ^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1416, in execute
+    return meth(
+           ^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 516, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1639, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1848, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1988, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2343, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1969, in _exec_single_context
+    self.dialect.do_execute(
+  File "/usr/local/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 922, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedColumn) column "role_id" does not exist
+LINE 1: SELECT username, role_id, is_active FROM users
+                         ^
+HINT:  Perhaps you meant to reference the column "users.role".
+
+[SQL: SELECT username, role_id, is_active FROM users]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+
+================================================================================
+COMMAND: docker exec production-report python3 -c "from app.database import SessionLocal; from sqlalchemy import text; db=SessionLocal(); print('Tickets Count:', db.execute(text(\"SELECT COUNT(*) FROM support_tickets\")).scalar() if \"support_tickets\" in [r[0] for r in db.execute(text(\"SELECT table_name FROM information_schema.tables WHERE table_schema='public'\"))] else 'No tickets table'); db.close()" || true
+================================================================================
+Tickets Count: 0
+
+================================================================================
+COMMAND: python3 -c "import sqlite3; conn=sqlite3.connect('/home/administrador/apps/production-report/production.db'); c=conn.cursor(); print('SQLite users:', c.execute('SELECT username FROM users').fetchall() if 'users' in [r[0] for r in c.execute(\"SELECT name FROM sqlite_master WHERE type='table'\")] else 'No users table'); conn.close()" || true
+================================================================================
+SQLite users: [('admin',), ('ehernandez',), ('jbanquez',), ('jbarrios',), ('jquiroga',), ('mgonzalez',), ('mmarcano',), ('mzambrano',), ('pruebas',), ('pruebas2',), ('seguridad',), ('test_prod_user',), ('wsalaverria',), ('yissmer',)]
+
+================================================================================
+COMMAND: python3 -c "import sqlite3; conn=sqlite3.connect('/home/administrador/apps/production-report/production.db.live'); c=conn.cursor(); print('SQLite live users:', c.execute('SELECT username FROM users').fetchall() if 'users' in [r[0] for r in c.execute(\"SELECT name FROM sqlite_master WHERE type='table'\")] else 'No users table'); conn.close()" || true
+================================================================================
+SQLite live users: [('achataing',), ('admin',), ('dsoto',), ('ehernandez',), ('jbanquez',), ('jbarrios',), ('jquiroga',), ('mgonzalez',), ('mmarcano',), ('mzambrano',), ('pruebas',), ('pruebas2',), ('test_prod_user',), ('wsalaverria',), ('yissmer',)]
+

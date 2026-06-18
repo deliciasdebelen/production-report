@@ -1,0 +1,115 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0
+rootdir: C:\Users\ovargas\Projects\production-report
+configfile: pytest.ini
+testpaths: .
+plugins: anyio-4.12.0
+collected 11 items
+
+test_dispatch_curl.py .                                                  [  9%]
+test_external_mock.py .                                                  [ 18%]
+test_id_reset.py .                                                       [ 27%]
+test_mrp.py .                                                            [ 36%]
+test_mrp_query.py .                                                      [ 45%]
+test_routes_endpoint.py .                                                [ 54%]
+test_support_flow.py F                                                   [ 63%]
+tests\test_main.py F.FF                                                  [100%]
+
+================================== FAILURES ===================================
+______________________________ test_support_flow ______________________________
+
+    def test_support_flow():
+        db = SessionLocal()
+    
+        # 1. Login as Admin
+        # Mocking or using existing credentials if possible, but TestClient bypasses auth if we don't use cookies?
+        # Actually Main.py uses cookies. We can simulate or bypass.
+        # For simplicity, let's assuming we can reach API if we mock valid cookie or disable auth for test?
+        # Our API checks `get_current_active_user`.
+    
+        # Let's override dependency for testing
+        from app.dependencies import get_current_active_user
+        def override_active_user():
+            return db.query(models.User).filter(models.User.username == "admin").first()
+    
+        app.dependency_overrides[get_current_active_user] = override_active_user
+    
+        # 2. Get Config
+        resp = client.get("/api/support/config")
+        assert resp.status_code == 200
+        data = resp.json()
+>       assert len(data['departments']) >= 4
+E       assert 0 >= 4
+E        +  where 0 = len([])
+
+test_support_flow.py:28: AssertionError
+_______________________________ test_read_main ________________________________
+
+client = <starlette.testclient.TestClient object at 0x00000264A28F8190>
+
+    def test_read_main(client):
+        response = client.get("/")
+        assert response.status_code == 200
+>       assert "Reporte" in response.text
+E       assert 'Reporte' in '<!DOCTYPE html>\n<html lang="es">\n\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=dev...color: var(--text-muted);">\n            &copy; 2025 Delicias de Belén\n        </div>\n    </div>\n</body>\n\n</html>'
+E        +  where '<!DOCTYPE html>\n<html lang="es">\n\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=dev...color: var(--text-muted);">\n            &copy; 2025 Delicias de Belén\n        </div>\n    </div>\n</body>\n\n</html>' = <Response [200 OK]>.text
+
+tests\test_main.py:33: AssertionError
+---------------------------- Captured stdout setup ----------------------------
+Profit Automation Scheduler started with CRON 0 8-18/1 * * 1-5
+Mismatch Automation Scheduler started with CRON 30 7,12 * * *
+________________________ test_create_production_report ________________________
+
+client = <starlette.testclient.TestClient object at 0x00000264A28F8190>
+
+    def test_create_production_report(client):
+        response = client.post(
+            "/api/production",
+            json={
+                "batch_qty": 5,
+                "article_type": "Detergente",
+                "kg_produced": 500.0,
+                "presentation": "1L",
+                "pt_units": 450,
+                "pt_lab": 1,
+                "pt_burned": 0,
+                "mp_containers": 500,
+                "mp_caps_clean": 10,
+                "mp_caps_dirty": 5,
+                "cons_type": "None",
+                "cons_qty": 0,
+                "notes": "Test note"
+            }
+        )
+>       assert response.status_code == 200
+E       assert 422 == 200
+E        +  where 422 = <Response [422 Unprocessable Entity]>.status_code
+
+tests\test_main.py:72: AssertionError
+____________________________ test_dashboard_stats _____________________________
+
+client = <starlette.testclient.TestClient object at 0x00000264A28F8190>
+
+    def test_dashboard_stats(client):
+        # Depending on previous tests running first
+        response = client.get("/api/dashboard")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["total_planned_units"] == 1000
+>       assert data["total_production_units"] == 450
+E       assert 0 == 450
+
+tests\test_main.py:83: AssertionError
+============================== warnings summary ===============================
+..\..\AppData\Local\Programs\Python\Python314\Lib\site-packages\pydantic\_internal\_config.py:383
+  C:\Users\ovargas\AppData\Local\Programs\Python\Python314\Lib\site-packages\pydantic\_internal\_config.py:383: UserWarning: Valid config keys have changed in V2:
+  * 'orm_mode' has been renamed to 'from_attributes'
+    warnings.warn(message, UserWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED test_support_flow.py::test_support_flow - assert 0 >= 4
+FAILED tests/test_main.py::test_read_main - assert 'Reporte' in '<!DOCTYPE ht...
+FAILED tests/test_main.py::test_create_production_report - assert 422 == 200
+FAILED tests/test_main.py::test_dashboard_stats - assert 0 == 450
+=================== 4 failed, 7 passed, 1 warning in 18.95s ===================

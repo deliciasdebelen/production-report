@@ -1,0 +1,61 @@
+{
+  "sql_server": {
+    "host": "192.168.60.15",
+    "instance": "",
+    "user": "profit",
+    "password": "profit",
+    "backup_disk": "D:\\Respaldos SQL",
+    "databases": [
+      "CARMAL_A", "CARMAL_M", "CARMAL_N", "CARMAL2024_C",
+      "CARMAL_C", "MasterProfitPro", "GLOBAL_A", "GLOBAL_C", "GLOBAL_N"
+    ]
+  },
+  "local_server": {
+    "host": "192.168.1.79",
+    "share": "C$",
+    "user": "administrador",
+    "password": "",
+    "backup_path": "Program Files\\Microsoft SQL Server\\MSSQL13.SQLEXPRESS\\MSSQL\\Backup"
+  },
+  "backup_sources": [
+    {
+      "name": "192.168.1.205 - D:Respaldos SQL",
+      "host": "192.168.1.205",
+      "share": "D$",
+      "path": "Respaldos SQL",
+      "user": "PROFIT",
+      "password": "profit",
+      "enabled": true
+    },
+    {
+      "name": "192.168.1.207 - OCPBACKUP",
+      "host": "192.168.1.207",
+      "share": "OCPBACKUP",
+      "path": "",
+      "user": "PROFIT",
+      "password": "profit",
+      "enabled": true
+    }
+  ],
+  "copy_destination": {
+    "host": "192.168.1.207",
+    "share": "OCPBACKUP",
+    "user": "PROFIT",
+    "password": "profit"
+  },
+  "odoo": {
+    "db_host": "odoo_manufactura-db-1",
+    "db_user": "odoo",
+    "db_password": "odoo",
+    "db_port": 5432,
+    "docker_exec": "docker exec odoo_manufactura-db-1",
+    "dump_dir": "/tmp",
+    "databases": [
+      {"name": "carmal_odoo", "type": "postgres"}
+    ]
+  },
+  "notifications": {
+    "enabled": true,
+    "schedule": "0 23 * * *"
+  }
+}

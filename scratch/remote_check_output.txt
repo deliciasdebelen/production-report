@@ -1,0 +1,750 @@
+================================================================================
+COMMAND: docker ps -a
+================================================================================
+CONTAINER ID   IMAGE                                     COMMAND                  CREATED          STATUS                          PORTS                                             NAMES
+2f1a843aaaae   evoapicloud/evolution-api:latest          "/bin/bash -c '. ./D…"   18 minutes ago   Restarting (1) 45 seconds ago                                                     whatsapp-gateway
+d6f386717c0c   production-report-production_report_web   "uvicorn app.main:ap…"   18 minutes ago   Up 18 minutes (healthy)         0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp       production-report
+dbec7aa77691   postgres:15                               "docker-entrypoint.s…"   18 minutes ago   Up 18 minutes                   0.0.0.0:5436->5432/tcp, [::]:5436->5432/tcp       production-report-db
+58b3e34669f6   ankane/pgvector:latest                    "docker-entrypoint.s…"   3 months ago     Up 6 days                       0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp       ia_memoria
+30cfd71c1348   ollama/ollama:latest                      "/bin/ollama serve"      3 months ago     Up 6 days                       0.0.0.0:11434->11434/tcp, [::]:11434->11434/tcp   ia_cerebro
+02ca90628ac4   n8nio/n8n:latest                          "tini -- /docker-ent…"   3 months ago     Up 6 days                       0.0.0.0:5678->5678/tcp, [::]:5678->5678/tcp       ia_musculo
+32eef9ee299f   hello-world                               "/hello"                 5 months ago     Exited (0) 5 months ago                                                           dreamy_kare
+25f511b51835   hello-world                               "/hello"                 5 months ago     Exited (0) 5 months ago                                                           dreamy_herschel
+
+================================================================================
+COMMAND: docker logs production-report-db --tail 100
+================================================================================
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+waiting for server to start....2026-05-28 20:35:59.985 UTC [49] LOG:  starting PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-28 20:35:59.987 UTC [49] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-05-28 20:35:59.997 UTC [52] LOG:  database system was shut down at 2026-05-28 20:35:59 UTC
+2026-05-28 20:36:00.036 UTC [49] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
+
+waiting for server to shut down....2026-05-28 20:36:00.271 UTC [49] LOG:  received fast shutdown request
+2026-05-28 20:36:00.275 UTC [49] LOG:  aborting any active transactions
+2026-05-28 20:36:00.277 UTC [49] LOG:  background worker "logical replication launcher" (PID 55) exited with exit code 1
+2026-05-28 20:36:00.278 UTC [50] LOG:  shutting down
+2026-05-28 20:36:00.279 UTC [50] LOG:  checkpoint starting: shutdown immediate
+2026-05-28 20:36:00.355 UTC [50] LOG:  checkpoint complete: wrote 922 buffers (5.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.021 s, sync=0.052 s, total=0.078 s; sync files=301, longest=0.030 s, average=0.001 s; distance=4239 kB, estimate=4239 kB
+2026-05-28 20:36:00.365 UTC [49] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+
+STDERR: initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-05-28 20:36:00.407 UTC [1] LOG:  starting PostgreSQL 15.17 (Debian 15.17-1.pgdg13+1) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-05-28 20:36:00.408 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-05-28 20:36:00.408 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-05-28 20:36:00.411 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-05-28 20:36:00.416 UTC [65] LOG:  database system was shut down at 2026-05-28 20:36:00 UTC
+2026-05-28 20:36:00.425 UTC [1] LOG:  database system is ready to accept connections
+2026-05-28 20:41:00.445 UTC [63] LOG:  checkpoint starting: time
+2026-05-28 20:41:32.122 UTC [63] LOG:  checkpoint complete: wrote 318 buffers (1.9%); 0 WAL file(s) added, 0 removed, 0 recycled; write=31.633 s, sync=0.039 s, total=31.678 s; sync files=378, longest=0.003 s, average=0.001 s; distance=2057 kB, estimate=2057 kB
+
+================================================================================
+COMMAND: ls -la /home/administrador/apps/production-report
+================================================================================
+total 20660
+drwxrwxr-x 19 administrador administrador   20480 may 28 20:35 .
+drwxrwxr-x  3 administrador administrador    4096 feb 24 04:44 ..
+-rwxrwxr-x  1 administrador administrador     462 feb  6 19:07 add_column.py
+-rwxrwxr-x  1 administrador administrador     537 feb  6 19:07 add_status_col.py
+-rwxrwxr-x  1 administrador administrador     708 abr 30 03:49 analyze_558.py
+-rwxrwxr-x  1 administrador administrador    3113 mar 17 20:56 analyze_dispatch_correlatives.py
+drwxr-xr-x  7 administrador administrador    4096 may 28 20:35 app
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260121_105020
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260121_120321
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260121_125608
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260125_221647
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260204_095521
+drwxrwxr-x  5 administrador administrador    4096 mar 17 21:27 app_backup_20260206_083507
+drwxrwxr-x  6 administrador administrador    4096 mar 17 21:27 app_backup_20260220_152640
+-rwxrwxr-x  1 administrador administrador     395 abr 30 03:49 append_snippet.py
+-rwxrwxr-x  1 administrador administrador    2996 feb  6 19:07 apply_debian_legacy_ssl.py
+-rwxrwxr-x  1 administrador administrador    1187 abr 30 03:49 apply_fix_529.py
+-rwxrwxr-x  1 administrador administrador    3126 feb  6 19:07 apply_n8n_fix.py
+-rwxrwxr-x  1 administrador administrador    4488 feb  6 19:07 apply_n8n_ssl_fix.py
+-rwxrwxr-x  1 administrador administrador    1738 feb  6 19:07 apply_n8n_ssl_legacy.py
+-rwxrwxr-x  1 administrador administrador    1635 feb  6 19:07 apply_n8n_ssl_permissive.py
+-rwxrwxr-x  1 administrador administrador    2540 feb  6 19:07 apply_ssl_1_1_fix.py
+-rwxrwxr-x  1 administrador administrador    1503 feb  6 19:07 apply_sslv3_fix.py
+-rwxrwxr-x  1 administrador administrador 1257855 abr 30 03:49 app_sync_193.tar.gz
+-rwxrwxr-x  1 administrador administrador   15104 abr 30 03:49 belen_scheduler.py
+-rwxrwxr-x  1 administrador administrador     678 mar 17 19:45 capture_errors.py
+-rwxrwxr-x  1 administrador administrador  319397 abr 30 03:49 carmal_n_schema_raw.json
+-rwxrwxr-x  1 administrador administrador    2481 abr 30 03:49 check_560_details.py
+-rwxrwxr-x  1 administrador administrador    2161 abr 30 03:49 check_560.py
+-rwxrwxr-x  1 administrador administrador     703 abr 30 03:49 check_all_units.py
+-rwxrwxr-x  1 administrador administrador    1057 abr 30 03:49 check_article_units_full.py
+-rwxrwxr-x  1 administrador administrador    1090 abr 30 03:49 check_article_units.py
+-rwxrwxr-x  1 administrador administrador     675 abr 30 03:49 check_article_units_val.py
+-rwxrwxr-x  1 administrador administrador     947 mar 17 21:10 check_backup_inventory.py
+-rwxrwxr-x  1 administrador administrador     966 abr 30 03:49 check_bom_columns.py
+-rwxrwxr-x  1 administrador administrador    1092 abr 30 03:49 check_bom_details_fix.py
+-rwxrwxr-x  1 administrador administrador    1125 abr 30 03:49 check_bom_details.py
+-rwxrwxr-x  1 administrador administrador     575 abr 30 03:49 check_bom_schema.py
+-rwxrwxr-x  1 administrador administrador     836 abr 30 03:49 check_campos.py
+-rwxrwxr-x  1 administrador administrador    1274 abr 30 03:49 check_compuesto_gen.py
+-rwxrwxr-x  1 administrador administrador    2344 abr 30 03:49 check_compuesto_lotes_link.py
+-rwxrwxr-x  1 administrador administrador     698 abr 30 03:49 check_compuestos.py
+-rwxrwxr-x  1 administrador administrador     756 feb  6 19:07 check_connection.py
+-rwxrwxr-x  1 administrador administrador     933 abr 30 03:49 check_data.py
+-rwxrwxr-x  1 administrador administrador     533 abr 30 03:49 check_dates.py
+-rwxrwxr-x  1 administrador administrador     844 feb  6 19:07 check_debian_image.py
+-rwxrwxr-x  1 administrador administrador    2755 abr 30 03:49 check_devolucion_558.py
+-rwxrwxr-x  1 administrador administrador    1941 abr 30 03:49 check_devoluciones_audit.py
+-rwxrwxr-x  1 administrador administrador    1806 abr 30 03:49 check_devolucion_more.py
+-rwxrwxr-x  1 administrador administrador     610 feb  6 19:07 check_dispatch_table.py
+-rwxrwxr-x  1 administrador administrador     366 feb  6 19:07 check_env.py
+-rwxrwxr-x  1 administrador administrador     565 abr 30 03:49 check_fact_orig.py
+-rwxrwxr-x  1 administrador administrador    1894 abr 30 03:49 check_factura_audit.py
+-rwxrwxr-x  1 administrador administrador    3266 abr 30 03:49 check_fractional.py
+-rwxrwxr-x  1 administrador administrador     970 abr 30 03:49 check_header_nent.py
+-rwxrwxr-x  1 administrador administrador    1236 mar 17 19:25 check_js_brackets.py
+-rwxrwxr-x  1 administrador administrador     790 mar 17 19:18 check_js.py
+-rwxrwxr-x  1 administrador administrador     412 abr 30 03:49 check_latest.py
+-rwxrwxr-x  1 administrador administrador    1191 abr 30 03:49 check_link.py
+-rwxrwxr-x  1 administrador administrador     436 abr 30 03:49 check_lote_columns.py
+-rwxrwxr-x  1 administrador administrador    1473 abr 30 03:49 check_lote_dates.py
+-rwxrwxr-x  1 administrador administrador     551 abr 30 03:49 check_lote_schema.py
+-rwxrwxr-x  1 administrador administrador    1663 abr 30 03:49 check_lotes_clean.py
+-rwxrwxr-x  1 administrador administrador    1459 abr 30 03:49 check_lotes_db.py
+-rwxrwxr-x  1 administrador administrador    3065 abr 30 03:49 check_lotes_discrepancy_fixed.py
+-rwxrwxr-x  1 administrador administrador    3035 abr 30 03:49 check_lotes_discrepancy.py
+-rwxrwxr-x  1 administrador administrador     750 abr 30 03:49 check_lotes_schema.py
+-rwxrwxr-x  1 administrador administrador     834 feb  6 19:07 check_node_ssl.py
+-rwxrwxr-x  1 administrador administrador     938 abr 30 03:49 check_null_nent.py
+-rwxrwxr-x  1 administrador administrador     610 abr 30 03:49 check_pg_row.py
+-rwxrwxr-x  1 administrador administrador     599 abr 30 03:49 check_pg_table.py
+-rwxrwxr-x  1 administrador administrador     331 feb  6 19:07 check_prod_clean.py
+-rwxrwxr-x  1 administrador administrador    1242 mar 17 21:16 check_prod_inventory.py
+-rwxrwxr-x  1 administrador administrador    1003 feb  6 19:07 check_prod_logs.py
+-rwxrwxr-x  1 administrador administrador    1923 abr 30 03:49 check_ratios.py
+-rwxrwxr-x  1 administrador administrador    1405 abr 30 03:49 check_remote_counts.py
+-rwxrwxr-x  1 administrador administrador    1961 feb  6 19:07 check_remote_file.py
+-rwxrwxr-x  1 administrador administrador     742 feb  6 19:07 check_remote_logistics.py
+-rwxrwxr-x  1 administrador administrador     731 feb  6 19:07 check_remote_models.py
+-rwxrwxr-x  1 administrador administrador    1213 abr 30 03:49 check_remote_tables.py
+-rwxrwxr-x  1 administrador administrador    3980 abr 30 03:49 check_reng_neto_audit.py
+-rwxrwxr-x  1 administrador administrador     192 feb  6 19:07 check_server.ps1
+-rwxrwxr-x  1 administrador administrador    2770 abr 30 03:49 check_sp.py
+-rwxrwxr-x  1 administrador administrador    2095 abr 30 03:49 check_sqlite_data.py
+-rwxrwxr-x  1 administrador administrador     871 abr 30 03:49 check_sqlite_internal.py
+-rwxrwxr-x  1 administrador administrador     526 abr 30 03:49 check_stock_columns.py
+-rwxrwxr-x  1 administrador administrador     636 feb  6 19:07 check_table_info.py
+-rwxrwxr-x  1 administrador administrador     453 feb  6 19:07 check_table_list.py
+-rwxrwxr-x  1 administrador administrador     554 abr 30 03:49 check_table_schema.py
+-rwxrwxr-x  1 administrador administrador    3518 abr 30 03:49 check_test_server.py
+-rwxrwxr-x  1 administrador administrador     507 abr 30 03:49 check_tipo_doc.py
+-rwxrwxr-x  1 administrador administrador    1230 abr 30 03:49 check_trigger_defs.py
+-rwxrwxr-x  1 administrador administrador     487 abr 30 03:49 check_trigger_lote.py
+-rwxrwxr-x  1 administrador administrador     322 abr 30 03:49 check_trigger.py
+-rwxrwxr-x  1 administrador administrador     867 abr 30 03:49 check_units.py
+-rwxrwxr-x  1 administrador administrador     378 feb  6 19:01 check_users.py
+-rwxrwxr-x  1 administrador administrador    1057 abr 30 03:49 clean_logistics.py
+-rwxrwxr-x  1 administrador administrador    3070 mar 17 20:51 compare_dispatch_correlatives.py
+-rwxrwxr-x  1 administrador administrador    3867 mar 17 20:52 compare_prod_dispatch.py
+-rwxrwxr-x  1 administrador administrador    2405 abr 30 03:49 conftest.py
+-rwxr-xr-x  1 administrador administrador     229 may 28 20:35 custom_openssl.cnf
+drwxrwxr-x  2 administrador administrador    4096 mar 17 21:27 data
+-rwxrwxr-x  1 administrador administrador       0 mar 16 23:12 data_only.sql
+-rwxrwxr-x  1 administrador administrador     784 ene 22 13:40 debug_articles.py
+-rwxrwxr-x  1 administrador administrador    1683 abr 30 03:49 debug_article_units.py
+-rwxrwxr-x  1 administrador administrador    1515 feb  6 19:01 DEBUG-ARTICULOS.md
+-rwxrwxr-x  1 administrador administrador     530 abr 30 03:49 debug_auth.py
+-rwxrwxr-x  1 administrador administrador    1229 abr 30 03:49 debug_client_direct.py
+-rwxrwxr-x  1 administrador administrador     718 feb  2 18:57 debug_crash.py
+-rwxrwxr-x  1 administrador administrador    4160 feb 19 13:53 debug_error_analysis.py
+-rwxrwxr-x  1 administrador administrador    1675 abr 30 03:49 debug_inventory_post.py
+-rwxrwxr-x  1 administrador administrador     585 abr 30 03:49 debug_latest.py
+-rwxrwxr-x  1 administrador administrador    2602 feb  6 12:57 debug_logistics_totals.py
+-rwxrwxr-x  1 administrador administrador     619 feb  2 18:12 debug_n8n_ip.py
+-rwxrwxr-x  1 administrador administrador    1563 feb  2 18:18 debug_n8n_logs.py
+-rwxrwxr-x  1 administrador administrador    1054 feb  2 18:11 debug_n8n.py
+-rwxrwxr-x  1 administrador administrador     787 abr 30 03:49 debug_null_ids.py
+-rwxrwxr-x  1 administrador administrador    1067 feb  2 19:14 debug_os_mismatch.py
+-rwxrwxr-x  1 administrador administrador    1838 abr 30 03:49 debug_output.txt
+-rwxrwxr-x  1 administrador administrador    1108 ene 21 02:37 debug_print_error.py
+-rwxrwxr-x  1 administrador administrador    1502 abr 30 03:49 debug_remote_articles.py
+-rwxrwxr-x  1 administrador administrador     729 abr 30 03:49 debug_remote_fs.py
+-rwxrwxr-x  1 administrador administrador     916 abr 30 03:49 debug_result.txt
+-rwxrwxr-x  1 administrador administrador    1975 feb 13 16:24 debug_return_issue.py
+-rwxrwxr-x  1 administrador administrador    1360 feb  6 19:12 debug_roles.py
+-rwxrwxr-x  1 administrador administrador     476 ene 27 16:17 debug_routes.py
+-rwxrwxr-x  1 administrador administrador    1103 feb 19 15:34 debug_server_logs.py
+-rwxrwxr-x  1 administrador administrador     885 abr 30 03:49 debug_sp_columns.py
+-rwxrwxr-x  1 administrador administrador    2140 abr 30 03:49 debug_specific_client.py
+-rwxrwxr-x  1 administrador administrador    1035 feb  2 18:41 debug_ssl_mount.py
+-rwxrwxr-x  1 administrador administrador    1234 feb  6 21:24 debug_startup.py
+-rwxrwxr-x  1 administrador administrador    1225 ene 22 13:57 debug_units.py
+-rwxrwxr-x  1 administrador administrador    1565 abr 30 03:49 debug_visor_data.py
+-rwxrwxr-x  1 administrador administrador    2852 mar 17 20:59 deep_query_dispatch.py
+-rwxrwxr-x  1 administrador administrador    3343 abr 30 03:49 deploy_193.py
+-rwxrwxr-x  1 administrador administrador    2698 abr 30 03:49 deploy_assistant.py
+-rwxrwxr-x  1 administrador administrador 1006727 feb  9 21:01 deploy_assistant.tar.gz
+-rwxrwxr-x  1 administrador administrador      29 dic 15 20:14 deploy_fast.tar.gz
+-rwxrwxr-x  1 administrador administrador    6607 dic 15 19:17 deploy_final.tar.gz
+-rwxrwxr-x  1 administrador administrador     486 abr 30 03:49 deploy_fix.ps1
+-rwxrwxr-x  1 administrador administrador    2927 feb  6 19:07 deploy_inventory_update.py
+-rwxrwxr-x  1 administrador administrador  128398 feb 13 14:06 deploy.log
+-rwxrwxr-x  1 administrador administrador    7297 feb  6 19:01 DEPLOY.md
+-rwxrwxr-x  1 administrador administrador    2307 abr 30 03:49 deploy_mp_updates.ps1
+-rwxrwxr-x  1 administrador administrador    1709 abr 30 03:49 deploy_patch_templates.py
+-rwxrwxr-x  1 administrador administrador    2942 abr 30 03:49 deploy_prod.py
+-rwxrwxr-x  1 administrador administrador    5064 abr 30 03:49 deploy_prod_v3.py
+-rwxrwxr-x  1 administrador administrador     892 abr 30 03:49 deploy_sp.py
+-rwxrwxr-x  1 administrador administrador 1186120 may 28 20:35 deploy.tar.gz
+-rwxrwxr-x  1 administrador administrador   10640 abr 30 03:49 deploy-to-192.ps1
+-rwxrwxr-x  1 administrador administrador     789 abr 30 03:49 deploy_to_193.ps1
+-rwxrwxr-x  1 administrador administrador     792 abr 30 03:49 deploy_to_79.ps1
+-rwxrwxr-x  1 administrador administrador    3068 abr 30 03:49 deploy-to-server.bat
+-rwxrwxr-x  1 administrador administrador    2176 dic 15 14:34 deploy-to-server.sh
+-rwxrwxr-x  1 administrador administrador    1363 feb  6 20:02 diagnose_prod_data.py
+-rwxrwxr-x  1 administrador administrador    2068 abr 30 03:49 diagnose_remote_db.py
+-rwxrwxr-x  1 administrador administrador     634 feb  6 20:02 diagnose_simple.py
+-rwxrwxr-x  1 administrador administrador    1393 feb  6 19:07 diagnose_sql_ssl.py
+-rwxrwxr-x  1 administrador administrador    2112 abr 30 03:49 diag_transfers.py
+-rwxrwxr-x  1 administrador administrador    1866 mar 17 19:30 dispatch_fetched.html
+-rwxrwxr-x  1 administrador administrador    2336 abr 30 03:49 docker-compose.ollama.yml
+-rwxrwxr-x  1 administrador administrador    1352 abr 30 03:49 docker-compose.pg.yml
+-rw-r--r--  1 administrador administrador    1536 may 28 20:35 docker-compose.whatsapp.yml
+-rwxr-xr-x  1 administrador administrador    1400 may 28 20:35 docker-compose.yml
+-rwxrwxr-x  1 administrador administrador     959 mar 29 15:06 docker-compose.yml.before_pg_migration
+-rwxr-xr-x  1 administrador administrador    1528 may 28 20:35 Dockerfile
+-rwxrwxr-x  1 administrador administrador     395 abr 30 03:49 .dockerignore
+-rwxrwxr-x  1 administrador administrador    1008 mar 17 18:25 docker_inject.py
+-rwxrwxr-x  1 administrador administrador     217 mar  8 01:04 docker_migrate.py
+drwxrwxr-x  2 administrador administrador    4096 abr 30 03:49 docs
+-rwxrwxr-x  1 administrador administrador    6426 abr 30 03:49 Documentacion_Proyecto.md
+-rwxrwxr-x  1 administrador administrador    2474 feb  6 19:07 downgrade_n8n.py
+-rwxrwxr-x  1 administrador administrador     813 abr 30 03:49 dump_sp_dev.py
+-rwxrwxr-x  1 administrador administrador     835 abr 30 03:49 dump_sp.py
+-rwxrwxr-x  1 administrador administrador       0 mar 16 23:13 dump.sql
+-rwxrwxr-x  1 administrador administrador     100 mar 17 00:39 .env
+-rwxrwxr-x  1 administrador administrador     246 dic 15 14:21 .env.example
+-rwxrwxr-x  1 administrador administrador     849 abr 30 03:49 exec_init_remote.py
+-rwxrwxr-x  1 administrador administrador     677 feb  6 19:07 exec_insert_remote.py
+-rwxrwxr-x  1 administrador administrador     768 abr 30 03:49 explore_formulas.py
+-rwxrwxr-x  1 administrador administrador    3352 abr 30 03:49 extract_erd.py
+-rwxrwxr-x  1 administrador administrador    1674 mar 17 18:22 extract_logistics_193.py
+-rwxrwxr-x  1 administrador administrador     772 feb  6 19:07 fetch_full_log.py
+-rwxrwxr-x  1 administrador administrador     956 abr 30 03:49 fetch_logs.py
+-rwxrwxr-x  1 administrador administrador     865 abr 30 03:49 fetch_prod_logs_debug.py
+-rwxrwxr-x  1 administrador administrador     758 feb  6 19:07 fetch_prod_logs.py
+-rwxrwxr-x  1 administrador administrador     856 abr 30 03:49 fetch_prod_logs_v2.py
+-rwxrwxr-x  1 administrador administrador    1195 abr 30 03:49 fetch_support_logs.py
+-rwxrwxr-x  1 administrador administrador    3168 abr 30 03:49 find_affected.py
+-rwxrwxr-x  1 administrador administrador     992 feb  6 19:07 find_n8n_compose.py
+-rwxrwxr-x  1 administrador administrador     468 abr 30 03:49 find_old_image.py
+-rwxrwxr-x  1 administrador administrador    1378 feb  6 19:07 find_ssl_1_1.py
+-rwxrwxr-x  1 administrador administrador    4758 abr 30 03:49 fix_all_affected.py
+-rwxrwxr-x  1 administrador administrador     541 dic 15 17:52 fix-db.sh
+-rwxrwxr-x  1 administrador administrador     906 abr 30 03:49 fix_devolucion_500.py
+-rwxrwxr-x  1 administrador administrador    2076 abr 30 03:49 fix_devolucion.py
+-rwxrwxr-x  1 administrador administrador    3625 mar 17 21:02 fix_dispatch_correlatives.py
+-rwxrwxr-x  1 administrador administrador    1851 feb  6 19:07 fix_downgrade_env.py
+-rwxrwxr-x  1 administrador administrador    2212 abr 30 03:49 fix_lotes.py
+-rwxrwxr-x  1 administrador administrador    3562 feb  6 19:07 fix_n8n_command.py
+-rwxrwxr-x  1 administrador administrador    2524 feb  6 19:07 fix_n8n_yaml.py
+-rwxrwxr-x  1 administrador administrador     851 feb  6 19:07 fix_null_planning_ids.py
+-rwxrwxr-x  1 administrador administrador    1244 abr 30 03:49 fix_prod_schema.py
+-rwxrwxr-x  1 administrador administrador    1466 abr 30 03:49 fix_r005_to_e020.py
+-rwxrwxr-x  1 administrador administrador     520 abr 30 03:49 flush_redis_forecast.py
+-rwxrwxr-x  1 administrador administrador    1949 feb  6 19:07 force_debian_switch.py
+-rwxrwxr-x  1 administrador administrador    1269 abr 30 03:49 force_deploy_193.py
+-rwxrwxr-x  1 administrador administrador    1147 abr 30 03:49 force_deploy2.py
+-rwxrwxr-x  1 administrador administrador    1060 abr 30 03:49 force-deploy.ps1
+-rwxrwxr-x  1 administrador administrador    2559 feb  6 19:07 force_downgrade_n8n.py
+-rwxrwxr-x  1 administrador administrador    2068 feb  6 19:07 force_ssl_env.py
+-rwxrwxr-x  1 administrador administrador 1072066 abr 30 03:49 full_app_sync.tar.gz
+-rwxrwxr-x  1 administrador administrador   32886 feb  6 19:07 full_log.txt
+-rwxrwxr-x  1 administrador administrador    3842 abr 30 03:49 generate_erd_md.py
+-rwxrwxr-x  1 administrador administrador    2200 feb  6 19:07 generate_pdf.py
+-rwxrwxr-x  1 administrador administrador    5824 feb  6 19:07 generate_report.py
+drwxrwxr-x  8 administrador administrador    4096 may 12 18:50 .git
+-rwxrwxr-x  1 administrador administrador    3340 feb  6 19:01 GITHUB-SETUP.md
+-rwxrwxr-x  1 administrador administrador     174 feb  6 19:07 .gitignore
+-rwxrwxr-x  1 administrador administrador    1546 feb  6 19:01 INFORME-CORRECCIONES.md
+-rwxr-xr-x  1 administrador administrador    1763 may 28 20:35 init_support_data.py
+-rwxrwxr-x  1 administrador administrador    2733 abr 30 03:49 insert_audit_local.py
+-rwxrwxr-x  1 administrador administrador    2049 abr 30 03:49 insert_audit_log.py
+-rwxrwxr-x  1 administrador administrador     930 abr 30 03:49 inspect_carmal.py
+-rwxrwxr-x  1 administrador administrador     391 abr 30 03:49 inspect_doc_venta.py
+-rwxrwxr-x  1 administrador administrador     290 abr 30 03:49 inspect_fact_header.py
+-rwxrwxr-x  1 administrador administrador     330 abr 30 03:49 inspect_fact_reng.py
+-rwxrwxr-x  1 administrador administrador    1746 abr 30 03:49 inspect_nrec.py
+-rwxrwxr-x  1 administrador administrador    1083 abr 30 03:49 inspect_null_link.py
+-rwxrwxr-x  1 administrador administrador    1132 feb  6 19:07 inspect_remote_ids.py
+-rwxrwxr-x  1 administrador administrador     752 abr 30 03:49 inspect_ret_lines.py
+-rwxrwxr-x  1 administrador administrador    1591 abr 30 03:49 inspect_returns_schema.py
+-rwxrwxr-x  1 administrador administrador    2007 abr 30 03:49 install-and-deploy.sh
+-rwxrwxr-x  1 administrador administrador    1065 abr 30 03:49 investigate_r005.py
+-rwxrwxr-x  1 administrador administrador    2958 abr 30 03:49 list_lote_docs.py
+-rwxrwxr-x  1 administrador administrador  418489 mar 17 18:23 logistics_data_193.json
+-rwxrwxr-x  1 administrador administrador       0 mar 17 18:22 logistics_dispatch_193.sql
+-rwxrwxr-x  1 administrador administrador       0 mar 17 18:22 logistics_reception_merchandise_193.sql
+-rwxrwxr-x  1 administrador administrador       0 mar 17 18:22 logistics_reception_production_193.sql
+-rwxrwxr-x  1 administrador administrador   17255 abr 30 03:49 manual_manufactura_odoo_profit.md
+-rwxrwxr-x  1 administrador administrador    1061 feb  6 19:07 migrate_add_colors.py
+-rwxrwxr-x  1 administrador administrador     719 feb  6 19:07 migrate_add_notes.py
+-rwxrwxr-x  1 administrador administrador    1445 feb  6 19:07 migrate_add_route_id.py
+-rwxrwxr-x  1 administrador administrador     729 feb  6 19:07 migrate_add_waste.py
+-rwxr-xr-x  1 administrador administrador    2034 may 28 20:35 migrate_ai.py
+-rwxr-xr-x  1 administrador administrador    3272 may 28 20:35 migrate_db.py
+-rwxrwxr-x  1 administrador administrador     831 feb  6 19:01 migrate_db_v2.py
+-rwxrwxr-x  1 administrador administrador     564 abr 30 03:49 migrate_dispatch.py
+-rwxrwxr-x  1 administrador administrador    4881 abr 30 03:49 migrate_fix.py
+-rwxrwxr-x  1 administrador administrador     522 feb  6 19:07 migrate_inventory_dept.py
+-rwxrwxr-x  1 administrador administrador    1109 feb  6 19:07 migrate_inventory.py
+-rwxrwxr-x  1 administrador administrador     352 feb  6 19:01 migrate_logistics.py
+-rwxrwxr-x  1 administrador administrador     785 feb  6 19:07 migrate_logistics_status.py
+-rwxrwxr-x  1 administrador administrador    1290 abr 30 03:49 migrate_new_features.py
+-rwxrwxr-x  1 administrador administrador    1000 feb  6 19:07 migrate_partial_consumption.py
+-rwxrwxr-x  1 administrador administrador    3266 abr 30 03:49 migrate_planning_debug.py
+-rwxrwxr-x  1 administrador administrador    1861 abr 30 03:49 migrate_projects_layer.py
+-rwxrwxr-x  1 administrador administrador    1952 abr 30 03:49 migrate_roles.py
+-rwxrwxr-x  1 administrador administrador    1618 feb  6 19:01 migrate_seq_ids.py
+-rwxrwxr-x  1 administrador administrador    2737 abr 30 03:49 migrate_telegram_subscribers.py
+-rwxrwxr-x  1 administrador administrador     920 feb  6 19:07 migrate_visor.py
+-rwxrwxr-x  1 administrador administrador    4454 abr 30 03:49 odoo_database_access.md
+-rwxrwxr-x  1 administrador administrador    2819 feb  6 19:01 PASOS-FINALES.md
+-rwxrwxr-x  1 administrador administrador     430 feb 25 19:21 patch_base_html.py
+-rwxrwxr-x  1 administrador administrador     355 abr 30 03:49 patch_db.py
+-rwxrwxr-x  1 administrador administrador    5558 feb 25 19:05 patch_dispatch_html.py
+-rwxrwxr-x  1 administrador administrador    3528 feb 25 19:14 patch_dispatch_html_v2.py
+-rwxrwxr-x  1 administrador administrador    3465 feb 25 19:14 patch_dispatch_html_v3.py
+-rwxrwxr-x  1 administrador administrador    2503 abr 30 03:49 patch_is_annulled.py
+-rwxrwxr-x  1 administrador administrador     693 feb 25 19:22 patch_layout_html.py
+-rwxrwxr-x  1 administrador administrador    1711 feb 25 19:03 patch_logistics.py
+drwx------ 19 dnsmasq       root             4096 may 28 20:36 pgdata
+-rwxrwxr-x  1 administrador administrador  700416 mar 17 18:23 production_193.db
+-rwxrwxr-x  1 administrador administrador  847872 abr 30 03:49 production.db
+-rwxrwxr-x  1 administrador administrador       0 abr  8 18:21 production_db_backup_.sql
+-rwxrwxr-x  1 administrador administrador  282624 feb  6 19:07 production.db.bak_20260204_095521
+-rwxrwxr-x  1 administrador administrador  495616 abr 30 03:49 production.db.bak_20260206_083507
+-rwxrwxr-x  1 administrador administrador 1175552 mar 16 23:00 production.db.bak_20260316
+-rwxrwxr-x  1 administrador administrador 1024000 feb 25 19:03 production.db.bak_pre_annulment
+-rwxrwxr-x  1 administrador administrador 1175552 mar 16 23:01 production.db.live
+-rwxrwxr-x  1 administrador administrador  809694 abr 30 03:49 production_db_portable.sql
+-rwxrwxr-x  1 administrador administrador  813499 abr 30 03:49 production_db_restore_safe.sql
+-rwxrwxr-x  1 administrador administrador 1632520 abr 30 03:49 production_db_restore.sql
+-rwxrwxr-x  1 administrador administrador 1632520 abr 30 03:49 production_db_restore_utf8.sql
+-rwxrwxr-x  1 administrador administrador   85210 mar 17 20:54 production_dispatch.json
+-rwxrwxr-x  1 administrador administrador  700416 mar 17 15:32 production_remote_193.db
+-rwxrwxr-x  1 administrador administrador   69632 mar 17 14:55 production_remote.db
+-rwxrwxr-x  1 administrador administrador    1461 feb  6 19:07 prove_data.py
+-rwxrwxr-x  1 administrador administrador    2807 abr 30 03:49 push-to-github.bat
+-rwxrwxr-x  1 administrador administrador    1255 abr 30 03:49 push-to-github-with-token.bat
+drwxrwxr-x  3 administrador administrador    4096 mar 17 21:27 .pytest_cache
+-rwxrwxr-x  1 administrador administrador     432 abr 30 03:49 pytest.ini
+-rwxrwxr-x  1 administrador administrador     686 mar 17 20:52 query_dispatch_inner.py
+-rwxrwxr-x  1 administrador administrador    1027 mar 17 21:11 query_inventory_inner.py
+-rwxrwxr-x  1 administrador administrador    3826 feb  6 19:01 README.md
+-rwxrwxr-x  1 administrador administrador     564 feb  6 19:07 read_n8n_compose.py
+-rwxrwxr-x  1 administrador administrador     770 feb  6 19:07 read_openssl_conf.py
+-rwxrwxr-x  1 administrador administrador     574 feb  6 19:07 read_remote_compose.py
+-rwxrwxr-x  1 administrador administrador     747 feb  6 19:07 read_remote_head_logistics.py
+-rwxrwxr-x  1 administrador administrador    1839 abr 30 03:49 recover_from_docker.py
+-rwxrwxr-x  1 administrador administrador 1540150 abr 30 03:49 recovery_backup.tar.gz
+drwxrwxr-x  5 administrador administrador    4096 abr 30 03:49 recovery_temp
+-rwxrwxr-x  1 administrador administrador    1422 feb  6 19:07 reindex_db.py
+-rwxrwxr-x  1 administrador administrador    1021 abr 30 03:49 remote_query_script.py
+-rwxrwxr-x  1 administrador administrador    1334 abr 27 15:22 remote_script.py
+-rwxr-xr-x  1 administrador administrador     323 may 28 20:35 requirements.txt
+-rwxrwxr-x  1 administrador administrador     570 feb  6 19:01 reset_admin.py
+-rwxrwxr-x  1 administrador administrador     151 abr 30 03:49 .rsyncignore
+-rwxrwxr-x  1 administrador administrador    2474 abr 30 03:49 run_audit_insertion.py
+-rwxrwxr-x  1 administrador administrador     669 feb  6 19:07 run_dump_remote.py
+-rwxrwxr-x  1 administrador administrador     220 mar 17 19:26 run_js.py
+-rwxrwxr-x  1 administrador administrador     391 feb  6 19:07 run_migrate_local.py
+-rwxrwxr-x  1 administrador administrador     971 mar 17 18:24 run_migration_79.py
+-rwxrwxr-x  1 administrador administrador     328 mar  5 19:18 run_migration.py
+-rwxrwxr-x  1 administrador administrador    4714 feb  6 19:07 run_n8n_test.py
+-rwxrwxr-x  1 administrador administrador    1114 feb  6 19:07 run_reindex_remote.py
+-rwxrwxr-x  1 administrador administrador    1910 feb  6 19:07 run_remote_article_debug.py
+-rwxrwxr-x  1 administrador administrador    1983 feb  6 19:07 run_remote_id_debug.py
+-rwxrwxr-x  1 administrador administrador    1241 feb  6 19:07 run_remote_inspect.py
+-rwxrwxr-x  1 administrador administrador    2691 abr 30 03:49 run_remote_migration_79_trelo_pg.py
+-rwxrwxr-x  1 administrador administrador   11583 abr 30 03:49 run_remote_migration_79_trelo.py
+-rwxrwxr-x  1 administrador administrador     648 abr 30 03:49 run_remote_migration.py
+-rwxrwxr-x  1 administrador administrador    1035 feb  6 19:07 run_remote_table_check.py
+-rwxrwxr-x  1 administrador administrador    1035 feb  6 19:07 run_remote_table_info.py
+-rwxrwxr-x  1 administrador administrador    1439 abr 30 03:49 run_robust_check.py
+-rwxrwxr-x  1 administrador administrador    4300 mar 17 19:24 script_analysis.txt
+drwxrwxr-x  3 administrador administrador    4096 abr 30 03:49 scripts
+-rwxrwxr-x  1 administrador administrador     424 abr 30 03:49 search_rel_tables.py
+-rwxrwxr-x  1 administrador administrador    3041 abr 30 03:49 seed_alerts.py
+-rwxrwxr-x  1 administrador administrador    2042 feb  6 19:07 seed_discuss.py
+-rwxrwxr-x  1 administrador administrador    1330 abr 30 03:49 seed_roles.py
+-rwxrwxr-x  1 administrador administrador    1040 abr 30 03:49 setup-github.bat
+-rwxrwxr-x  1 administrador administrador    1207 abr 30 03:49 simulate_return_error.py
+-rwxrwxr-x  1 administrador administrador    2859 feb  6 19:07 sp_calculo_equivalencias_unidades.sql
+-rwxrwxr-x  1 administrador administrador   61603 abr 30 03:49 sp_definition.sql
+-rwxrwxr-x  1 administrador administrador    7514 abr 30 03:49 sp_dump_carmal_a.sql
+-rwxrwxr-x  1 administrador administrador    6933 abr 30 03:49 sp_dump_dev_carmal_a.sql
+-rwxrwxr-x  1 administrador administrador   61602 abr 30 03:49 sp_optimized.sql
+-rwxrwxr-x  1 administrador administrador    7562 abr 30 03:49 sp_v2_create.sql
+-rwxrwxr-x  1 administrador administrador    7061 abr 30 03:49 sp_v2_dev_create.sql
+-rwxrwxr-x  1 administrador administrador    6490 abr 30 03:49 stitch_sync.py
+-rwxrwxr-x  1 administrador administrador    2589 feb  6 19:07 switch_to_debian.py
+-rwxrwxr-x  1 administrador administrador    3831 feb  4 13:54 sync_from_prod.py
+-rwxrwxr-x  1 administrador administrador    4323 abr 30 03:49 sync_from_prod_v2.py
+-rwxrwxr-x  1 administrador administrador    3373 abr 30 03:49 sync_profit_replica.py
+-rwxrwxr-x  1 administrador administrador    1918 abr 30 03:49 temp_audit_script.py
+-rwxrwxr-x  1 administrador administrador    1132 abr 30 03:49 temp_deploy_logistics.py
+-rwxrwxr-x  1 administrador administrador    1607 abr 30 03:49 temp_deploy_solver.py
+-rwxrwxr-x  1 administrador administrador       0 mar 17 19:30 temp_fetched_script.js
+-rwxrwxr-x  1 administrador administrador  828980 abr 30 03:49 temp_schema.txt
+-rwxrwxr-x  1 administrador administrador   31946 mar 17 19:24 temp_script.js
+-rwxrwxr-x  1 administrador administrador     769 abr 30 03:49 temp_sync.ps1
+-rwxrwxr-x  1 administrador administrador    1129 feb 25 19:06 test_annulment.py
+-rwxrwxr-x  1 administrador administrador    1400 mar 17 20:28 test_clicks.py
+-rwxrwxr-x  1 administrador administrador     573 mar 16 23:29 test_db.py
+-rwxrwxr-x  1 administrador administrador     821 ene 21 16:59 test_dispatch_curl.py
+-rwxrwxr-x  1 administrador administrador    1249 abr 30 03:49 test_external_mock.py
+-rwxrwxr-x  1 administrador administrador    1771 abr 30 03:49 test_id_reset.py
+-rwxrwxr-x  1 administrador administrador    1430 mar 17 19:28 test_js.py
+-rwxrwxr-x  1 administrador administrador     745 abr 30 03:49 test_logistics.py
+-rwxrwxr-x  1 administrador administrador    3639 mar  5 19:46 test_mrp.py
+-rwxrwxr-x  1 administrador administrador    2005 mar  6 19:54 test_mrp_query.py
+-rwxrwxr-x  1 administrador administrador    2926 feb  6 19:07 test_output.txt
+-rwxrwxr-x  1 administrador administrador    3440 abr 30 03:49 test_permissions_remote.py
+-rwxrwxr-x  1 administrador administrador     686 mar  6 16:19 test_ports.py
+-rwxrwxr-x  1 administrador administrador     747 ene 27 16:33 test_routes_endpoint.py
+drwxrwxr-x  2 administrador administrador    4096 abr 30 03:49 tests
+-rwxrwxr-x  1 administrador administrador    2416 feb 11 16:22 test_support_flow.py
+-rwxrwxr-x  1 administrador administrador    1023 feb 24 13:13 test_telegram_send.py
+-rwxrwxr-x  1 administrador administrador    1335 abr 30 03:49 test_upload_submission.py
+-rwxrwxr-x  1 administrador administrador    3735 mar 11 13:17 test_v2_dev_sp.py
+-rwxrwxr-x  1 administrador administrador    3331 mar 11 12:45 test_v2_sp.py
+-rwxrwxr-x  1 administrador administrador    1455 abr 30 03:49 test_validation.py
+-rwxrwxr-x  1 administrador administrador    5280 abr 30 03:49 trigger_dump.txt
+-rwxrwxr-x  1 administrador administrador    2522 abr 30 03:49 trigger_dump_utf8.txt
+-rwxrwxr-x  1 administrador administrador    4346 dic 15 18:57 update_clean.tar.gz
+-rwxrwxr-x  1 administrador administrador      29 dic 15 19:49 update_full_v4.tar.gz
+-rwxrwxr-x  1 administrador administrador   33666 abr 30 03:49 update_mp_telegram.tar.gz
+-rwxrwxr-x  1 administrador administrador    9493 dic 15 18:37 update_reports.tar.gz
+-rwxrwxr-x  1 administrador administrador    4426 dic 15 19:06 update_style.tar.gz
+-rwxrwxr-x  1 administrador administrador   12701 dic 15 18:30 update.tar.gz
+-rwxrwxr-x  1 administrador administrador      29 dic 15 19:24 update_v3.tar.gz
+-rwxrwxr-x  1 administrador administrador    9769 dic 15 18:49 update_views.tar.gz
+-rwxrwxr-x  1 administrador administrador    1116 mar 17 18:25 upload_and_inject_79.py
+-rwxrwxr-x  1 administrador administrador     671 abr 30 03:49 upload_v2_dev_sp.py
+-rwxrwxr-x  1 administrador administrador     657 abr 30 03:49 upload_v2_sp.py
+-rwxrwxr-x  1 administrador administrador    2215 feb 19 14:30 verify_ai_analysis.py
+-rwxrwxr-x  1 administrador administrador    2254 feb 13 20:11 verify_ai.py
+-rwxrwxr-x  1 administrador administrador    1663 feb 18 12:46 verify_assistant.py
+-rwxrwxr-x  1 administrador administrador     455 feb 20 15:07 verify_audit.py
+-rwxrwxr-x  1 administrador administrador    3312 feb 15 06:07 verify_chat.py
+-rwxrwxr-x  1 administrador administrador    1532 abr 30 03:49 verify_closures.py
+-rwxrwxr-x  1 administrador administrador     510 abr 30 03:49 verify_import.py
+-rwxrwxr-x  1 administrador administrador    1155 abr 30 03:49 verify_inbox.py
+-rwxrwxr-x  1 administrador administrador    1318 abr 30 03:49 verify_inventory.py
+-rwxrwxr-x  1 administrador administrador    1640 abr 30 03:49 verify_inventory_refactor.py
+-rwxrwxr-x  1 administrador administrador    2869 abr 30 03:49 verify_invoice_import.py
+-rwxrwxr-x  1 administrador administrador    2236 ene 21 02:19 verify_invoice_logic.py
+-rwxrwxr-x  1 administrador administrador    1711 abr 30 03:49 verify_navigation.py
+-rwxrwxr-x  1 administrador administrador     609 abr 30 03:49 verify_route.py
+-rwxrwxr-x  1 administrador administrador     573 abr 30 03:49 verify_schema.py
+-rwxrwxr-x  1 administrador administrador    1118 feb  2 18:55 verify_versions.py
+drwxrwxr-x  2 administrador administrador    4096 mar  8 00:37 workers
+
+================================================================================
+COMMAND: ls -la /home/administrador/apps/production-report/pgdata || true
+================================================================================
+STDERR: ls: cannot open directory '/home/administrador/apps/production-report/pgdata': Permission denied
+
+================================================================================
+COMMAND: docker volume ls
+================================================================================
+DRIVER    VOLUME NAME
+local     production-report_pgdata
+local     production-report_postgres_data
+local     production-report_whatsapp_sessions
+
+================================================================================
+COMMAND: docker inspect production-report-db || true
+================================================================================
+[
+    {
+        "Id": "dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329",
+        "Created": "2026-05-28T20:35:58.345325124Z",
+        "Path": "docker-entrypoint.sh",
+        "Args": [
+            "postgres"
+        ],
+        "State": {
+            "Status": "running",
+            "Running": true,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 3061680,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "2026-05-28T20:35:58.489547663Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:d743cd41504b6e2a0699afb9af94eac4403e7b93a60b06fa92d9ef5732d06d58",
+        "ResolvConfPath": "/var/lib/docker/containers/dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329/resolv.conf",
+        "HostnamePath": "/var/lib/docker/containers/dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329/hostname",
+        "HostsPath": "/var/lib/docker/containers/dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329/hosts",
+        "LogPath": "/var/lib/docker/containers/dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329/dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329-json.log",
+        "Name": "/production-report-db",
+        "RestartCount": 0,
+        "Driver": "overlay2",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "docker-default",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": [
+                "/home/administrador/apps/production-report/pgdata:/var/lib/postgresql/data:rw"
+            ],
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "production-report_app-network",
+            "PortBindings": {
+                "5432/tcp": [
+                    {
+                        "HostIp": "",
+                        "HostPort": "5436"
+                    }
+                ]
+            },
+            "RestartPolicy": {
+                "Name": "unless-stopped",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": null,
+            "CgroupnsMode": "private",
+            "Dns": null,
+            "DnsOptions": null,
+            "DnsSearch": null,
+            "ExtraHosts": [],
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": false,
+            "SecurityOpt": null,
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 0,
+            "NanoCpus": 0,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": null,
+            "BlkioDeviceReadBps": null,
+            "BlkioDeviceWriteBps": null,
+            "BlkioDeviceReadIOps": null,
+            "BlkioDeviceWriteIOps": null,
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": null,
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 0,
+            "MemorySwappiness": null,
+            "OomKillDisable": null,
+            "PidsLimit": null,
+            "Ulimits": null,
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": {
+                "ID": "dbec7aa776914913255ddf3b040b79d5c7840e7b35f94ceeeb7e0a0938c84329",
+                "LowerDir": "/var/lib/docker/overlay2/7d3adf88d3b93b8c739e77ec89732188caa96bbbe1842d04db185fcdee48e427-init/diff:/var/lib/docker/overlay2/c7dcc8bcbfb09d09977abb173b0fad53f15500f07b21b98e6c92cbbea55c77e7/diff:/var/lib/docker/overlay2/d0086c440196c3c7f0370571ce87c4000ee767a8eeb80e1f296d57c2e9a7447a/diff:/var/lib/docker/overlay2/b43c98f43d39a95e238aa07d671c16f3d256c3c7480762945d45423abe2b1fc0/diff:/var/lib/docker/overlay2/6639776520c3fec6e66cd2bc733d20775ccdbc3dccfdb648d1bc4549a83aaa60/diff:/var/lib/docker/overlay2/488cb0d4e1dea66dc60dfc3d7872d9b0914b8f96b73c0f7f5b185c4649ab877b/diff:/var/lib/docker/overlay2/34e07f447e691519d3db08e8ebf75e0ef8aca753eb7c3e0c5b0cddf27f536972/diff:/var/lib/docker/overlay2/8ab63bd2b776f2b9805c079f9c8f2fe7cf118854dad07d639804e94c1b662bb3/diff:/var/lib/docker/overlay2/dcfe57269d6dea5aecebc1851ff5ced9af4983ef8c59422ded9d0687099618b4/diff:/var/lib/docker/overlay2/f07ce26f249209503819286e6d205aa4cbe1713da65c81440119a3e6aabb0b23/diff:/var/lib/docker/overlay2/59f0804c6be5c3c82a6241e7ce2e7db6dcb374ffb684b3d5d753ed38004cd8c3/diff:/var/lib/docker/overlay2/bc8fc7fba6d7ba6b2c750fedee981ef54ca13b7661d97f5f78977d8763cb6bd3/diff:/var/lib/docker/overlay2/39edeca661bdefbed63b79d10cdb27f466523a033e14c4ccea5b8f3c6ce9026a/diff:/var/lib/docker/overlay2/e3994e8d2b54700bacb9355779cf013fbc01e53380d97bfff52d25f28937a0a7/diff:/var/lib/docker/overlay2/428754338c79f4d02f59d1bfebe7f3f5321c45e358af6c2025d057ca2e1a2ce5/diff",
+                "MergedDir": "/var/lib/docker/overlay2/7d3adf88d3b93b8c739e77ec89732188caa96bbbe1842d04db185fcdee48e427/merged",
+                "UpperDir": "/var/lib/docker/overlay2/7d3adf88d3b93b8c739e77ec89732188caa96bbbe1842d04db185fcdee48e427/diff",
+                "WorkDir": "/var/lib/docker/overlay2/7d3adf88d3b93b8c739e77ec89732188caa96bbbe1842d04db185fcdee48e427/work"
+            },
+            "Name": "overlay2"
+        },
+        "Mounts": [
+            {
+                "Type": "bind",
+                "Source": "/home/administrador/apps/production-report/pgdata",
+                "Destination": "/var/lib/postgresql/data",
+                "Mode": "rw",
+                "RW": true,
+                "Propagation": "rprivate"
+            }
+        ],
+        "Config": {
+            "Hostname": "dbec7aa77691",
+            "Domainname": "",
+            "User": "",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "ExposedPorts": {
+                "5432/tcp": {}
+            },
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "POSTGRES_PASSWORD=production_password",
+                "POSTGRES_DB=production_db",
+                "POSTGRES_USER=app_user",
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/15/bin",
+                "GOSU_VERSION=1.19",
+                "LANG=en_US.utf8",
+                "PG_MAJOR=15",
+                "PG_VERSION=15.17-1.pgdg13+1",
+                "PGDATA=/var/lib/postgresql/data"
+            ],
+            "Cmd": [
+                "postgres"
+            ],
+            "Image": "postgres:15",
+            "Volumes": {
+                "/var/lib/postgresql/data": {}
+            },
+            "WorkingDir": "",
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Labels": {
+                "com.docker.compose.config-hash": "003bbff0543a127118b1e374770b02f96c4bd61b752518aac8af3e6885cdc935",
+                "com.docker.compose.container-number": "1",
+                "com.docker.compose.depends_on": "",
+                "com.docker.compose.image": "sha256:d743cd41504b6e2a0699afb9af94eac4403e7b93a60b06fa92d9ef5732d06d58",
+                "com.docker.compose.oneoff": "False",
+                "com.docker.compose.project": "production-report",
+                "com.docker.compose.project.config_files": "/home/administrador/apps/production-report/docker-compose.yml",
+                "com.docker.compose.project.working_dir": "/home/administrador/apps/production-report",
+                "com.docker.compose.service": "production_report_db",
+                "com.docker.compose.version": "2.24.0"
+            },
+            "StopSignal": "SIGINT"
+        },
+        "NetworkSettings": {
+            "SandboxID": "dada3e38a3003efc448046f2111a8b7c242b5e57d1ed1166907a51e9acd16052",
+            "SandboxKey": "/var/run/docker/netns/dada3e38a300",
+            "Ports": {
+                "5432/tcp": [
+                    {
+                        "HostIp": "0.0.0.0",
+                        "HostPort": "5436"
+                    },
+                    {
+                        "HostIp": "::",
+                        "HostPort": "5436"
+                    }
+                ]
+            },
+            "Networks": {
+                "production-report_app-network": {
+                    "IPAMConfig": null,
+                    "Links": null,
+                    "Aliases": [
+                        "production-report-db",
+                        "production_report_db"
+                    ],
+                    "DriverOpts": null,
+                    "GwPriority": 0,
+                    "NetworkID": "476283140e944d5d6fb0d547cf98d47983cdbefdc57542f8a81aa646fa2b8067",
+                    "EndpointID": "5d4d0bda163de0cce94ff1516da84cf1272e0f40315f534b70fef1d8e92fa8c2",
+                    "Gateway": "172.18.0.1",
+                    "IPAddress": "172.18.0.2",
+                    "MacAddress": "2a:77:50:23:3e:74",
+                    "IPPrefixLen": 16,
+                    "IPv6Gateway": "",
+                    "GlobalIPv6Address": "",
+                    "GlobalIPv6PrefixLen": 0,
+                    "DNSNames": [
+                        "production-report-db",
+                        "production_report_db",
+                        "dbec7aa77691"
+                    ]
+                }
+            }
+        }
+    }
+]
+

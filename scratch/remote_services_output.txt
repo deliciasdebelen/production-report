@@ -1,0 +1,51 @@
+================================================================================
+COMMAND: ps aux | grep -i uvicorn || true
+================================================================================
+adminis+ 3062069  0.5  0.7 416576 137300 ?       Ssl  20:36   0:06 /usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+adminis+ 3068676  0.0  0.0   7340  3772 ?        Ss   20:55   0:00 bash -c ps aux | grep -i uvicorn || true
+adminis+ 3068678  0.0  0.0   6544  2456 ?        S    20:55   0:00 grep -i uvicorn
+
+================================================================================
+COMMAND: ps aux | grep -i python || true
+================================================================================
+root         783  0.0  0.1 109692 23160 ?        Ssl  may22   0:00 /usr/bin/python3 /usr/share/unattended-upgrades/unattended-upgrade-shutdown --wait-for-signal
+adminis+ 3062069  0.5  0.7 416576 137300 ?       Ssl  20:36   0:06 /usr/local/bin/python3.11 /usr/local/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+adminis+ 3068679  0.0  0.0   7340  3724 ?        Ss   20:55   0:00 bash -c ps aux | grep -i python || true
+adminis+ 3068681  0.0  0.0   6544  2452 ?        S    20:55   0:00 grep -i python
+
+================================================================================
+COMMAND: systemctl status postgresql || true
+================================================================================
+STDERR: Unit postgresql.service could not be found.
+
+================================================================================
+COMMAND: pg_isready || true
+================================================================================
+STDERR: bash: line 1: pg_isready: command not found
+
+================================================================================
+COMMAND: systemctl list-units --type=service | grep -i -E 'production|report|web|api' || true
+================================================================================
+  apport.service                                                                            loaded active exited  automatic crash report generation
+  nginx.service                                                                             loaded active running A high performance web server and a reverse proxy server
+
+================================================================================
+COMMAND: netstat -tulnp | grep -E '8000|5432|5436' || true
+================================================================================
+STDERR: bash: line 1: netstat: command not found
+
+================================================================================
+COMMAND: ss -tulnp | grep -E '8000|5432|5436' || true
+================================================================================
+tcp   LISTEN 0      4096                0.0.0.0:5436       0.0.0.0:*          
+tcp   LISTEN 0      4096                0.0.0.0:8000       0.0.0.0:*          
+tcp   LISTEN 0      4096                   [::]:5436          [::]:*          
+tcp   LISTEN 0      4096                   [::]:8000          [::]:*          
+
+================================================================================
+COMMAND: find /home/administrador/apps/ -maxdepth 3 -name '.env' -exec grep -H 'DATABASE_URL' {} \; || true
+================================================================================
+/home/administrador/apps/production-report/.env:DATABASE_URL=postgresql://openpg:openpgpwd@localhost:5432/production_db
+
+STDERR: find: ‘/home/administrador/apps/production-report/pgdata’: Permission denied
+
