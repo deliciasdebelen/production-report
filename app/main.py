@@ -94,6 +94,9 @@ app.include_router(automation_admin.router)
 from .routers import mismatch_admin
 app.include_router(mismatch_admin.router)
 
+from .routers import projects
+app.include_router(projects.router)
+
 from .routers import alerts
 app.include_router(alerts.router)
 
